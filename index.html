@@ -8,18 +8,68 @@
 <style>:root{color-scheme:light;--ink:#191b17;--muted:#64675c;--paper:#fafaf3;--line:#dedfd3;--gold:#f8c87c;--amber:#d99c44;--blue:#6587e7;--coral:#e68d72;--purple:#ae6bd9;--green:#72b580;font-family:Inter,Aptos,system-ui,sans-serif;color:var(--ink);background:#eeeee1}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 8% 0,#e8ede5,transparent 62%),radial-gradient(ellipse at 100% 27%,#f7efdc,transparent 65%);min-height:100vh}a{color:inherit}button,input,select,textarea{font:inherit}button,a,input,select,textarea{outline-offset:4px}button{cursor:pointer}button:disabled{cursor:wait;opacity:.55}.top{min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px clamp(16px,3vw,46px);flex-wrap:wrap}.brand{text-decoration:none;font-size:clamp(24px,3vw,36px);font-weight:800;letter-spacing:-.075em;display:flex;align-items:center;gap:8px}.brand-dot{color:#bb651f;margin-left:-6px}.mark{color:#be651f;font-size:1.2em;line-height:1}.top nav{display:flex;gap:5px;flex-wrap:wrap}.top nav a,.pill,.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:10px 16px;border:1px solid var(--line);text-decoration:none;background:var(--paper);color:var(--ink);font-size:.86rem;white-space:nowrap}.top nav a.active{background:var(--ink);color:white;border-color:var(--ink)}.indicator{width:8px;height:8px;border-radius:100%;background:#aa6b23}.live .indicator{background:#398449}.error .indicator{background:#a5332b}.btn.primary{background:var(--gold);border-color:transparent;font-weight:650}.btn:hover,.pill:hover{filter:brightness(.96)}main{max-width:1600px;margin:auto;padding:18px clamp(16px,3vw,46px) 52px}.intro,.section-top,.form-actions,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.intro{margin-bottom:20px}.intro h1{font-size:clamp(31px,4vw,52px);line-height:1.02;letter-spacing:-.06em;margin:0 0 10px}.eyebrow{text-transform:uppercase;font-weight:750;letter-spacing:.13em;font-size:.69rem;color:#696b5f;margin:0 0 10px}.sub,.muted,small{color:var(--muted)}.sub{margin:0}.banner{border:1px solid #e9d8b5;background:#fff5df;border-radius:13px;padding:10px 14px;margin:0 0 14px;color:#624619;font-size:.84rem}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 12px}.metric,.panel{background:rgba(250,250,243,.86);border:1px solid rgba(255,255,255,.56);border-radius:24px}.metric{padding:16px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;text-align:left}.metric strong{display:block;font-size:clamp(26px,3.4vw,48px);line-height:1;letter-spacing:-.06em;margin-top:8px}.metric-label{font-size:.85rem;font-weight:600}.dots{display:grid;grid-template-columns:repeat(7,6px);gap:4px}.dots i{width:6px;height:6px;border-radius:50%;background:#e9ebe4}.dots i.on{background:var(--tone)}.panel{padding:clamp(14px,2vw,25px);margin-bottom:12px}.section-top{margin-bottom:14px}.section-top h2{margin:0;font-size:clamp(19px,2.6vw,29px);letter-spacing:-.045em}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;min-width:650px}th,td{border-bottom:1px solid var(--line);padding:13px 10px 13px 0;vertical-align:middle}tr:last-child td{border-bottom:0}th{text-transform:uppercase;font-size:.69rem;letter-spacing:.07em;color:#555a50}td{font-size:.89rem}td small{display:block;margin-top:3px}.tag{display:inline-block;max-width:100%;background:#ecece1;border-radius:999px;padding:5px 9px;font-size:.73rem;white-space:nowrap}.tag.good{background:#dcefdc;color:#295a36}.tag.warn{background:#ffe4da;color:#8a352b}.tag.blue{background:#e0e8fb;color:#2f5098}.row-actions{display:flex;gap:6px;align-items:center}.row-actions .btn{padding:6px 10px;font-size:.75rem}.avatar{display:inline-grid;place-items:center;background:#f5e0b9;border-radius:50%;width:31px;height:31px;margin-right:7px;font-size:.72rem;font-weight:800;color:#715320}.empty{padding:22px 0;color:var(--muted);margin:0}.toolbar{justify-content:flex-start}.toolbar input,.toolbar select{width:auto}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.statline{display:flex;gap:8px;flex-wrap:wrap}.timeline{list-style:none;padding:0;margin:0}.timeline li{padding:12px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.timeline li:last-child{border:0}.timeline p{margin:5px 0;white-space:pre-wrap}.timeline time{font-size:.75rem;color:var(--muted)}dialog{border:1px solid var(--line);border-radius:22px;width:min(680px,calc(100% - 24px));max-height:90vh;background:var(--paper);color:var(--ink);padding:22px;box-shadow:0 16px 80px #2426172b}dialog::backdrop{background:#22251e6c}dialog h2{margin:0;letter-spacing:-.04em}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:5px;font-size:.83rem;font-weight:650}.field.wide{grid-column:1/-1}input,textarea,select{min-width:0;width:100%;border:1px solid #cdcec1;background:#fffef8;border-radius:11px;padding:9px;color:var(--ink)}textarea{resize:vertical;min-height:65px}.form-actions{margin-top:14px;justify-content:flex-end}.form-error{color:#96352c;font-size:.85rem}.guide-item{padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}.guide-item p{margin:4px 0}.guide-item small{display:block}details summary{cursor:pointer;font-weight:700;padding:10px 0}#notice{position:fixed;bottom:14px;right:14px;z-index:2;background:var(--ink);color:white;padding:10px 14px;border-radius:14px;max-width:calc(100% - 28px);font-size:.85rem}#notice:empty{display:none}.danger-text{color:#903425}.snapshot{line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:1050px){.dots{display:none}}@media(max-width:700px){.top nav{order:3;width:100%;overflow:auto;flex-wrap:nowrap}.metrics{grid-template-columns:repeat(3,1fr)}.metric{padding:12px}.split{grid-template-columns:1fr}.panel{border-radius:18px}.form-grid{grid-template-columns:1fr}.top nav a{padding:8px 11px}}@media(max-width:360px){.metrics{grid-template-columns:repeat(2,1fr)}}
+
+/* Workflow controls use the existing QuidEdge palette. */
+:focus-visible{outline:3px solid #8f4b0c;outline-offset:3px}
+.skip{position:fixed;top:-100px;left:16px;z-index:10;background:#fff;padding:12px;border-radius:8px}
+.skip:focus{top:12px}
+.btn,.pill{min-height:42px}
+.top nav a{min-height:42px}
+.metric{display:block}
+.metric .metric-label{display:block}
+.metric-caption{display:block;font-size:.72rem;color:var(--muted);margin-top:10px}
+.filters{display:grid;grid-template-columns:2fr repeat(5,minmax(110px,1fr));gap:10px;margin-bottom:12px}
+.filters .field{font-size:.76rem}
+.result-count,.hint,.public-note{font-size:.8rem;color:var(--muted);line-height:1.5}
+.public-note{background:#f1f0e4;padding:10px 12px;border-radius:10px}
+.required{color:#8c3e15}
+fieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;min-width:0}
+legend{padding:0 6px;color:var(--muted);font-size:.8rem}
+fieldset:disabled{opacity:.5}
+[hidden]{display:none!important}
+.draft-banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;background:#e6eddf;border-radius:14px;margin-bottom:14px;font-size:.85rem}
+.pagination{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+.checklist{list-style:none;padding:0}
+.checklist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0;font-size:.85rem}
+dialog{overscroll-behavior:contain}
+dialog h2{max-width:calc(100% - 85px)}
+#app:focus{outline:none}
+@media(max-width:1100px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){
+  .filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .metrics{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .metric{border-radius:14px;padding:12px 7px}
+  .metric-label{font-size:.68rem}
+  .metric strong{font-size:27px}
+  .metric-caption{display:none}
+  .scroll{overflow:visible}
+  table,thead,tbody,tr,td{display:block;min-width:0;width:100%}
+  thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  tbody tr{padding:10px 0;border-bottom:1px solid var(--line)}
+  tbody tr:last-child{border:0}
+  td{display:flex;justify-content:space-between;gap:14px;align-items:center;border:0;padding:7px 0;flex-wrap:wrap;overflow-wrap:anywhere}
+  td::before{content:attr(data-label);color:var(--muted);font-size:.74rem;flex:0 0 95px}
+  td small{flex-basis:100%;text-align:right}
+  .row-actions{flex-wrap:wrap}
+  .form-grid .wide{grid-column:1/-1}
+  .top{gap:8px}
+  .top .pill{font-size:.72rem;padding:7px 10px}
+  .intro h1{font-size:34px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
+<a class="skip" href="#app">Skip to recruitment workspace</a>
 <header class="top">
   <a href="#overview" class="brand"><span class="mark" aria-hidden="true">✺</span>quidedge<span class="brand-dot">.</span></a>
   <nav aria-label="Recruitment navigation" id="nav">
-    <a href="#overview">Overview</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#guide">Interview guide</a>
+    <a href="#overview">Overview</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#interviews">Interviews</a><a href="#guide">Interview guide</a>
   </nav>
   <button id="sync" class="pill" type="button" title="Refresh data"><span class="indicator"></span><span id="mode">Connecting</span></button>
 </header>
 <main>
-  <div id="app"></div>
+  <div id="app" tabindex="-1"></div>
 </main>
 <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
 <div id="notice" role="status" aria-live="polite"></div>
@@ -29,8 +79,18 @@ const guide = [["R1", "Open", 2, "Explain the role, call structure and next roun
 
 const stages = ['Sourced','Contacted','Replied','R1 Scheduled','R1 Review','R2 Prep','R2 Scheduled','R2 Review','Reference Check','Offer / Agreement','On Hold','Hired','Rejected','Withdrawn'];
 const closed = ['Hired','Rejected','Withdrawn'];
-const milestones = ['First outreach','Reply received','Follow-up sent','R1 completed','R2 brief sent','R2 completed','Writing task completed','References completed','Offer sent','Agreement / NDA signed','Blocker update'];
-const dateSL = (date = new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Colombo',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+const milestones = ['First outreach','Reply received','Follow-up sent','R1 completed','R2 brief sent','R2 completed','Writing task completed','References completed','Offer sent','Agreement / NDA signed','Interview no-show','Interview cancelled','Offer declined','Blocker update'];
+const checklistItems = [
+  ['terms','Role and payment terms confirmed'],
+  ['writing','Writing / practical task reviewed'],
+  ['references','References checked'],
+  ['offer','Offer accepted'],
+  ['agreement','Agreement completed'],
+  ['nda','NDA completed']
+];
+const dateSL = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
+  timeZone:'Asia/Colombo',year:'numeric',month:'2-digit',day:'2-digit'
+}).format(date);
 const groupStages = [
   ['Sourced',['Sourced','Contacted','Replied'],'amber'],
   ['Screening',['R1 Scheduled','R1 Review'],'blue'],
@@ -38,312 +98,775 @@ const groupStages = [
   ['Offer',['Offer / Agreement'],'purple'],
   ['Hired',['Hired'],'green']
 ];
+const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(+parsed) && parsed.toISOString().slice(0,10) === value;
+}
+function stageProblem(payload, candidate, eventDate) {
+  if (!stages.includes(payload.stage)) return 'Choose a valid stage.';
+  if (!String(payload.note || '').trim()) return 'Add the reason for this update.';
+  if (!closed.includes(payload.stage)) {
+    if (![payload.action,payload.due,payload.owner].every(Boolean)) return 'Set the next action, owner and due date.';
+  }
+  const slot = payload.stage === 'R1 Scheduled' ? payload.r1 : payload.stage === 'R2 Scheduled' ? payload.r2 : '';
+  if (['R1 Scheduled','R2 Scheduled'].includes(payload.stage)) {
+    if (!slot) return 'Set the interview date and time in Sri Lanka time.';
+    if (slot.slice(0,10) < eventDate) return 'The interview cannot be earlier than the event date.';
+  }
+  if (payload.stage === 'Hired') {
+    const missing = checklistItems.filter(([key]) => !['Complete','Waived'].includes(candidate.checklist[key]));
+    if (missing.length) return 'Complete or waive each hiring checklist item before marking Hired.';
+    if (!validDate(payload.start_date)) return 'Confirm the start date before marking Hired.';
+  }
+  return '';
+}
 function project(events) {
-  const jobs = new Map(), candidates = new Map();
-  for (const event of [...events].sort((a,b)=>a.seq-b.seq)) {
+  const jobs = new Map();
+  const candidates = new Map();
+  for (const event of [...events].sort((a,b) => a.seq - b.seq)) {
     const p = event.payload;
-    if (event.kind === 'job') jobs.set(event.id,{...p,id:event.id});
-    if (event.kind === 'candidate') candidates.set(event.id,{...p,id:event.id,date:event.event_date,history:[event],r1:'',r2:''});
+    if (event.kind === 'job') {
+      if (p.job_id) {
+        const job = jobs.get(p.job_id);
+        if (job) Object.assign(job,p,{id:p.job_id,revision:event.seq});
+      } else {
+        jobs.set(event.id,{status:'Open',headcount:'1',...p,id:event.id,revision:event.seq});
+      }
+    }
+    if (event.kind === 'candidate') {
+      candidates.set(event.id, {
+        ...p,id:event.id,date:event.event_date,revision:event.seq,
+        history:[event],r1:'',r2:'',checklist:{},start_date:''
+      });
+    }
     const candidate = candidates.get(event.subject_id);
     if (!candidate) continue;
     candidate.history.push(event);
+    candidate.revision = event.seq;
     if (event.kind === 'stage') {
-      for (const key of ['stage','action','due','owner','blocker']) candidate[key]=p[key] || '';
-      if ('r1' in p) candidate.r1=p.r1;
-      if ('r2' in p) candidate.r2=p.r2;
+      for (const key of ['stage','action','due','owner','blocker','r1','r2','start_date']) {
+        if (key in p) candidate[key] = p[key];
+      }
+    }
+    if (event.kind === 'activity') {
+      if (p.event === 'Hiring checklist updated') {
+        for (const [key] of checklistItems) {
+          if (key in p) candidate.checklist[key] = p[key];
+        }
+      }
+      const completed = {
+        'Writing task completed':['writing'],
+        'References completed':['references'],
+        'Agreement / NDA signed':['agreement','nda']
+      }[p.event] || [];
+      for (const key of completed) candidate.checklist[key] = 'Complete';
     }
   }
   return {jobs:[...jobs.values()].reverse(),candidates:[...candidates.values()].reverse()};
 }
-function attention(candidate, today=dateSL()) {
+function attention(candidate, today = dateSL()) {
   if (closed.includes(candidate.stage)) return 'Closed';
-  if (candidate.due && candidate.due<today) return 'Overdue';
-  if (candidate.blocker || candidate.owner==='Leadership') return 'Needs decision';
+  if (candidate.due && candidate.due < today) return 'Overdue';
+  if (candidate.blocker || candidate.owner === 'Leadership') return 'Needs decision';
   if (!candidate.action || !candidate.due || !candidate.owner) return 'Missing next step';
-  return candidate.due===today?'Due today':'On track';
+  return candidate.due === today ? 'Due today' : 'On track';
 }
-const escape = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function csvCell(value) {
+  let text = String(value ?? '');
+  if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
+  return '"' + text.replaceAll('"','""') + '"';
+}
+
+function newId() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes,value => value.toString(16).padStart(2,'0')).join('');
+  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-' + hex.slice(12,16) + '-' +
+    hex.slice(16,20) + '-' + hex.slice(20);
+}
 
 
 const connected = Boolean(config.eventsUrl);
-async function request(path='', options={}) {
-  const response = await fetch(config.eventsUrl + path, {
-    cache:'no-store', signal:AbortSignal.timeout(15000), ...options
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || 'Storage request failed.');
+async function request(path = '', options = {}) {
+  let response;
+  try {
+    response = await fetch(config.eventsUrl + path, {
+      cache:'no-store',signal:AbortSignal.timeout(20000),...options
+    });
+  } catch {
+    throw new Error('Connection interrupted. Your draft is kept. Retry to confirm the same save.');
+  }
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.error || 'Storage request failed. Try again.');
+    error.status = response.status;
+    throw error;
+  }
   return body;
 }
-async function loadEvents() {
-  const events=[];
-  let after=0;
+async function loadEvents(after = 0) {
+  const events = [];
+  let cursor = after;
   for (;;) {
-    const batch=await request('?after='+after);
+    const batch = await request('?after=' + cursor);
+    if (!Array.isArray(batch)) throw new Error('The server returned an invalid event list.');
     if (!batch.length) return events;
+    if (batch.some(event => !Number.isSafeInteger(event.seq) || event.seq <= cursor)) {
+      throw new Error('The event cursor is invalid. Refresh to retry.');
+    }
     events.push(...batch);
-    if (batch.length<500) return events;
-    after=batch.at(-1).seq;
+    cursor = batch.at(-1).seq;
+    if (batch.length < 500) return events;
   }
 }
 function append(event) {
-  return request('', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(event)
+  return request('',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(event)
   });
 }
 
 const e = escape;
 
-const app=document.querySelector('#app'), dialog=document.querySelector('#dialog');
-const mode=document.querySelector('#mode'), sync=document.querySelector('#sync'), notice=document.querySelector('#notice');
-const owners=['COO','Leadership','Candidate'];
-const sources=['Headhunting','Referral','Inbound','Other'];
-let events=[], ready=false, failure='', refreshing=false, saving=false, timer;
-let writeRevision=0;
-let reportDate=dateSL(), stageFilter='', search='';
-const page=()=>location.hash.slice(1)||'overview';
-const btn=(label,action,id='',primary=false)=>`<button type="button" class="btn ${primary?'primary':''}" data-action="${e(action)}" data-id="${e(id)}">${e(label)}</button>`;
-const tag=(text,type='')=>`<span class="tag ${type}">${e(text)}</span>`;
-const empty=text=>`<p class="empty">${e(text)}</p>`;
-const options=(values,selected='')=>values.map(item=>{
-  const [value,label]=Array.isArray(item)?item:[item,item];
-  return `<option value="${e(value)}" ${value===selected?'selected':''}>${e(label)}</option>`;
-}).join('');
-const table=(head,rows)=>`<div class="scroll"><table><thead><tr>${head.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-const panel=(title,html,action='')=>`<section class="panel"><div class="section-top"><h2>${e(title)}</h2>${action}</div>${html}</section>`;
-const heading=(title,sub,action='')=>`<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p><h1>${e(title)}</h1><p class="sub">${e(sub)}</p></div>${action}</div>`;
-const eventLabel=x=>({job:'Position opened',candidate:'Candidate sourced',stage:x.payload.stage,activity:x.payload.event,summary:'Daily summary',score:x.payload.round+' scorecard'})[x.kind];
-const formatTime=x=>x?.replace('T',' ')||'—';
-const candidateName=x=>`<span class="avatar" aria-hidden="true">${e(x.alias.slice(0,2).toUpperCase())}</span><strong>${e(x.alias)}</strong>`;
-function candidateTable(list,jobs) {
-  if (!list.length) return empty('No candidates match this view.');
-  const jobNames=new Map(jobs.map(j=>[j.id,j.title]));
-  return table(['Candidate','Position','Stage','Next action','Attention','Actions'],list.map(c=>{
-    const flag=attention(c);
-    return [candidateName(c),e(jobNames.get(c.job_id)||'—'),tag(c.stage,c.stage==='Hired'?'good':'blue'),
-      e(c.action||'—')+(c.due?`<small>${e(c.due)} · ${e(c.owner)}</small>`:''),
-      tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag)?'warn':''),
-      `<div class="row-actions">${btn('View record','view',c.id)}${btn('Log update','stage',c.id,true)}</div>`];
+const app = document.querySelector('#app');
+const dialog = document.querySelector('#dialog');
+const mode = document.querySelector('#mode');
+const sync = document.querySelector('#sync');
+const notice = document.querySelector('#notice');
+const owners = ['COO','Leadership','Candidate'];
+const sources = ['Headhunting','Referral','Inbound','Other'];
+const employmentTypes = ['Contract','Full-time','Part-time','Commission-based'];
+const pageSize = 25;
+let events = [];
+let state = {jobs:[],candidates:[]};
+let jobNames = new Map();
+let candidateIndex = new Map();
+let ready = false;
+let failure = '';
+let refreshing = false;
+let saving = false;
+let timer;
+let focusReturn;
+let pendingRecord = null;
+let reportDate = dateSL();
+let stageFilter = '';
+let jobFilter = '';
+let attentionFilter = '';
+let ownerFilter = '';
+let search = '';
+let sort = 'recent';
+let currentPage = 1;
+let guideTrack = 'Client Acquisition & Relations';
+let searchTimer;
+let noticeTimer;
+
+const page = () => ['overview','pipeline','activity','interviews','guide'].includes(location.hash.slice(1)) ?
+  location.hash.slice(1) : 'overview';
+const btn = (label,action,id = '',primary = false) =>
+  '<button type="button" class="btn ' + (primary ? 'primary' : '') +
+  '" data-action="' + e(action) + '" data-id="' + e(id) + '">' + e(label) + '</button>';
+const tag = (text,type = '') => '<span class="tag ' + type + '">' + e(text) + '</span>';
+const empty = text => '<p class="empty">' + e(text) + '</p>';
+function options(values,selected = '') {
+  return values.map(item => {
+    const [value,label] = Array.isArray(item) ? item : [item,item];
+    return '<option value="' + e(value) + '"' + (String(value) === String(selected) ? ' selected' : '') +
+      '>' + e(label) + '</option>';
+  }).join('');
+}
+function table(head,rows) {
+  return '<div class="scroll"><table><thead><tr>' +
+    head.map(h => '<th scope="col">' + e(h) + '</th>').join('') +
+    '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map((cell,i) =>
+      '<td data-label="' + e(head[i]) + '">' + cell + '</td>').join('') + '</tr>').join('') +
+    '</tbody></table></div>';
+}
+const panel = (title,html,action = '') => '<section class="panel"><div class="section-top"><h2>' +
+  e(title) + '</h2>' + action + '</div>' + html + '</section>';
+const heading = (title,subtitle,action = '') => '<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p>' +
+  '<h1>' + e(title) + '</h1><p class="sub">' + e(subtitle) + '</p></div>' + action + '</div>';
+const eventLabel = event => ({
+  job:event.payload.job_id ? 'Position updated' : 'Position opened',
+  candidate:'Candidate sourced',stage:event.payload.stage,activity:event.payload.event,
+  summary:'Daily summary',score:event.payload.round + ' scorecard'
+})[event.kind];
+const jobTitle = id => jobNames.get(id) || 'Position unavailable';
+const candidateById = id => candidateIndex.get(id);
+function storageRead() {
+  try { return JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null') }
+  catch { return null }
+}
+function storageWrite(value) {
+  try {
+    if (value) sessionStorage.setItem('qe-recruitment-draft',JSON.stringify(value));
+    else sessionStorage.removeItem('qe-recruitment-draft');
+  } catch { /* The form remains usable when browser storage is disabled. */ }
+}
+function ingest(incoming) {
+  if (!incoming.length) return false;
+  const known = new Set(events.map(event => event.id));
+  const fresh = incoming.filter(event => !known.has(event.id));
+  if (!fresh.length) return false;
+  events = events.concat(fresh).sort((a,b) => a.seq - b.seq);
+  state = project(events);
+  jobNames = new Map(state.jobs.map(job => [job.id,job.title]));
+  candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
+  return true;
+}
+function candidateTable(candidates) {
+  if (!candidates.length) return empty('No candidates in this view. Add a candidate or adjust the filters.');
+  return table(['Candidate','Position','Stage','Next action','Attention','Actions'],candidates.map(candidate => {
+    const flag = attention(candidate);
+    return [
+      '<strong>' + e(candidate.alias) + '</strong><small>' + e(candidate.source) + '</small>',
+      e(jobTitle(candidate.job_id)),
+      tag(candidate.stage,candidate.stage === 'Hired' ? 'good' : 'blue'),
+      e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +
+        ' · ' + e(candidate.owner || 'No owner') + '</small>',
+      tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag) ? 'warn' : ''),
+      '<div class="row-actions">' + btn('View record','view',candidate.id) +
+        btn('Update','stage',candidate.id,true) + '</div>'
+    ];
   }));
 }
-function overview(jobs,candidates) {
-  const chart=groupStages.map(([label,values,tone])=>{
-    const count=candidates.filter(c=>values.includes(c.stage)).length;
-    return `<button class="metric" type="button" data-action="group" data-id="${e(label)}" style="--tone:var(--${tone})"><span><span class="metric-label">${e(label)}</span><strong>${count}</strong></span><span class="dots" aria-hidden="true">${Array.from({length:35},(_,i)=>`<i class="${(4-Math.floor(i/7))*7+i%7<Math.min(35,count)?'on':''}"></i>`).join('')}</span></button>`;
+function overview() {
+  const candidates = state.candidates;
+  const openJobs = state.jobs.filter(job => job.status === 'Open');
+  const metrics = groupStages.map(([label,values,tone]) => {
+    const count = candidates.filter(candidate => values.includes(candidate.stage)).length;
+    return '<button class="metric" type="button" data-action="group" data-id="' + e(label) +
+      '" style="--tone:var(--' + tone + ')"><span class="metric-label">' + e(label) +
+      '</span><strong>' + count + '</strong><span class="metric-caption">View candidates</span></button>';
   }).join('');
-  const jobList=jobs.length?table(['Job title','Department','Location','Candidates','Status'],jobs.map(j=>[
-    `<strong>${e(j.title)}</strong>`,e(j.department),e(j.location),String(candidates.filter(c=>c.job_id===j.id).length),tag('Open','good')
-  ])):empty('Open a position to start tracking candidates.');
-  const overdue=candidates.filter(c=>attention(c)==='Overdue').length;
-  const decisions=candidates.filter(c=>!closed.includes(c.stage)&&(c.blocker||c.owner==='Leadership')).length;
-  const due=candidates.filter(c=>!closed.includes(c.stage)&&c.due===dateSL()).length;
-  return heading('Recruitment management','Manage open roles, track candidates and see what needs attention.',btn('+ Open position','job','',true))+
-    `<div class="metrics" aria-label="Current pipeline counts">${chart}</div>`+
-    panel('Open job positions',jobList)+
-    panel('Recent candidates',`<div class="statline">${tag(overdue+' overdue',overdue?'warn':'')}${tag(due+' due today')}${tag(decisions+' need a decision',decisions?'warn':'')}</div>`+candidateTable(candidates.slice(0,6),jobs),btn('+ Add candidate','candidate','',true));
+  const active = candidates.filter(candidate => !closed.includes(candidate.stage));
+  const queue = active.filter(candidate => attention(candidate) !== 'On track').sort((a,b) =>
+    (a.due || '9999').localeCompare(b.due || '9999'));
+  const jobRows = state.jobs.map(job => [
+    '<strong>' + e(job.title) + '</strong><small>' + e(job.employment || 'Terms to confirm') + '</small>',
+    e(job.department) + '<small>' + e(job.location) + '</small>',
+    String(candidates.filter(candidate => candidate.job_id === job.id && candidate.stage === 'Hired').length) +
+      ' / ' + e(job.headcount || '1') + ' hired',
+    e(job.target_date || 'To confirm'),
+    tag(job.status,job.status === 'Open' ? 'good' : ''),
+    btn('Manage','job',job.id)
+  ]);
+  return heading('Recruitment management','Keep roles, next actions and hiring decisions moving.',
+    '<div class="toolbar">' + btn('Export records','export') + btn('+ Open position','job','',true) + '</div>') +
+    '<div class="metrics" aria-label="Current pipeline counts">' + metrics + '</div>' +
+    panel('Needs attention',queue.length ? candidateTable(queue.slice(0,5)) :
+      empty(active.length ? 'Every active candidate has a next step scheduled.' : 'Add your first candidate to build the action queue.'),
+      btn('View all actions','attention')) +
+    panel('Positions',jobRows.length ? table(['Role','Department / market','Headcount','Target date','Status','Action'],jobRows) :
+      empty('Open a position, define the role requirements, then add candidates.'),
+      tag(openJobs.length + ' open · ' + active.length + ' active candidates')) +
+    panel('Recent candidates',candidateTable(candidates.slice(0,6)),btn('+ Add candidate','candidate','',true));
 }
-function pipeline(jobs,candidates) {
-  const group=groupStages.find(([name])=>'group:'+name===stageFilter);
-  const list=candidates.filter(c=>(!stageFilter||(group?group[1].includes(c.stage):c.stage===stageFilter))&&
-    (!search||[c.alias,c.source,c.owner,jobs.find(j=>j.id===c.job_id)?.title].some(x=>String(x||'').toLowerCase().includes(search.toLowerCase()))));
-  return heading('Candidate pipeline','A current view of candidate records. Every update is kept in the timeline.',btn('+ Add candidate','candidate','',true))+
-    panel('Candidates',`<div class="toolbar"><input id="search" aria-label="Search candidates" placeholder="Search alias, role or source" value="${e(search)}"><select id="stage-filter" aria-label="Filter stage">${options([['','All stages'],...groupStages.map(([n])=>['group:'+n,n+' group']),...stages],stageFilter)}</select>${tag(list.length+' matching')}</div>`+candidateTable(list,jobs));
+function filteredCandidates() {
+  const group = groupStages.find(([name]) => 'group:' + name === stageFilter);
+  const query = search.trim().toLowerCase();
+  const list = state.candidates.filter(candidate => {
+    const stageMatch = !stageFilter || (group ? group[1].includes(candidate.stage) : candidate.stage === stageFilter);
+    const flag = attention(candidate);
+    return stageMatch && (!jobFilter || candidate.job_id === jobFilter) &&
+      (!ownerFilter || candidate.owner === ownerFilter) &&
+      (!attentionFilter || (attentionFilter === 'needs-action' ?
+        !['On track','Closed'].includes(flag) : flag === attentionFilter)) &&
+      (!query || [candidate.alias,candidate.source,candidate.owner,jobTitle(candidate.job_id)]
+        .some(value => String(value || '').toLowerCase().includes(query)));
+  });
+  if (sort === 'due') list.sort((a,b) => (a.due || '9999').localeCompare(b.due || '9999') || b.revision - a.revision);
+  if (sort === 'code') list.sort((a,b) => a.alias.localeCompare(b.alias,undefined,{numeric:true}));
+  return list;
 }
-function activity(candidates) {
-  const daily=events.filter(x=>x.event_date===reportDate).reverse();
-  const summaries=daily.filter(x=>x.kind==='summary');
-  const entries=daily.filter(x=>x.kind!=='summary');
-  const aliases=new Map(candidates.map(c=>[c.id,c.alias]));
-  const labels=['Candidate sourced','First outreach','R1 completed','R2 completed','Offer sent','Hired'];
-  return heading('Daily activity','Review recruiting progress and leadership requests by Sri Lanka date.',btn('+ Daily summary','summary','',true))+
-    panel('Daily report',`<div class="statline">${labels.map(label=>tag(label+' · '+entries.filter(x=>eventLabel(x)===label).length)).join('')}</div>`,
-      `<label class="field">Report date (SL)<input type="date" id="report-date" value="${e(reportDate)}"></label>`)+
-    `<div class="split">${panel('COO updates',summaries.length?`<ul class="timeline">${summaries.map(x=>`<li><strong>Progress</strong><p>${e(x.payload.progress)}</p><strong>Blockers / decisions</strong><p>${e(x.payload.blockers||'—')}</p><strong>Next priorities</strong><p>${e(x.payload.priorities)}</p><time>${e(new Date(x.created_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo'}))} SL</time></li>`).join('')}</ul>`:empty('No summary recorded for this date.'))}
-    ${panel('Event log',entries.length?`<ul class="timeline">${entries.map(x=>`<li><strong>${e(eventLabel(x))}</strong><p>${e(aliases.get(x.subject_id||x.id)||x.payload.title||'')}${x.payload.note?' · '+e(x.payload.note):''}</p></li>`).join('')}</ul>`:empty('No events recorded for this date.'))}</div>`;
+function candidateResults() {
+  const list = filteredCandidates();
+  const pages = Math.max(1,Math.ceil(list.length / pageSize));
+  currentPage = Math.min(currentPage,pages);
+  const start = (currentPage - 1) * pageSize;
+  return '<p class="result-count" role="status">' + list.length + ' candidates · page ' + currentPage + ' of ' + pages + '</p>' +
+    candidateTable(list.slice(start,start + pageSize)) +
+    (pages > 1 ? '<div class="pagination">' +
+      (currentPage > 1 ? btn('Previous','previous') : '') +
+      (currentPage < pages ? btn('Next','next') : '') + '</div>' : '');
 }
+function pipeline() {
+  return heading('Candidate pipeline','Filter by role, stage, owner or outstanding action.',
+    '<div class="toolbar">' + btn('Export CSV','csv') + btn('+ Add candidate','candidate','',true) + '</div>') +
+    panel('Candidates','<div class="filters">' +
+      '<label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + e(search) + '"></label>' +
+      '<label class="field">Position<select id="job-filter">' + options([['','All positions'],...state.jobs.map(job => [job.id,job.title])],jobFilter) + '</select></label>' +
+      '<label class="field">Stage<select id="stage-filter">' + options([['','All stages'],...groupStages.map(([name]) => ['group:' + name,name + ' group']),...stages],stageFilter) + '</select></label>' +
+      '<label class="field">Action owner<select id="owner-filter">' + options([['','All owners'],...owners],ownerFilter) + '</select></label>' +
+      '<label class="field">Attention<select id="attention-filter">' + options([['','All candidates'],['needs-action','Needs action'],'Overdue','Due today','Needs decision','Missing next step','Closed'],attentionFilter) + '</select></label>' +
+      '<label class="field">Sort<select id="sort-filter">' + options([['recent','Newest first'],['due','Due date'],['code','Candidate code']],sort) + '</select></label></div>' +
+      '<div id="candidate-results">' + candidateResults() + '</div>',btn('Reset filters','reset'));
+}
+function activity() {
+  const daily = events.filter(event => event.event_date === reportDate).slice().reverse();
+  const summaries = daily.filter(event => event.kind === 'summary');
+  const entries = daily.filter(event => event.kind !== 'summary');
+  const aliases = new Map(state.candidates.map(candidate => [candidate.id,candidate.alias]));
+  const metrics = ['Candidate sourced','First outreach','R1 completed','R2 completed','Offer sent','Hired'];
+  return heading('Daily activity','Progress, decisions and next workday priorities in Sri Lanka time.',btn('+ Daily summary','summary','',true)) +
+    panel('Daily report','<div class="statline">' + metrics.map(label => tag(label + ' · ' +
+      entries.filter(event => eventLabel(event) === label).length)).join('') + '</div>',
+      '<label class="field">Report date (SL)<input type="date" id="report-date" value="' + e(reportDate) + '"></label>') +
+    '<div class="split">' + panel('COO updates',summaries.length ? '<ul class="timeline">' + summaries.map(event =>
+      '<li><strong>Progress</strong><p>' + e(event.payload.progress) + '</p><strong>Blockers / decisions</strong><p>' +
+      e(event.payload.blockers || 'None recorded') + '</p><strong>Next priorities</strong><p>' + e(event.payload.priorities) +
+      '</p><time>' + e(new Date(event.created_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo'})) + ' SL</time></li>').join('') +
+      '</ul>' : empty('No summary for this date. Add one to record the COO handover.')) +
+    panel('Event log',entries.length ? '<ul class="timeline">' + entries.slice(0,100).map(event =>
+      '<li><strong>' + e(eventLabel(event)) + '</strong><p>' +
+      e(aliases.get(event.subject_id || event.id) || event.payload.title || '') +
+      (event.payload.note ? ' · ' + e(event.payload.note) : '') + '</p></li>').join('') + '</ul>' +
+      (entries.length > 100 ? '<p class="muted">Showing the latest 100 events. Export records for the complete history.</p>' : '') :
+      empty('No activity recorded for this date.')) + '</div>';
+}
+function scheduledInterviews() {
+  return state.candidates.flatMap(candidate => {
+    const round = candidate.stage === 'R1 Scheduled' ? 'R1' : candidate.stage === 'R2 Scheduled' ? 'R2' : '';
+    const slot = round && candidate[round.toLowerCase()];
+    return slot ? [{candidate,round,slot}] : [];
+  }).sort((a,b) => a.slot.localeCompare(b.slot));
+}
+function interviews() {
+  const bookings = scheduledInterviews();
+  return heading('Interview calendar','Current bookings in Sri Lanka time. Reschedule or cancel through a candidate update.') +
+    panel('Scheduled interviews',bookings.length ? table(['Candidate','Position','Round','Sri Lanka time','Actions'],
+      bookings.map(({candidate,round,slot}) => [
+        '<strong>' + e(candidate.alias) + '</strong>',e(jobTitle(candidate.job_id)),tag(round,'blue'),
+        e(slot.replace('T',' ')) + (slot.slice(0,10) < dateSL() ? '<small>Past date · review the candidate stage</small>' : ''),
+        '<div class="row-actions">' + btn('Calendar file','calendar',candidate.id) +
+          btn('Reschedule / cancel','stage',candidate.id,true) + '</div>'
+      ])) : empty('No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time.'));
+}
+const relationsPrompts = [
+  ['Opening',3,'Confirm the role, commission or payment structure, client markets and the interview plan.'],
+  ['Prospect research',10,'Present six slides on one target account, their likely need, decision maker, outreach angle, follow-up plan and success measures.'],
+  ['Defence',10,'Explain the account choice, the evidence behind the proposed need, what AI suggestions you rejected, and the first metric you would track.'],
+  ['Client role-play',20,'Handle an unhappy client, an unrealistic promise request, a budget objection, a confidentiality request and an interruption. Agree a concrete next step.'],
+  ['Team behaviours',10,'Use four questions from the existing team behaviours question bank.'],
+  ['Candidate questions',5,'Discuss the role and ways of working.'],
+  ['Close',2,'Confirm references, outstanding checks and the decision timeline.']
+];
 function guideView() {
-  const sections=[['R1','Screening · 30 min'],['R2','Technical · 60 min'],['Bank','Team behaviours · question bank'],['Other','Scoring and workflow']];
-  return heading('Interview guide','The QuidEdge interview prompts and timing from your workbook.')+
-    sections.map(([key,title])=>`<section class="panel"><details ${key==='R1'?'open':''}><summary>${e(title)}</summary>${guide.filter(([r])=>key==='Other'?!['R1','R2','Bank'].includes(r):r===key).map(([,section,min,prompt,note])=>
-      `<div class="guide-item"><strong>${e(section)}${min?' · '+min+' min':''}</strong><p>${e(prompt)}</p>${note?`<small>${e(note)}</small>`:''}</div>`).join('')}</details></section>`).join('');
+  const original = ['R1','R2','Bank','Other'].map(key => {
+    const title = {R1:'Screening · 30 min',R2:'Technical · 60 min',Bank:'Team behaviours',Other:'Scoring and workflow'}[key];
+    return '<section class="panel"><details' + (key === 'R1' ? ' open' : '') + '><summary>' + title + '</summary>' +
+      guide.filter(([round]) => key === 'Other' ? !['R1','R2','Bank'].includes(round) : round === key)
+        .map(([,section,minutes,prompt,note]) => '<div class="guide-item"><strong>' + e(section) +
+          (minutes ? ' · ' + minutes + ' min' : '') + '</strong><p>' + e(prompt) + '</p>' +
+          (note ? '<small>' + e(note) + '</small>' : '') + '</div>').join('') + '</details></section>';
+  }).join('');
+  return heading('Interview guide','Use consistent prompts and record observable evidence.',
+    '<label class="field">Role track<select id="guide-track">' + options(['Social media','Client Acquisition & Relations'],guideTrack) + '</select></label>') +
+    (guideTrack === 'Social media' ? original : panel('Client Acquisition & Relations · Round 2',
+      '<p class="muted">Use the screening and team behaviours prompts below, with this role-specific technical brief.</p>' +
+      relationsPrompts.map(([label,minutes,prompt]) => '<div class="guide-item"><strong>' + e(label) + ' · ' + minutes +
+        ' min</strong><p>' + e(prompt) + '</p></div>').join('')) + original);
 }
 function render() {
-  const view=page();
-  document.querySelectorAll('#nav a').forEach(a=>{
-    const active=a.hash==='#'+view;a.classList.toggle('active',active);
-    if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
-  });
-  const {jobs,candidates}=project(events);
-  let alert=connected?'':`<p class="banner"><strong>Demo mode.</strong> Sample data and temporary changes reset when this page reloads. Connect shared storage before entering live records.</p>`;
-  if(failure)alert+=`<p class="banner" role="alert">${e(failure)} Use the sync button to retry.</p>`;
-  const body=view==='pipeline'?pipeline(jobs,candidates):view==='activity'?activity(candidates):view==='guide'?guideView():overview(jobs,candidates);
-  app.innerHTML=alert+(!ready&&view!=='guide'?panel('Recruitment workspace',empty(failure?'Shared data could not be loaded.':'Loading records…')):body);
+  const view = page();
+  for (const link of document.querySelectorAll('#nav a')) {
+    const selected = link.hash === '#' + view;
+    link.classList.toggle('active',selected);
+    if (selected) link.setAttribute('aria-current','page');
+    else link.removeAttribute('aria-current');
+  }
+  const screens = {overview,pipeline,activity,interviews,guide:guideView};
+  const draft = storageRead();
+  const draftBanner = draft ? '<div class="draft-banner"><span>Unsaved ' + e(draft.kind) + ' draft available.</span>' +
+    '<div class="row-actions">' + btn('Resume draft','resume') + btn('Discard draft','discard') + '</div></div>' : '';
+  const alert = failure ? '<p class="banner" role="alert">' + e(failure) +
+    ' Existing records remain visible. Use Refresh to retry.</p>' : '';
+  app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
+    panel('Recruitment workspace',empty(failure ? 'The shared records could not be loaded.' : 'Loading shared records…')) : screens[view]());
 }
-function field(name,label,{kind='text',value='',choices=[],required=false,max=240,wide=false}={}) {
-  const common=`name="${e(name)}" ${required?'required':''}`;
+function field(name,label,{kind = 'text',value = '',choices = [],required = false,max = 240,wide = false} = {}) {
+  const attributes = 'name="' + e(name) + '"' + (required ? ' required' : '');
   let input;
-  if(kind==='select') input=`<select ${common}>${options(choices,value)}</select>`;
-  else if(kind==='textarea') input=`<textarea ${common} maxlength="${max}">${e(value)}</textarea>`;
-  else input=`<input type="${e(kind)}" ${common} value="${e(value)}" ${kind==='text'?'maxlength="'+max+'"':''}>`;
-  return `<label class="field ${wide?'wide':''}">${e(label)}${input}</label>`;
+  if (kind === 'select') input = '<select ' + attributes + '>' + options(choices,value) + '</select>';
+  else if (kind === 'textarea') input = '<textarea ' + attributes + ' maxlength="' + max + '">' + e(value) + '</textarea>';
+  else input = '<input type="' + e(kind) + '" ' + attributes + ' value="' + e(value) + '"' +
+    (kind === 'text' ? ' maxlength="' + max + '"' : '') + (kind === 'number' ? ' min="1" max="999" step="1"' : '') + '>';
+  return '<label class="field' + (wide ? ' wide' : '') + '">' + e(label) +
+    (required ? ' <span class="required" aria-hidden="true">*</span>' : '') + input + '</label>';
 }
-const select=(name,label,choices,value)=>field(name,label,{kind:'select',choices,value,required:true});
-const notes=(name,label,required=false)=>field(name,label,{kind:'textarea',wide:true,required,max:600});
-const roundFields={R1:['Experience','Spoken English','AI judgment','Confidentiality'],R2:['Audit quality','Audit defence','Client role-play','Team behaviours']};
-function showRecord(c, jobs) {
-  const job=jobs.find(j=>j.id===c.job_id);
-  const history=c.history.slice().reverse().map(x=>{
-    const text=Object.entries(x.payload).filter(([k,v])=>v&&k!=='job_id').map(([k,v])=>k.replaceAll('_',' ')+': '+v).join('\n');
-    return `<li><strong>${e(eventLabel(x))}</strong> <time>${e(x.event_date)}</time><p class="snapshot">${e(text)}</p></li>`;
-  }).join('');
-  show(`<div class="section-top"><h2 id="dialog-title">${e(c.alias)}</h2>${btn('Close','close')}</div><p class="muted">${e(job?.title)} · ${e(c.source)} · ${e(c.stage)}</p><p>Round 1 · ${e(formatTime(c.r1))} SL<br>Round 2 · ${e(formatTime(c.r2))} SL</p><div class="toolbar">${btn('Update stage / schedule','stage',c.id,true)}${btn('Log milestone','activity',c.id)}${btn('Add scorecard','score',c.id)}</div><h3>Record history</h3><ul class="timeline">${history}</ul>`);
-}
+const select = (name,label,choices,value) => field(name,label,{kind:'select',choices,value,required:true});
+const notes = (name,label,required = false,value = '') => field(name,label,{kind:'textarea',wide:true,required,max:600,value});
+const roundFields = {R1:['Experience','Spoken English','AI judgment','Confidentiality'],R2:['Role analysis','Decision reasoning','Client role-play','Team behaviours']};
 function show(html) {
-  dialog.innerHTML=html;
-  if(!dialog.open)dialog.showModal();
-  dialog.scrollTop=0;
+  focusReturn = document.activeElement;
+  dialog.innerHTML = html;
+  if (!dialog.open) dialog.showModal();
+  dialog.scrollTop = 0;
 }
-function openForm(kind,id='') {
-  const {jobs,candidates}=project(events), c=candidates.find(x=>x.id===id);
-  if (kind==='candidate'&&!jobs.length) return openForm('job');
-  const req={required:true};
-  const next=(x={})=>field('action','Next action',{value:x.action})+
-    field('due','Action due (SL)',{kind:'date',value:x.due})+
-    field('owner','Action owner',{kind:'select',choices:[['','Select owner'],...owners],value:x.owner})+
-    field('blocker','Blocker / decision needed',{value:x.blocker});
-  let title,fields;
-  if(kind==='job') {
-    title='Open a position';
-    fields=field('title','Job title',req)+field('department','Department',{...req,value:'Client Services'})+
-      field('location','Location / market',{...req,value:'Sri Lanka · Remote'});
-  } else if(kind==='candidate') {
-    title='Add a candidate';
-    fields=field('alias','Candidate code or public alias',req)+
-      select('job_id','Position',jobs.map(j=>[j.id,j.title]),jobs[0].id)+
-      select('source','Source',sources,sources[0])+next();
-  } else if(kind==='stage'&&c) {
-    title='Log candidate update · '+c.alias;
-    fields=select('stage','Current stage',stages,c.stage)+next(c)+
-      field('r1','R1 interview (SL time)',{kind:'datetime-local',value:c.r1})+
-      field('r2','R2 interview (SL time)',{kind:'datetime-local',value:c.r2})+
-      notes('note','Reason / update note',true);
-  } else if(kind==='activity'&&c) {
-    title='Log milestone · '+c.alias;
-    fields=select('event','Milestone',milestones,milestones[0])+notes('note','Public progress note',true);
-  } else if(kind==='score'&&c) {
-    title='Add scorecard · '+c.alias;
-    fields=select('round','Interview round',['R1','R2'],'R1')+
-      select('recommendation','Recommendation',['Advance','Hold','Reject'],'Advance')+
-      '<div class="field wide form-grid" id="round-fields"></div>'+notes('note','Public evidence summary',true);
-  } else if(kind==='summary') {
-    title='Add daily summary';
-    fields=notes('progress','Progress today',true)+notes('blockers','Blockers / leadership decisions')+notes('priorities','Next workday priorities',true);
+function showRecord(candidate) {
+  const checklist = checklistItems.map(([key,label]) =>
+    '<li><span>' + e(label) + '</span>' + tag(candidate.checklist[key] || 'Pending',
+      candidate.checklist[key] === 'Complete' ? 'good' : '') + '</li>').join('');
+  const history = candidate.history.slice().reverse().map(event => {
+    const labels = {score1:'Criterion 1',score2:'Criterion 2',score3:'Criterion 3',score4:'Criterion 4'};
+    const text = Object.entries(event.payload).filter(([key,value]) => value && key !== 'job_id')
+      .map(([key,value]) => (labels[key] || key.replaceAll('_',' ')) + ' · ' + value).join('\n');
+    return '<li><strong>' + e(eventLabel(event)) + '</strong> <time>' + e(event.event_date) +
+      '</time><p class="snapshot">' + e(text) + '</p></li>';
+  }).join('');
+  show('<div class="section-top"><h2 id="dialog-title">' + e(candidate.alias) + '</h2>' + btn('Close','close') +
+    '</div><p class="muted">' + e(jobTitle(candidate.job_id)) + ' · ' + e(candidate.stage) + '</p>' +
+    '<p class="muted">Availability · ' + e(candidate.availability || 'To confirm') + ' · Notice · ' +
+    e(candidate.notice || 'To confirm') + '</p><div class="toolbar">' +
+    btn('Update stage / schedule','stage',candidate.id,true) + btn('Log milestone','activity',candidate.id) +
+    btn('Scorecard','score',candidate.id) + btn('Hiring checklist','checklist',candidate.id) +
+    '</div><h3>Hiring readiness</h3><ul class="checklist">' + checklist +
+    '</ul><h3>Record history</h3><ul class="timeline">' + history + '</ul>');
+}
+function openForm(kind,id = '',restored = null) {
+  const existingDraft = storageRead();
+  if (!restored && existingDraft) {
+    const same = existingDraft.kind === kind && existingDraft.id === id;
+    if (same) return openForm(kind,id,existingDraft);
+    flash('Resume or discard the existing draft before starting another entry.');
+    if (dialog.open) dialog.close();
+    render();
+    return;
+  }
+  const candidate = candidateById(id);
+  const job = state.jobs.find(item => item.id === id);
+  const openJobs = state.jobs.filter(item => item.status === 'Open');
+  if (kind === 'candidate' && !openJobs.length) {
+    flash('Open a position before adding a candidate.');
+    return;
+  }
+  const required = {required:true};
+  const next = (value = {}) => '<fieldset class="form-grid wide" id="next-fields"><legend>Next action</legend>' +
+    field('action','Next step',{...required,value:value.action}) +
+    field('due','Due date (SL)',{...required,kind:'date',value:value.due}) +
+    select('owner','Owner',[['','Choose owner'],...owners],value.owner) +
+    field('blocker','Blocker / decision needed',{value:value.blocker}) + '</fieldset>';
+  let title;
+  let fields;
+  if (kind === 'job') {
+    title = job ? 'Manage position' : 'Open a position';
+    fields = field('title','Job title',{...required,value:job?.title}) +
+      field('department','Department',{...required,value:job?.department || 'Client Services'}) +
+      field('location','Location / market',{...required,value:job?.location || 'Sri Lanka · Remote'}) +
+      select('employment','Engagement type',employmentTypes,job?.employment || 'Contract') +
+      field('headcount','Target headcount',{...required,kind:'number',value:job?.headcount || '1'}) +
+      field('target_date','Target hiring date',{kind:'date',value:job?.target_date}) +
+      notes('brief','Role requirements / success criteria',true,job?.brief || '') +
+      (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
+  } else if (kind === 'candidate') {
+    title = 'Add a candidate';
+    fields = field('alias','Unique candidate code',{...required,max:40}) +
+      select('job_id','Position',openJobs.map(item => [item.id,item.title]),openJobs[0].id) +
+      select('source','Source',sources,sources[0]) +
+      select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'], 'To confirm') +
+      field('notice','Notice period',{...required,value:'To confirm'}) + next();
+  } else if (kind === 'stage' && candidate) {
+    title = 'Update · ' + candidate.alias;
+    fields = select('stage','Stage',stages,candidate.stage) + next(candidate) +
+      field('r1','R1 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r1}) +
+      field('r2','R2 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r2}) +
+      '<div class="wide" id="start-field">' + field('start_date','Confirmed start date',{kind:'date',value:candidate.start_date}) + '</div>' +
+      notes('note','Reason / decision summary',true) +
+      '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
+  } else if (kind === 'checklist' && candidate) {
+    title = 'Hiring checklist · ' + candidate.alias;
+    fields = checklistItems.map(([key,label]) => select(key,label,['Pending','Complete','Waived'],
+      candidate.checklist[key] || 'Pending')).join('') +
+      notes('note','Evidence summary / reasons for any waiver',true);
+  } else if (kind === 'activity' && candidate) {
+    title = 'Log milestone · ' + candidate.alias;
+    fields = select('event','Milestone',milestones,milestones[0]) + notes('note','Public progress summary',true);
+  } else if (kind === 'score' && candidate) {
+    title = 'Scorecard · ' + candidate.alias;
+    fields = select('round','Round',['R1','R2'],'R1') +
+      select('reviewer','Reviewer role',['COO','Leadership'],'COO') +
+      select('recommendation','Recommendation',['Advance','Hold','Reject'],'Advance') +
+      '<div class="form-grid wide" id="round-fields"></div>' + notes('note','Observable evidence',true);
+  } else if (kind === 'summary') {
+    title = 'Daily COO summary';
+    fields = notes('progress','Progress today',true) + notes('blockers','Blockers / leadership decisions') +
+      notes('priorities','Next workday priorities',true);
   } else return;
-  const eventId=crypto.randomUUID();
-  show(`<form id="entry" data-kind="${e(kind)}" data-id="${e(id)}" data-request="${e(eventId)}"><div class="section-top"><h2 id="dialog-title">${e(title)}</h2>${btn('Close','close')}</div><p class="banner">Entries are public and permanent in the application. Use candidate codes and omit names, contact details, CV links and confidential notes.</p><div class="form-grid">${field('event_date','Event date (SL)',{kind:'date',required:true,value:kind==='summary'?reportDate:dateSL()})}${fields}</div><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit">Append record</button></div></form>`);
-  if(kind==='score')setRoundFields('R1');
+  const revision = restored?.revision ?? candidate?.revision ?? job?.revision ?? 0;
+  show('<form id="entry" data-kind="' + e(kind) + '" data-id="' + e(id) +
+    '" data-request="' + e(restored?.request || newId()) + '" data-revision="' + revision +
+    '"><div class="section-top"><h2 id="dialog-title">' + e(title) + '</h2>' + btn('Close','close') +
+    '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p>' +
+    '<div class="form-grid">' + field('event_date','Event date (SL)',{kind:'date',required:true,
+      value:kind === 'summary' ? reportDate : dateSL()}) + fields + '</div>' +
+    '<p class="form-error" role="alert"></p><div class="form-actions">' + btn('Discard draft','discard') +
+    '<button class="btn primary" type="submit">Save record</button></div></form>');
+  pendingRecord = restored?.pending || null;
+  if (kind === 'score') setRoundFields(restored?.values?.round || 'R1');
+  if (restored?.values) {
+    for (const [key,value] of Object.entries(restored.values)) {
+      const input = dialog.querySelector('[name="' + key + '"]');
+      if (input) input.value = value;
+    }
+  }
+  updateStageFields();
+  if (pendingRecord) freezePending();
+  dialog.querySelector('input,select,textarea')?.focus();
 }
 function setRoundFields(round) {
-  document.querySelector('#round-fields').innerHTML=roundFields[round].map((name,i)=>
-    field('score'+(i+1),name,{kind:'select',choices:[['','Untested'],'1','2','3','4','5']})).join('');
+  dialog.querySelector('#round-fields').innerHTML = roundFields[round].map((label,i) =>
+    field('score' + (i + 1),label,{kind:'select',choices:[['','Untested'],'1','2','3','4','5']})).join('');
 }
-let noticeTimer;
-function flash(text) {
-  notice.textContent=text;clearTimeout(noticeTimer);
-  noticeTimer=setTimeout(()=>{notice.textContent=''},4400);
-}
-async function refresh() {
-  if(refreshing||saving)return;
-  refreshing=true;sync.disabled=true;
-  try {
-    const revision=writeRevision;
-    const loaded=await loadEvents();
-    if(revision===writeRevision)events=loaded;
-    ready=true;failure='';
-  } catch(error) {
-    failure='Shared storage is unavailable. '+error.message;
-  } finally {
-    mode.textContent=failure?'Sync unavailable':connected?'Shared workspace':'Demo mode';
-    sync.className='pill '+(failure?'error':connected?'live':'');
-    sync.disabled=false;refreshing=false;
-    if(document.activeElement?.id!=='search') render();
+function updateStageFields() {
+  const stage = dialog.querySelector('[name="stage"]')?.value;
+  if (!stage) return;
+  dialog.querySelector('#next-fields').disabled = closed.includes(stage);
+  const start = dialog.querySelector('#start-field');
+  start.hidden = stage !== 'Hired';
+  start.querySelector('input').required = stage === 'Hired';
+  for (const round of ['r1','r2']) {
+    dialog.querySelector('[name="' + round + '"]').required = stage === (round === 'r1' ? 'R1 Scheduled' : 'R2 Scheduled');
   }
 }
-app.addEventListener('input',event=>{
-  if(event.target.id!=='search')return;
-  const caret=event.target.selectionStart;search=event.target.value;render();
-  const input=document.querySelector('#search');input.focus();input.setSelectionRange(caret,caret);
+function draftValues(form) {
+  const result = {};
+  for (const input of form.querySelectorAll('[name]')) result[input.name] = input.value;
+  return result;
+}
+function saveDraft() {
+  const form = dialog.querySelector('#entry');
+  if (!form) return;
+  storageWrite({
+    kind:form.dataset.kind,id:form.dataset.id,request:form.dataset.request,
+    revision:Number(form.dataset.revision),values:draftValues(form),pending:pendingRecord
+  });
+}
+function freezePending() {
+  for (const input of dialog.querySelectorAll('input,select,textarea')) input.disabled = true;
+  const submit = dialog.querySelector('[type="submit"]');
+  submit.textContent = 'Retry same save';
+}
+function flash(text) {
+  notice.textContent = text;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { notice.textContent = '' },6000);
+}
+function download(name,content,type) {
+  const url = URL.createObjectURL(new Blob([content],{type}));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+}
+function calendar(candidate) {
+  const round = candidate.stage === 'R1 Scheduled' ? 'R1' : 'R2';
+  const slot = candidate[round.toLowerCase()];
+  if (!slot) return;
+  const start = new Date(slot + ':00+05:30');
+  const end = new Date(+start + (round === 'R1' ? 30 : 60) * 60000);
+  const stamp = date => date.toISOString().replace(/[-:]/g,'').slice(0,15) + 'Z';
+  const safe = value => String(value).replaceAll('\\','\\\\').replaceAll(';','\\;').replaceAll(',','\\,').replace(/\r?\n/g,'\\n');
+  const content = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//QuidEdge//Recruitment//EN','BEGIN:VEVENT',
+    'UID:' + candidate.id + '-' + round + '@quidedge','DTSTAMP:' + stamp(new Date()),
+    'DTSTART:' + stamp(start),'DTEND:' + stamp(end),'SUMMARY:' + safe(candidate.alias + ' ' + round + ' interview'),
+    'DESCRIPTION:' + safe(jobTitle(candidate.job_id)),'END:VEVENT','END:VCALENDAR',''].join('\r\n');
+  download(candidate.alias + '-' + round + '.ics',content,'text/calendar;charset=utf-8');
+}
+async function refresh() {
+  if (refreshing || saving || !navigator.onLine) return;
+  refreshing = true;
+  sync.disabled = true;
+  try {
+    const cursor = events.at(-1)?.seq || 0;
+    const incoming = await loadEvents(cursor);
+    const changed = ingest(incoming);
+    const hadFailure = Boolean(failure);
+    failure = '';
+    const initial = !ready;
+    ready = true;
+    mode.textContent = 'Synced · ' + new Date().toLocaleTimeString('en-LK',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Colombo'}) + ' SL';
+    sync.className = 'pill live';
+    if (changed || initial || hadFailure) render();
+  } catch (error) {
+    failure = error.message;
+    mode.textContent = 'Retry sync';
+    sync.className = 'pill error';
+    render();
+  } finally {
+    refreshing = false;
+    sync.disabled = false;
+  }
+}
+function resetFilters() {
+  stageFilter = '';jobFilter = '';ownerFilter = '';attentionFilter = '';search = '';currentPage = 1;
+}
+app.addEventListener('input',event => {
+  if (event.target.id !== 'search') return;
+  search = event.target.value;
+  currentPage = 1;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const result = app.querySelector('#candidate-results');
+    if (result) result.innerHTML = candidateResults();
+  },120);
 });
-app.addEventListener('change',event=>{
-  if(event.target.id==='stage-filter'){stageFilter=event.target.value;render()}
-  if(event.target.id==='report-date'&&event.target.value){reportDate=event.target.value;render()}
+app.addEventListener('change',event => {
+  const value = event.target.value;
+  const key = event.target.id;
+  if (key === 'report-date' && value) reportDate = value;
+  if (key === 'stage-filter') stageFilter = value;
+  if (key === 'job-filter') jobFilter = value;
+  if (key === 'attention-filter') attentionFilter = value;
+  if (key === 'owner-filter') ownerFilter = value;
+  if (key === 'sort-filter') sort = value;
+  if (key === 'guide-track') guideTrack = value;
+  currentPage = 1;
+  render();
 });
-document.addEventListener('click',event=>{
-  const control=event.target.closest('[data-action]');
-  if(!control||saving)return;
-  const {action,id}=control.dataset;
-  if(action==='close')return dialog.close();
-  if(action==='group'){stageFilter='group:'+id;search='';location.hash='pipeline';return}
-  const {jobs,candidates}=project(events);
-  if(action==='view'){
-    const candidate=candidates.find(c=>c.id===id);
-    if(candidate)showRecord(candidate,jobs);
+document.addEventListener('click',event => {
+  const control = event.target.closest('[data-action]');
+  if (!control || saving) return;
+  const {action,id} = control.dataset;
+  if (action === 'close') { saveDraft();dialog.close();render();return }
+  if (action === 'discard') { storageWrite(null);pendingRecord = null;dialog.close();render();return }
+  if (action === 'resume') {
+    const draft = storageRead();
+    if (draft) openForm(draft.kind,draft.id,draft);
+    return;
+  }
+  if (action === 'group' || action === 'attention') {
+    resetFilters();
+    if (action === 'group') stageFilter = 'group:' + id;
+    else attentionFilter = 'needs-action';
+    location.hash = 'pipeline';
+    render();
+    return;
+  }
+  if (action === 'reset') { resetFilters();render();return }
+  if (action === 'next' || action === 'previous') {
+    currentPage += action === 'next' ? 1 : -1;
+    render();
+    return;
+  }
+  if (action === 'view') {
+    const candidate = candidateById(id);
+    if (candidate) showRecord(candidate);
+    return;
+  }
+  if (action === 'calendar') { calendar(candidateById(id));return }
+  if (action === 'export') {
+    download('QuidEdge-records-' + dateSL() + '.json',
+      JSON.stringify({exported_at:new Date().toISOString(),events},null,2),'application/json');
+    return;
+  }
+  if (action === 'csv') {
+    const rows = [['Code','Position','Stage','Owner','Next action','Due','Attention']];
+    for (const candidate of filteredCandidates()) rows.push([
+      candidate.alias,jobTitle(candidate.job_id),candidate.stage,candidate.owner,candidate.action,candidate.due,attention(candidate)
+    ]);
+    download('QuidEdge-candidates-' + dateSL() + '.csv',rows.map(row => row.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
     return;
   }
   openForm(action,id);
 });
-dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault()});
-dialog.addEventListener('change',event=>{if(event.target.name==='round')setRoundFields(event.target.value)});
-dialog.addEventListener('submit',async event=>{
-  if(event.target.id!=='entry')return;
+dialog.addEventListener('input',saveDraft);
+dialog.addEventListener('change',event => {
+  if (event.target.name === 'stage') updateStageFields();
+  if (event.target.name === 'round') setRoundFields(event.target.value);
+  saveDraft();
+});
+dialog.addEventListener('cancel',event => {
+  if (saving) event.preventDefault();
+  else saveDraft();
+});
+dialog.addEventListener('close',() => {
+  if (focusReturn?.isConnected) focusReturn.focus();
+});
+dialog.addEventListener('submit',async event => {
+  if (event.target.id !== 'entry') return;
   event.preventDefault();
-  if(saving)return;
-  const form=event.target;
-  const payload=Object.fromEntries([...new FormData(form)].map(([k,v])=>[k,v.trim()]));
-  const eventDate=payload.event_date;delete payload.event_date;
-  const {kind,id,request}=form.dataset;
-  if(kind==='candidate')payload.stage='Sourced';
-  const record={id:request,kind,subject_id:id||null,event_date:eventDate,payload};
-  const controls=form.querySelectorAll('button,input,select,textarea');
-  const errorBox=form.querySelector('.form-error');
-  if([...form.querySelectorAll('[required]')].some(input=>!input.value.trim())){
-    errorBox.textContent='Complete the required fields.';return;
+  if (saving) return;
+  const form = event.target;
+  const errorBox = form.querySelector('.form-error');
+  const {kind,id} = form.dataset;
+  let record = pendingRecord;
+  if (!record) {
+    const values = Object.fromEntries([...new FormData(form)].map(([key,value]) => [key,value.trim()]));
+    const eventDate = values.event_date;
+    delete values.event_date;
+    if (kind === 'candidate') values.stage = 'Sourced';
+    if (kind === 'job' && id) values.job_id = id;
+    if (kind === 'checklist') values.event = 'Hiring checklist updated';
+    if (kind === 'stage') {
+      if (closed.includes(values.stage)) Object.assign(values,{action:'',due:'',owner:'',blocker:''});
+      const problem = stageProblem(values,candidateById(id),eventDate);
+      if (problem) { errorBox.textContent = problem;return }
+    }
+    record = {
+      id:form.dataset.request,kind:kind === 'checklist' ? 'activity' : kind,
+      subject_id:kind === 'job' ? null : id || null,event_date:eventDate,payload:values
+    };
+    if (id) record.expected_seq = Number(form.dataset.revision);
   }
-  saving=true;controls.forEach(input=>{input.disabled=true});errorBox.textContent='';
+  pendingRecord = record;
+  saveDraft();
+  saving = true;
+  const controls = form.querySelectorAll('button,input,select,textarea');
+  for (const input of controls) input.disabled = true;
+  const submit = form.querySelector('[type="submit"]');
+  submit.textContent = 'Saving…';
+  errorBox.textContent = '';
   try {
-    const saved=await append(record);
-    writeRevision++;
-    if(!events.some(x=>x.id===saved.id))events.push(saved);
+    const saved = await append(record);
+    ingest([saved]);
+    pendingRecord = null;
+    storageWrite(null);
+    if (kind === 'summary') reportDate = record.event_date;
     dialog.close();
-    flash(connected?'Record saved to shared storage.':'Demo record added for this session.');
-    if(kind==='summary')reportDate=eventDate;
     render();
-  } catch(error) {
-    errorBox.textContent='Save could not be confirmed. Retry this same form. '+error.message;
+    flash('Saved to the shared workspace. The original history is preserved.');
+  } catch (error) {
+    errorBox.textContent = error.message;
+    if (error.status && error.status < 500) {
+      pendingRecord = null;
+      form.dataset.request = newId();
+      if (error.status === 409) {
+        saving = false;
+        await refresh();
+        const current = candidateById(id) || state.jobs.find(job => job.id === id);
+        if (current) {
+          form.dataset.revision = current.revision;
+          errorBox.textContent += ' Latest saved status: ' + (current.stage || current.status) +
+            '. Next action: ' + (current.action || 'None') + '. Review before saving again.';
+        }
+      }
+      for (const input of controls) input.disabled = false;
+      updateStageFields();
+      submit.textContent = 'Save record';
+      saveDraft();
+    } else {
+      for (const button of form.querySelectorAll('button')) button.disabled = false;
+      freezePending();
+      saveDraft();
+    }
   } finally {
-    saving=false;controls.forEach(input=>{input.disabled=false});
+    saving = false;
   }
 });
 sync.addEventListener('click',refresh);
-window.addEventListener('hashchange',render);
-async function start() {
-  if(!connected){
-    const demoDate=dateSL();
-    for (const [i,[title,department,location]] of [['Client Acquisition & Client Relations','Client Services','Sri Lanka · Remote'],['Social Media Strategist','Content','Remote']].entries()) {
-      const jobId='demo-job-'+i;
-      await append({id:jobId,kind:'job',event_date:demoDate,payload:{title,department,location}});
-      for(let n=0;n<4;n++){
-        const id='demo-'+i+'-'+n;
-        const stage=['Sourced','R1 Scheduled','R2 Review','Offer / Agreement','Contacted','R1 Review','Hired','Sourced'][i*4+n];
-        await append({id,kind:'candidate',event_date:demoDate,payload:{alias:'QE-00'+(i*4+n+1),job_id:jobId,source:n%2?'Referral':'Headhunting',stage,action:'Review next step',owner:'COO',due:demoDate}});
-      }
-    }
-  }
-  await refresh();
-  if(connected)timer=setInterval(()=>{if(!document.hidden&&!dialog.open)refresh()},45000);
-}
-window.addEventListener('pagehide',()=>clearInterval(timer));
+window.addEventListener('hashchange',() => { render();app.focus({preventScroll:true}) });
+window.addEventListener('online',refresh);
+window.addEventListener('offline',() => { mode.textContent = 'Offline · draft kept';sync.className = 'pill error' });
+document.addEventListener('visibilitychange',() => { if (!document.hidden && !dialog.open) refresh() });
+window.addEventListener('pagehide',() => { saveDraft();clearInterval(timer) });
 render();
-start();
+refresh();
+timer = setInterval(() => { if (!document.hidden && !dialog.open) refresh() },45000);
 </script>
 </body>
 </html>

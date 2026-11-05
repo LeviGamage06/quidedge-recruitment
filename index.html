@@ -57,6 +57,8 @@ dialog h2{max-width:calc(100% - 85px)}
   .intro h1{font-size:34px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+.coo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.coo-stats .panel span{display:block;color:var(--muted);font-size:.84rem}.coo-stats strong{display:block;font-size:38px;margin-top:8px}.commission-lead{font-size:28px;font-weight:750;margin:4px 0}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.commission-grid>div{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff9ed}.commission-grid strong{display:block;font-size:34px}.commission-grid span{display:block;color:var(--muted);margin-top:6px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.benefit-grid h3{font-size:1rem}.role-list li{padding:7px 0;line-height:1.55}.panel p{line-height:1.6}.public-note{line-height:1.5}input[type=file]{font-size:.8rem}#upload-progress{font-size:.85rem;line-height:1.5}@media(max-width:850px){.coo-stats{grid-template-columns:repeat(2,1fr)}.benefit-grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.commission-grid,.benefit-grid{grid-template-columns:1fr}.commission-grid>div{padding:12px}.commission-grid strong{font-size:27px}.coo-stats strong{font-size:30px}}
 </style>
 </head>
 <body>
@@ -64,7 +66,7 @@ dialog h2{max-width:calc(100% - 85px)}
 <header class="top">
   <a href="#overview" class="brand"><span class="mark" aria-hidden="true">✺</span>quidedge<span class="brand-dot">.</span></a>
   <nav aria-label="Recruitment navigation" id="nav">
-    <a href="#overview">Overview</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#interviews">Interviews</a><a href="#guide">Interview guide</a>
+    <a href="#overview">Overview</a><a href="#coo">COO workspace</a><a href="#role">Hiring role</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#interviews">Interviews</a><a href="#guide">Interview guide</a>
   </nav>
   <button id="sync" class="pill" type="button" title="Refresh data"><span class="indicator"></span><span id="mode">Connecting</span></button>
 </header>
@@ -73,815 +75,1089 @@ dialog h2{max-width:calc(100% - 85px)}
 </main>
 <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
 <div id="notice" role="status" aria-live="polite"></div>
-<script type="module">const config = { eventsUrl: 'https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/api/events' };
+<script>(() => {
+  // src/guide.js?v=e2358dabb534
+  var guide_default = [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. \u201CThis is Sarah from Bloom Skincare in the UK. Honestly, I\u2019m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend\u2019s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.\u201D", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, \u201CWhich other brands do you work with? Can you show me what you did for them?\u201D What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they\u2019ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "\u201CWe sell handmade candles in Australia. We need to go viral. Can you guarantee that?\u201D", null], ["R2", "Client role-play", 2, "\u201COur sales have been flat, so we just want more followers.\u201D", null], ["R2", "Client role-play", 2, "\u201CWe want it to feel more premium, but not too serious.\u201D", null], ["R2", "Client role-play", 2, "\u201CI heard you work with [a competitor]. What is their ad budget?\u201D", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "\u201CHonestly, what do you think is wrong with our brand right now?\u201D", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does \u201Cbeing responsible for your work\u201D mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate\u2019s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];
 
-const guide = [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. “This is Sarah from Bloom Skincare in the UK. Honestly, I’m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend’s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.”", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, “Which other brands do you work with? Can you show me what you did for them?” What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they’ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "“We sell handmade candles in Australia. We need to go viral. Can you guarantee that?”", null], ["R2", "Client role-play", 2, "“Our sales have been flat, so we just want more followers.”", null], ["R2", "Client role-play", 2, "“We want it to feel more premium, but not too serious.”", null], ["R2", "Client role-play", 2, "“I heard you work with [a competitor]. What is their ad budget?”", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "“Honestly, what do you think is wrong with our brand right now?”", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does “being responsible for your work” mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate’s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];
-
-const stages = ['Sourced','Contacted','Replied','R1 Scheduled','R1 Review','R2 Prep','R2 Scheduled','R2 Review','Reference Check','Offer / Agreement','On Hold','Hired','Rejected','Withdrawn'];
-const closed = ['Hired','Rejected','Withdrawn'];
-const milestones = ['First outreach','Reply received','Follow-up sent','R1 completed','R2 brief sent','R2 completed','Writing task completed','References completed','Offer sent','Agreement / NDA signed','Interview no-show','Interview cancelled','Offer declined','Blocker update'];
-const checklistItems = [
-  ['terms','Role and payment terms confirmed'],
-  ['writing','Writing / practical task reviewed'],
-  ['references','References checked'],
-  ['offer','Offer accepted'],
-  ['agreement','Agreement completed'],
-  ['nda','NDA completed']
-];
-const dateSL = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {
-  timeZone:'Asia/Colombo',year:'numeric',month:'2-digit',day:'2-digit'
-}).format(date);
-const groupStages = [
-  ['Sourced',['Sourced','Contacted','Replied'],'amber'],
-  ['Screening',['R1 Scheduled','R1 Review'],'blue'],
-  ['Technical',['R2 Prep','R2 Scheduled','R2 Review','Reference Check'],'coral'],
-  ['Offer',['Offer / Agreement'],'purple'],
-  ['Hired',['Hired'],'green']
-];
-const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({
-  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-}[c]));
-function validDate(value) {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const parsed = new Date(value + 'T00:00:00Z');
-  return Number.isFinite(+parsed) && parsed.toISOString().slice(0,10) === value;
-}
-function stageProblem(payload, candidate, eventDate) {
-  if (!stages.includes(payload.stage)) return 'Choose a valid stage.';
-  if (!String(payload.note || '').trim()) return 'Add the reason for this update.';
-  if (!closed.includes(payload.stage)) {
-    if (![payload.action,payload.due,payload.owner].every(Boolean)) return 'Set the next action, owner and due date.';
+  // src/model.js?v=e2358dabb534
+  var stages = ["Sourced", "Contacted", "Replied", "R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "On Hold", "Hired", "Rejected", "Withdrawn"];
+  var closed = ["Hired", "Rejected", "Withdrawn"];
+  var milestones = ["First outreach", "Reply received", "Follow-up sent", "R1 completed", "R2 brief sent", "R2 completed", "Writing task completed", "References completed", "Offer sent", "Agreement / NDA signed", "Interview no-show", "Interview cancelled", "Offer declined", "Blocker update", "Commission terms reviewed"];
+  var checklistItems = [
+    ["terms", "Role and payment terms confirmed"],
+    ["writing", "Writing / practical task reviewed"],
+    ["references", "References checked"],
+    ["offer", "Offer accepted"],
+    ["agreement", "Agreement completed"],
+    ["nda", "NDA completed"]
+  ];
+  var dateSL = (date = /* @__PURE__ */ new Date()) => new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Colombo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+  var groupStages = [
+    ["Sourced", ["Sourced", "Contacted", "Replied"], "amber"],
+    ["Screening", ["R1 Scheduled", "R1 Review"], "blue"],
+    ["Technical", ["R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check"], "coral"],
+    ["Offer", ["Offer / Agreement"], "purple"],
+    ["Hired", ["Hired"], "green"]
+  ];
+  var escape = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
+  function validDate(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = /* @__PURE__ */ new Date(value + "T00:00:00Z");
+    return Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === value;
   }
-  const slot = payload.stage === 'R1 Scheduled' ? payload.r1 : payload.stage === 'R2 Scheduled' ? payload.r2 : '';
-  if (['R1 Scheduled','R2 Scheduled'].includes(payload.stage)) {
-    if (!slot) return 'Set the interview date and time in Sri Lanka time.';
-    if (slot.slice(0,10) < eventDate) return 'The interview cannot be earlier than the event date.';
+  function stageProblem(payload, candidate, eventDate) {
+    if (payload.stage === "R1 Scheduled" && candidate.commission_ack && candidate.commission_ack !== "Accepted") return "Confirm that the candidate accepts the commission-only terms before scheduling Round 1.";
+    if (!stages.includes(payload.stage)) return "Choose a valid stage.";
+    if (!String(payload.note || "").trim()) return "Add the reason for this update.";
+    if (!closed.includes(payload.stage)) {
+      if (![payload.action, payload.due, payload.owner].every(Boolean)) return "Set the next action, owner and due date.";
+    }
+    const slot = payload.stage === "R1 Scheduled" ? payload.r1 : payload.stage === "R2 Scheduled" ? payload.r2 : "";
+    if (["R1 Scheduled", "R2 Scheduled"].includes(payload.stage)) {
+      if (!slot) return "Set the interview date and time in Sri Lanka time.";
+      if (slot.slice(0, 10) < eventDate) return "The interview cannot be earlier than the event date.";
+    }
+    if (payload.stage === "Hired") {
+      const missing = checklistItems.filter(([key]) => !["Complete", "Waived"].includes(candidate.checklist[key]));
+      if (missing.length) return "Complete or waive each hiring checklist item before marking Hired.";
+      if (!validDate(payload.start_date)) return "Confirm the start date before marking Hired.";
+    }
+    return "";
   }
-  if (payload.stage === 'Hired') {
-    const missing = checklistItems.filter(([key]) => !['Complete','Waived'].includes(candidate.checklist[key]));
-    if (missing.length) return 'Complete or waive each hiring checklist item before marking Hired.';
-    if (!validDate(payload.start_date)) return 'Confirm the start date before marking Hired.';
-  }
-  return '';
-}
-function project(events) {
-  const jobs = new Map();
-  const candidates = new Map();
-  for (const event of [...events].sort((a,b) => a.seq - b.seq)) {
-    const p = event.payload;
-    if (event.kind === 'job') {
-      if (p.job_id) {
-        const job = jobs.get(p.job_id);
-        if (job) Object.assign(job,p,{id:p.job_id,revision:event.seq});
-      } else {
-        jobs.set(event.id,{status:'Open',headcount:'1',...p,id:event.id,revision:event.seq});
+  function project(events2) {
+    const jobs = /* @__PURE__ */ new Map();
+    const candidates = /* @__PURE__ */ new Map();
+    for (const event of [...events2].sort((a, b) => a.seq - b.seq)) {
+      const p = event.payload;
+      if (event.kind === "job") {
+        if (p.job_id) {
+          const job = jobs.get(p.job_id);
+          if (job) Object.assign(job, p, { id: p.job_id, revision: event.seq });
+        } else {
+          jobs.set(event.id, { status: "Open", headcount: "1", ...p, id: event.id, revision: event.seq });
+        }
+      }
+      if (event.kind === "candidate") {
+        candidates.set(event.id, {
+          ...p,
+          id: event.id,
+          date: event.event_date,
+          revision: event.seq,
+          history: [event],
+          r1: "",
+          r2: "",
+          checklist: {},
+          documents: { cv: "Missing", cover: "Missing" },
+          start_date: ""
+        });
+      }
+      const candidate = candidates.get(event.subject_id);
+      if (!candidate) continue;
+      candidate.history.push(event);
+      candidate.revision = event.seq;
+      if (event.kind === "stage") {
+        for (const key of ["stage", "action", "due", "owner", "blocker", "r1", "r2", "start_date"]) {
+          if (key in p) candidate[key] = p[key];
+        }
+      }
+      if (event.kind === "activity") {
+        if (p.event === "Document stored" && ["cv", "cover"].includes(p.document_type)) candidate.documents[p.document_type] = "Uploaded";
+        if (p.event === "Commission terms reviewed") {
+          candidate.commission_ack = p.commission_ack;
+          candidate.commission_plan = p.commission_plan;
+        }
+        if (p.event === "Hiring checklist updated") {
+          for (const [key] of checklistItems) {
+            if (key in p) candidate.checklist[key] = p[key];
+          }
+        }
+        const completed = {
+          "Writing task completed": ["writing"],
+          "References completed": ["references"],
+          "Agreement / NDA signed": ["agreement", "nda"]
+        }[p.event] || [];
+        for (const key of completed) candidate.checklist[key] = "Complete";
       }
     }
-    if (event.kind === 'candidate') {
-      candidates.set(event.id, {
-        ...p,id:event.id,date:event.event_date,revision:event.seq,
-        history:[event],r1:'',r2:'',checklist:{},start_date:''
+    return { jobs: [...jobs.values()].reverse(), candidates: [...candidates.values()].reverse() };
+  }
+  function attention(candidate, today = dateSL()) {
+    if (closed.includes(candidate.stage)) return "Closed";
+    if (candidate.due && candidate.due < today) return "Overdue";
+    if (candidate.blocker || candidate.owner === "Leadership") return "Needs decision";
+    if (!candidate.action || !candidate.due || !candidate.owner) return "Missing next step";
+    return candidate.due === today ? "Due today" : "On track";
+  }
+  function csvCell(value) {
+    let text = String(value ?? "");
+    if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
+    return '"' + text.replaceAll('"', '""') + '"';
+  }
+  function newId() {
+    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = bytes[6] & 15 | 64;
+    bytes[8] = bytes[8] & 63 | 128;
+    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+    return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+  }
+
+  // src/role.js
+  var hiringRole = {
+    id: "e2173dde-bc77-409a-96a1-86dcb23841f0",
+    title: "Client Acquisition & Client Relations Specialist",
+    company: "QuidEdge",
+    location: "Remote | Work From Anywhere",
+    employment: "Independent Contractor | Commission-Based only",
+    industry: "Personal Branding | Business Branding | Content Creation",
+    compensation: "100% commission-based. No fixed salary. 10%, 20% or 30% recurring monthly commission on eligible acquired client contracts, subject to the agreed terms.",
+    important: "Only candidates genuinely comfortable with a commission-only compensation structure should apply. Candidates must understand and accept the agreed terms before progressing.",
+    about: [
+      "At QuidEdge, we believe great brands are built through meaningful relationships, creative thinking, and strategies that deliver real business value.",
+      "We are a dedicated team of professionals specialising in personal branding, business branding, content creation, social media management, and business development consulting.",
+      "We work with founders, entrepreneurs, creators, and businesses to help them strengthen their market presence, communicate their value, and build brands that people genuinely connect with.",
+      "We are not interested in simply selling services. We believe in understanding businesses, solving real problems, and building long-term partnerships.",
+      "As we continue expanding internationally, we are looking for passionate and ambitious individuals to join our team as Client Acquisition & Client Relations Specialists."
+    ],
+    overview: [
+      "This is not a traditional sales position. Successful client acquisition starts with trust, genuine conversations, and understanding what a business actually needs.",
+      "Identify potential clients, build professional relationships, introduce QuidEdge\u2019s solutions, and guide prospects through the acquisition process.",
+      "Maintain strong client relationships and ensure a positive experience throughout their journey with us."
+    ],
+    responsibilities: [
+      "Identify and research potential clients, including founders, entrepreneurs, creators, and business decision-makers.",
+      "Connect with qualified prospects through LinkedIn, email, professional networks, and other appropriate outreach channels.",
+      "Build genuine relationships instead of relying on generic or aggressive sales pitches.",
+      "Understand prospective clients\u2019 business challenges, branding needs, goals, and growth opportunities.",
+      "Present QuidEdge\u2019s services professionally and communicate how our team can deliver value.",
+      "Conduct discovery conversations, handle enquiries, and coordinate proposals with our internal team.",
+      "Manage the client acquisition journey from initial outreach to successful agreement.",
+      "Maintain accurate records of prospect communications, follow-ups, and client interactions.",
+      "Build and maintain positive, long-term relationships with acquired clients.",
+      "Collaborate with our leadership, creative, and operations teams to ensure smooth client onboarding and communication.",
+      "Represent QuidEdge with professionalism, integrity, and confidentiality."
+    ],
+    benefits: [
+      ["Work From Anywhere", "Enjoy the flexibility of working remotely while connecting with businesses and professionals internationally."],
+      ["Build Long-Term Income Opportunities", "Develop a portfolio of clients that can generate recurring commissions rather than relying solely on one-time sales."],
+      ["A Supportive Team Culture", "People should feel valued, respected, and supported. Collaboration, open communication, and continuous development are central to how we work."],
+      ["Professional Growth", "Gain practical exposure to international business development, client negotiations, brand strategy, and relationship management."],
+      ["Your Ideas Matter", "We encourage initiative and fresh perspectives. Contribute to improving our client acquisition strategies and growing as a team."]
+    ],
+    tiers: [["10%", "AUD 300\u20131,000 / month"], ["20%", "AUD 1,000\u20134,999 / month"], ["30%", "AUD 5,000+ / month"]],
+    payment: "Commission is uncapped and continues monthly while the client stays active and paying. Paid monthly in AUD after QuidEdge receives the client\u2019s payment, subject to the agreed contract.",
+    boundary: "The supplied tier ranges overlap at AUD 1,000. Confirm the applicable rate in the candidate\u2019s agreement; this dashboard does not calculate or promise a rate at that boundary.",
+    screening: [
+      ["Experience", "Walk through your last two roles. What outreach, discovery, closing and ongoing client relationship work did you personally own?"],
+      ["Evidence", "Describe a client you acquired. How did you identify them, qualify the need, build trust and reach an agreement? What was the commercial result?"],
+      ["International communication", "Which client markets have you worked with? Respond live to a prospect who asks for a guarantee of sales or viral results."],
+      ["Commission understanding", "Explain the commission-only arrangement in your own words. Is there a fixed salary? When are commissions paid? What terms must you confirm?"],
+      ["Client relations", "Tell us about an unhappy client. What did you say first, how did you handle it and what changed?"],
+      ["Confidentiality", "A prospect asks for a competitor\u2019s budget and private results. How would you respond?"],
+      ["AI judgment", "Which tools support your research and outreach? Give an example you rejected or verified before using."],
+      ["Remote readiness", "Confirm working hours, market time zones, notice period, internet, backup power, call space and other commitments."]
+    ]
+  };
+  function defaultRoleRecord(date) {
+    return { id: hiringRole.id, kind: "job", subject_id: null, event_date: date, payload: {
+      title: hiringRole.title,
+      department: "Client Services",
+      location: "Remote \xB7 International",
+      employment: "Commission-based",
+      headcount: "1",
+      status: "Open",
+      profile: "client-acquisition-v1",
+      brief: "Independent contractor. No fixed salary. 10% / 20% / 30% recurring commission on eligible acquired contracts under agreed terms. Own prospect research, outreach, discovery, proposals, closing, onboarding and ongoing client relations. Confirm terms and international communication readiness."
+    } };
+  }
+
+  // src/documents.js
+  var driveRoot = "1n2x6MZ8wqBCPe2bQcU4Z0XQDCV8121Mj";
+  var maxDocumentBytes = 5 * 1024 * 1024;
+  async function checkDocument(file) {
+    if (!file || !file.size) throw new Error("Choose a non-empty document.");
+    if (file.size > maxDocumentBytes) throw new Error("Each document must be 5 MB or smaller.");
+    const ext = file.name.split(".").at(-1).toLowerCase();
+    const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    const pdf = ext === "pdf" && String.fromCharCode(...bytes.slice(0, 5)) === "%PDF-";
+    const doc = ext === "doc" && [208, 207, 17, 224, 161, 177, 26, 225].every((b, i) => bytes[i] === b);
+    const docx = ext === "docx" && bytes[0] === 80 && bytes[1] === 75 && bytes[2] === 3 && bytes[3] === 4;
+    if (!pdf && !doc && !docx) throw new Error("Use a valid PDF, DOC or DOCX file.");
+    return { extension: ext, mime: pdf ? "application/pdf" : doc ? "application/msword" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
+  }
+  function privateFolderSearch(alias) {
+    return "https://drive.google.com/drive/u/0/search?q=" + encodeURIComponent("type:folder " + alias);
+  }
+  async function uploadDocument(apiBase2, candidate, fullName, file, type, requestId) {
+    const metadata = await checkDocument(file);
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < buffer.length; i += 32768) binary += String.fromCharCode(...buffer.subarray(i, i + 32768));
+    let response;
+    try {
+      response = await fetch(apiBase2 + "/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: requestId,
+          candidate_id: candidate.id,
+          name: fullName,
+          document_type: type,
+          extension: metadata.extension,
+          data: btoa(binary)
+        }),
+        signal: AbortSignal.timeout(9e4)
       });
+    } catch {
+      throw new Error("Upload interrupted. Retry with the same file. The candidate record is already saved.");
     }
-    const candidate = candidates.get(event.subject_id);
-    if (!candidate) continue;
-    candidate.history.push(event);
-    candidate.revision = event.seq;
-    if (event.kind === 'stage') {
-      for (const key of ['stage','action','due','owner','blocker','r1','r2','start_date']) {
-        if (key in p) candidate[key] = p[key];
-      }
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Document upload failed. Retry with the same file.");
+    return result;
+  }
+
+  // src/config.js?v=1d9777a50d5b
+  var config = { eventsUrl: "https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/api/events" };
+
+  // src/store.js?v=e2358dabb534
+  var apiBase = config.eventsUrl.replace(/\/events$/, "");
+  var connected = Boolean(config.eventsUrl);
+  async function request(path = "", options2 = {}) {
+    let response;
+    try {
+      response = await fetch(config.eventsUrl + path, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(2e4),
+        ...options2
+      });
+    } catch {
+      throw new Error("Connection interrupted. Your draft is kept. Retry to confirm the same save.");
     }
-    if (event.kind === 'activity') {
-      if (p.event === 'Hiring checklist updated') {
-        for (const [key] of checklistItems) {
-          if (key in p) candidate.checklist[key] = p[key];
-        }
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(body.error || "Storage request failed. Try again.");
+      error.status = response.status;
+      throw error;
+    }
+    return body;
+  }
+  async function loadEvents(after = 0) {
+    const events2 = [];
+    let cursor = after;
+    for (; ; ) {
+      const batch = await request("?after=" + cursor);
+      if (!Array.isArray(batch)) throw new Error("The server returned an invalid event list.");
+      if (!batch.length) return events2;
+      if (batch.some((event) => !Number.isSafeInteger(event.seq) || event.seq <= cursor)) {
+        throw new Error("The event cursor is invalid. Refresh to retry.");
       }
-      const completed = {
-        'Writing task completed':['writing'],
-        'References completed':['references'],
-        'Agreement / NDA signed':['agreement','nda']
-      }[p.event] || [];
-      for (const key of completed) candidate.checklist[key] = 'Complete';
+      events2.push(...batch);
+      cursor = batch.at(-1).seq;
+      if (batch.length < 500) return events2;
     }
   }
-  return {jobs:[...jobs.values()].reverse(),candidates:[...candidates.values()].reverse()};
-}
-function attention(candidate, today = dateSL()) {
-  if (closed.includes(candidate.stage)) return 'Closed';
-  if (candidate.due && candidate.due < today) return 'Overdue';
-  if (candidate.blocker || candidate.owner === 'Leadership') return 'Needs decision';
-  if (!candidate.action || !candidate.due || !candidate.owner) return 'Missing next step';
-  return candidate.due === today ? 'Due today' : 'On track';
-}
-function csvCell(value) {
-  let text = String(value ?? '');
-  if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
-  return '"' + text.replaceAll('"','""') + '"';
-}
-
-function newId() {
-  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  bytes[6] = (bytes[6] & 15) | 64;
-  bytes[8] = (bytes[8] & 63) | 128;
-  const hex = Array.from(bytes,value => value.toString(16).padStart(2,'0')).join('');
-  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-' + hex.slice(12,16) + '-' +
-    hex.slice(16,20) + '-' + hex.slice(20);
-}
-
-
-const connected = Boolean(config.eventsUrl);
-async function request(path = '', options = {}) {
-  let response;
-  try {
-    response = await fetch(config.eventsUrl + path, {
-      cache:'no-store',signal:AbortSignal.timeout(20000),...options
+  function append(event) {
+    return request("", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event)
     });
-  } catch {
-    throw new Error('Connection interrupted. Your draft is kept. Retry to confirm the same save.');
   }
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(body.error || 'Storage request failed. Try again.');
-    error.status = response.status;
-    throw error;
-  }
-  return body;
-}
-async function loadEvents(after = 0) {
-  const events = [];
-  let cursor = after;
-  for (;;) {
-    const batch = await request('?after=' + cursor);
-    if (!Array.isArray(batch)) throw new Error('The server returned an invalid event list.');
-    if (!batch.length) return events;
-    if (batch.some(event => !Number.isSafeInteger(event.seq) || event.seq <= cursor)) {
-      throw new Error('The event cursor is invalid. Refresh to retry.');
-    }
-    events.push(...batch);
-    cursor = batch.at(-1).seq;
-    if (batch.length < 500) return events;
-  }
-}
-function append(event) {
-  return request('',{
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(event)
-  });
-}
 
-const e = escape;
-
-const app = document.querySelector('#app');
-const dialog = document.querySelector('#dialog');
-const mode = document.querySelector('#mode');
-const sync = document.querySelector('#sync');
-const notice = document.querySelector('#notice');
-const owners = ['COO','Leadership','Candidate'];
-const sources = ['Headhunting','Referral','Inbound','Other'];
-const employmentTypes = ['Contract','Full-time','Part-time','Commission-based'];
-const pageSize = 25;
-let events = [];
-let state = {jobs:[],candidates:[]};
-let jobNames = new Map();
-let candidateIndex = new Map();
-let ready = false;
-let failure = '';
-let refreshing = false;
-let saving = false;
-let timer;
-let focusReturn;
-let pendingRecord = null;
-let reportDate = dateSL();
-let stageFilter = '';
-let jobFilter = '';
-let attentionFilter = '';
-let ownerFilter = '';
-let search = '';
-let sort = 'recent';
-let currentPage = 1;
-let guideTrack = 'Client Acquisition & Relations';
-let searchTimer;
-let noticeTimer;
-
-const page = () => ['overview','pipeline','activity','interviews','guide'].includes(location.hash.slice(1)) ?
-  location.hash.slice(1) : 'overview';
-const btn = (label,action,id = '',primary = false) =>
-  '<button type="button" class="btn ' + (primary ? 'primary' : '') +
-  '" data-action="' + e(action) + '" data-id="' + e(id) + '">' + e(label) + '</button>';
-const tag = (text,type = '') => '<span class="tag ' + type + '">' + e(text) + '</span>';
-const empty = text => '<p class="empty">' + e(text) + '</p>';
-function options(values,selected = '') {
-  return values.map(item => {
-    const [value,label] = Array.isArray(item) ? item : [item,item];
-    return '<option value="' + e(value) + '"' + (String(value) === String(selected) ? ' selected' : '') +
-      '>' + e(label) + '</option>';
-  }).join('');
-}
-function table(head,rows) {
-  return '<div class="scroll"><table><thead><tr>' +
-    head.map(h => '<th scope="col">' + e(h) + '</th>').join('') +
-    '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map((cell,i) =>
-      '<td data-label="' + e(head[i]) + '">' + cell + '</td>').join('') + '</tr>').join('') +
-    '</tbody></table></div>';
-}
-const panel = (title,html,action = '') => '<section class="panel"><div class="section-top"><h2>' +
-  e(title) + '</h2>' + action + '</div>' + html + '</section>';
-const heading = (title,subtitle,action = '') => '<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p>' +
-  '<h1>' + e(title) + '</h1><p class="sub">' + e(subtitle) + '</p></div>' + action + '</div>';
-const eventLabel = event => ({
-  job:event.payload.job_id ? 'Position updated' : 'Position opened',
-  candidate:'Candidate sourced',stage:event.payload.stage,activity:event.payload.event,
-  summary:'Daily summary',score:event.payload.round + ' scorecard'
-})[event.kind];
-const jobTitle = id => jobNames.get(id) || 'Position unavailable';
-const candidateById = id => candidateIndex.get(id);
-function storageRead() {
-  try { return JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null') }
-  catch { return null }
-}
-function storageWrite(value) {
-  try {
-    if (value) sessionStorage.setItem('qe-recruitment-draft',JSON.stringify(value));
-    else sessionStorage.removeItem('qe-recruitment-draft');
-  } catch { /* The form remains usable when browser storage is disabled. */ }
-}
-function ingest(incoming) {
-  if (!incoming.length) return false;
-  const known = new Set(events.map(event => event.id));
-  const fresh = incoming.filter(event => !known.has(event.id));
-  if (!fresh.length) return false;
-  events = events.concat(fresh).sort((a,b) => a.seq - b.seq);
-  state = project(events);
-  jobNames = new Map(state.jobs.map(job => [job.id,job.title]));
-  candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
-  return true;
-}
-function candidateTable(candidates) {
-  if (!candidates.length) return empty('No candidates in this view. Add a candidate or adjust the filters.');
-  return table(['Candidate','Position','Stage','Next action','Attention','Actions'],candidates.map(candidate => {
-    const flag = attention(candidate);
-    return [
-      '<strong>' + e(candidate.alias) + '</strong><small>' + e(candidate.source) + '</small>',
-      e(jobTitle(candidate.job_id)),
-      tag(candidate.stage,candidate.stage === 'Hired' ? 'good' : 'blue'),
-      e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +
-        ' · ' + e(candidate.owner || 'No owner') + '</small>',
-      tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag) ? 'warn' : ''),
-      '<div class="row-actions">' + btn('View record','view',candidate.id) +
-        btn('Update','stage',candidate.id,true) + '</div>'
-    ];
-  }));
-}
-function overview() {
-  const candidates = state.candidates;
-  const openJobs = state.jobs.filter(job => job.status === 'Open');
-  const metrics = groupStages.map(([label,values,tone]) => {
-    const count = candidates.filter(candidate => values.includes(candidate.stage)).length;
-    return '<button class="metric" type="button" data-action="group" data-id="' + e(label) +
-      '" style="--tone:var(--' + tone + ')"><span class="metric-label">' + e(label) +
-      '</span><strong>' + count + '</strong><span class="metric-caption">View candidates</span></button>';
-  }).join('');
-  const active = candidates.filter(candidate => !closed.includes(candidate.stage));
-  const queue = active.filter(candidate => attention(candidate) !== 'On track').sort((a,b) =>
-    (a.due || '9999').localeCompare(b.due || '9999'));
-  const jobRows = state.jobs.map(job => [
-    '<strong>' + e(job.title) + '</strong><small>' + e(job.employment || 'Terms to confirm') + '</small>',
-    e(job.department) + '<small>' + e(job.location) + '</small>',
-    String(candidates.filter(candidate => candidate.job_id === job.id && candidate.stage === 'Hired').length) +
-      ' / ' + e(job.headcount || '1') + ' hired',
-    e(job.target_date || 'To confirm'),
-    tag(job.status,job.status === 'Open' ? 'good' : ''),
-    btn('Manage','job',job.id)
-  ]);
-  return heading('Recruitment management','Keep roles, next actions and hiring decisions moving.',
-    '<div class="toolbar">' + btn('Export records','export') + btn('+ Open position','job','',true) + '</div>') +
-    '<div class="metrics" aria-label="Current pipeline counts">' + metrics + '</div>' +
-    panel('Needs attention',queue.length ? candidateTable(queue.slice(0,5)) :
-      empty(active.length ? 'Every active candidate has a next step scheduled.' : 'Add your first candidate to build the action queue.'),
-      btn('View all actions','attention')) +
-    panel('Positions',jobRows.length ? table(['Role','Department / market','Headcount','Target date','Status','Action'],jobRows) :
-      empty('Open a position, define the role requirements, then add candidates.'),
-      tag(openJobs.length + ' open · ' + active.length + ' active candidates')) +
-    panel('Recent candidates',candidateTable(candidates.slice(0,6)),btn('+ Add candidate','candidate','',true));
-}
-function filteredCandidates() {
-  const group = groupStages.find(([name]) => 'group:' + name === stageFilter);
-  const query = search.trim().toLowerCase();
-  const list = state.candidates.filter(candidate => {
-    const stageMatch = !stageFilter || (group ? group[1].includes(candidate.stage) : candidate.stage === stageFilter);
-    const flag = attention(candidate);
-    return stageMatch && (!jobFilter || candidate.job_id === jobFilter) &&
-      (!ownerFilter || candidate.owner === ownerFilter) &&
-      (!attentionFilter || (attentionFilter === 'needs-action' ?
-        !['On track','Closed'].includes(flag) : flag === attentionFilter)) &&
-      (!query || [candidate.alias,candidate.source,candidate.owner,jobTitle(candidate.job_id)]
-        .some(value => String(value || '').toLowerCase().includes(query)));
-  });
-  if (sort === 'due') list.sort((a,b) => (a.due || '9999').localeCompare(b.due || '9999') || b.revision - a.revision);
-  if (sort === 'code') list.sort((a,b) => a.alias.localeCompare(b.alias,undefined,{numeric:true}));
-  return list;
-}
-function candidateResults() {
-  const list = filteredCandidates();
-  const pages = Math.max(1,Math.ceil(list.length / pageSize));
-  currentPage = Math.min(currentPage,pages);
-  const start = (currentPage - 1) * pageSize;
-  return '<p class="result-count" role="status">' + list.length + ' candidates · page ' + currentPage + ' of ' + pages + '</p>' +
-    candidateTable(list.slice(start,start + pageSize)) +
-    (pages > 1 ? '<div class="pagination">' +
-      (currentPage > 1 ? btn('Previous','previous') : '') +
-      (currentPage < pages ? btn('Next','next') : '') + '</div>' : '');
-}
-function pipeline() {
-  return heading('Candidate pipeline','Filter by role, stage, owner or outstanding action.',
-    '<div class="toolbar">' + btn('Export CSV','csv') + btn('+ Add candidate','candidate','',true) + '</div>') +
-    panel('Candidates','<div class="filters">' +
-      '<label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + e(search) + '"></label>' +
-      '<label class="field">Position<select id="job-filter">' + options([['','All positions'],...state.jobs.map(job => [job.id,job.title])],jobFilter) + '</select></label>' +
-      '<label class="field">Stage<select id="stage-filter">' + options([['','All stages'],...groupStages.map(([name]) => ['group:' + name,name + ' group']),...stages],stageFilter) + '</select></label>' +
-      '<label class="field">Action owner<select id="owner-filter">' + options([['','All owners'],...owners],ownerFilter) + '</select></label>' +
-      '<label class="field">Attention<select id="attention-filter">' + options([['','All candidates'],['needs-action','Needs action'],'Overdue','Due today','Needs decision','Missing next step','Closed'],attentionFilter) + '</select></label>' +
-      '<label class="field">Sort<select id="sort-filter">' + options([['recent','Newest first'],['due','Due date'],['code','Candidate code']],sort) + '</select></label></div>' +
-      '<div id="candidate-results">' + candidateResults() + '</div>',btn('Reset filters','reset'));
-}
-function activity() {
-  const daily = events.filter(event => event.event_date === reportDate).slice().reverse();
-  const summaries = daily.filter(event => event.kind === 'summary');
-  const entries = daily.filter(event => event.kind !== 'summary');
-  const aliases = new Map(state.candidates.map(candidate => [candidate.id,candidate.alias]));
-  const metrics = ['Candidate sourced','First outreach','R1 completed','R2 completed','Offer sent','Hired'];
-  return heading('Daily activity','Progress, decisions and next workday priorities in Sri Lanka time.',btn('+ Daily summary','summary','',true)) +
-    panel('Daily report','<div class="statline">' + metrics.map(label => tag(label + ' · ' +
-      entries.filter(event => eventLabel(event) === label).length)).join('') + '</div>',
-      '<label class="field">Report date (SL)<input type="date" id="report-date" value="' + e(reportDate) + '"></label>') +
-    '<div class="split">' + panel('COO updates',summaries.length ? '<ul class="timeline">' + summaries.map(event =>
-      '<li><strong>Progress</strong><p>' + e(event.payload.progress) + '</p><strong>Blockers / decisions</strong><p>' +
-      e(event.payload.blockers || 'None recorded') + '</p><strong>Next priorities</strong><p>' + e(event.payload.priorities) +
-      '</p><time>' + e(new Date(event.created_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo'})) + ' SL</time></li>').join('') +
-      '</ul>' : empty('No summary for this date. Add one to record the COO handover.')) +
-    panel('Event log',entries.length ? '<ul class="timeline">' + entries.slice(0,100).map(event =>
-      '<li><strong>' + e(eventLabel(event)) + '</strong><p>' +
-      e(aliases.get(event.subject_id || event.id) || event.payload.title || '') +
-      (event.payload.note ? ' · ' + e(event.payload.note) : '') + '</p></li>').join('') + '</ul>' +
-      (entries.length > 100 ? '<p class="muted">Showing the latest 100 events. Export records for the complete history.</p>' : '') :
-      empty('No activity recorded for this date.')) + '</div>';
-}
-function scheduledInterviews() {
-  return state.candidates.flatMap(candidate => {
-    const round = candidate.stage === 'R1 Scheduled' ? 'R1' : candidate.stage === 'R2 Scheduled' ? 'R2' : '';
-    const slot = round && candidate[round.toLowerCase()];
-    return slot ? [{candidate,round,slot}] : [];
-  }).sort((a,b) => a.slot.localeCompare(b.slot));
-}
-function interviews() {
-  const bookings = scheduledInterviews();
-  return heading('Interview calendar','Current bookings in Sri Lanka time. Reschedule or cancel through a candidate update.') +
-    panel('Scheduled interviews',bookings.length ? table(['Candidate','Position','Round','Sri Lanka time','Actions'],
-      bookings.map(({candidate,round,slot}) => [
-        '<strong>' + e(candidate.alias) + '</strong>',e(jobTitle(candidate.job_id)),tag(round,'blue'),
-        e(slot.replace('T',' ')) + (slot.slice(0,10) < dateSL() ? '<small>Past date · review the candidate stage</small>' : ''),
-        '<div class="row-actions">' + btn('Calendar file','calendar',candidate.id) +
-          btn('Reschedule / cancel','stage',candidate.id,true) + '</div>'
-      ])) : empty('No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time.'));
-}
-const relationsPrompts = [
-  ['Opening',3,'Confirm the role, commission or payment structure, client markets and the interview plan.'],
-  ['Prospect research',10,'Present six slides on one target account, their likely need, decision maker, outreach angle, follow-up plan and success measures.'],
-  ['Defence',10,'Explain the account choice, the evidence behind the proposed need, what AI suggestions you rejected, and the first metric you would track.'],
-  ['Client role-play',20,'Handle an unhappy client, an unrealistic promise request, a budget objection, a confidentiality request and an interruption. Agree a concrete next step.'],
-  ['Team behaviours',10,'Use four questions from the existing team behaviours question bank.'],
-  ['Candidate questions',5,'Discuss the role and ways of working.'],
-  ['Close',2,'Confirm references, outstanding checks and the decision timeline.']
-];
-function guideView() {
-  const original = ['R1','R2','Bank','Other'].map(key => {
-    const title = {R1:'Screening · 30 min',R2:'Technical · 60 min',Bank:'Team behaviours',Other:'Scoring and workflow'}[key];
-    return '<section class="panel"><details' + (key === 'R1' ? ' open' : '') + '><summary>' + title + '</summary>' +
-      guide.filter(([round]) => key === 'Other' ? !['R1','R2','Bank'].includes(round) : round === key)
-        .map(([,section,minutes,prompt,note]) => '<div class="guide-item"><strong>' + e(section) +
-          (minutes ? ' · ' + minutes + ' min' : '') + '</strong><p>' + e(prompt) + '</p>' +
-          (note ? '<small>' + e(note) + '</small>' : '') + '</div>').join('') + '</details></section>';
-  }).join('');
-  return heading('Interview guide','Use consistent prompts and record observable evidence.',
-    '<label class="field">Role track<select id="guide-track">' + options(['Social media','Client Acquisition & Relations'],guideTrack) + '</select></label>') +
-    (guideTrack === 'Social media' ? original : panel('Client Acquisition & Relations · Round 2',
-      '<p class="muted">Use the screening and team behaviours prompts below, with this role-specific technical brief.</p>' +
-      relationsPrompts.map(([label,minutes,prompt]) => '<div class="guide-item"><strong>' + e(label) + ' · ' + minutes +
-        ' min</strong><p>' + e(prompt) + '</p></div>').join('')) + original);
-}
-function render() {
-  const activeId = document.activeElement?.id;
-  const selection = activeId === 'search' ? [
-    document.activeElement.selectionStart,document.activeElement.selectionEnd
-  ] : null;
-  const view = page();
-  for (const link of document.querySelectorAll('#nav a')) {
-    const selected = link.hash === '#' + view;
-    link.classList.toggle('active',selected);
-    if (selected) link.setAttribute('aria-current','page');
-    else link.removeAttribute('aria-current');
+  // src/app.js
+  var app = document.querySelector("#app");
+  var dialog = document.querySelector("#dialog");
+  var mode = document.querySelector("#mode");
+  var sync = document.querySelector("#sync");
+  var notice = document.querySelector("#notice");
+  var owners = ["COO", "Leadership", "Candidate"];
+  var sources = ["Headhunting", "Referral", "Inbound", "Other"];
+  var employmentTypes = ["Contract", "Full-time", "Part-time", "Commission-based"];
+  var pageSize = 25;
+  var events = [];
+  var state = { jobs: [], candidates: [] };
+  var jobNames = /* @__PURE__ */ new Map();
+  var candidateIndex = /* @__PURE__ */ new Map();
+  var ready = false;
+  var failure = "";
+  var refreshing = false;
+  var saving = false;
+  var timer;
+  var focusReturn;
+  var pendingRecord = null;
+  var reportDate = dateSL();
+  var stageFilter = "";
+  var jobFilter = "";
+  var attentionFilter = "";
+  var ownerFilter = "";
+  var search = "";
+  var sort = "recent";
+  var currentPage = 1;
+  var guideTrack = "Client Acquisition & Relations";
+  var searchTimer;
+  var noticeTimer;
+  var page = () => ["overview", "coo", "role", "pipeline", "activity", "interviews", "guide"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
+  var btn = (label, action, id = "", primary = false) => '<button type="button" class="btn ' + (primary ? "primary" : "") + '" data-action="' + escape(action) + '" data-id="' + escape(id) + '">' + escape(label) + "</button>";
+  var tag = (text, type = "") => '<span class="tag ' + type + '">' + escape(text) + "</span>";
+  var empty = (text) => '<p class="empty">' + escape(text) + "</p>";
+  function options(values, selected = "") {
+    return values.map((item) => {
+      const [value, label] = Array.isArray(item) ? item : [item, item];
+      return '<option value="' + escape(value) + '"' + (String(value) === String(selected) ? " selected" : "") + ">" + escape(label) + "</option>";
+    }).join("");
   }
-  const screens = {overview,pipeline,activity,interviews,guide:guideView};
-  const draft = storageRead();
-  const draftBanner = draft ? '<div class="draft-banner"><span>Unsaved ' + e(draft.kind) + ' draft available.</span>' +
-    '<div class="row-actions">' + btn('Resume draft','resume') + btn('Discard draft','discard') + '</div></div>' : '';
-  const alert = failure ? '<p class="banner" role="alert">' + e(failure) +
-    ' Existing records remain visible. Use Refresh to retry.</p>' : '';
-  app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
-    panel('Recruitment workspace',empty(failure ? 'The shared records could not be loaded.' : 'Loading shared records…')) : screens[view]());
-  const active = activeId && document.getElementById(activeId);
-  if (active && app.contains(active)) {
-    active.focus({preventScroll:true});
-    if (selection) active.setSelectionRange(...selection);
+  function table(head, rows) {
+    return '<div class="scroll"><table><thead><tr>' + head.map((h) => '<th scope="col">' + escape(h) + "</th>").join("") + "</tr></thead><tbody>" + rows.map((row) => "<tr>" + row.map((cell, i) => '<td data-label="' + escape(head[i]) + '">' + cell + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
   }
-}
-function field(name,label,{kind = 'text',value = '',choices = [],required = false,max = 240,wide = false} = {}) {
-  const attributes = 'name="' + e(name) + '"' + (required ? ' required' : '');
-  let input;
-  if (kind === 'select') input = '<select ' + attributes + '>' + options(choices,value) + '</select>';
-  else if (kind === 'textarea') input = '<textarea ' + attributes + ' maxlength="' + max + '">' + e(value) + '</textarea>';
-  else input = '<input type="' + e(kind) + '" ' + attributes + ' value="' + e(value) + '"' +
-    (kind === 'text' ? ' maxlength="' + max + '"' : '') + (kind === 'number' ? ' min="1" max="999" step="1"' : '') + '>';
-  return '<label class="field' + (wide ? ' wide' : '') + '">' + e(label) +
-    (required ? ' <span class="required" aria-hidden="true">*</span>' : '') + input + '</label>';
-}
-const select = (name,label,choices,value) => field(name,label,{kind:'select',choices,value,required:true});
-const notes = (name,label,required = false,value = '') => field(name,label,{kind:'textarea',wide:true,required,max:600,value});
-const roundFields = {R1:['Experience','Spoken English','AI judgment','Confidentiality'],R2:['Role analysis','Decision reasoning','Client role-play','Team behaviours']};
-function show(html) {
-  focusReturn = document.activeElement;
-  dialog.innerHTML = html;
-  if (!dialog.open) dialog.showModal();
-  dialog.scrollTop = 0;
-}
-function showRecord(candidate) {
-  const checklist = checklistItems.map(([key,label]) =>
-    '<li><span>' + e(label) + '</span>' + tag(candidate.checklist[key] || 'Pending',
-      candidate.checklist[key] === 'Complete' ? 'good' : '') + '</li>').join('');
-  const history = candidate.history.slice().reverse().map(event => {
-    const labels = {score1:'Criterion 1',score2:'Criterion 2',score3:'Criterion 3',score4:'Criterion 4'};
-    const text = Object.entries(event.payload).filter(([key,value]) => value && key !== 'job_id')
-      .map(([key,value]) => (labels[key] || key.replaceAll('_',' ')) + ' · ' + value).join('\n');
-    return '<li><strong>' + e(eventLabel(event)) + '</strong> <time>' + e(event.event_date) +
-      '</time><p class="snapshot">' + e(text) + '</p></li>';
-  }).join('');
-  show('<div class="section-top"><h2 id="dialog-title">' + e(candidate.alias) + '</h2>' + btn('Close','close') +
-    '</div><p class="muted">' + e(jobTitle(candidate.job_id)) + ' · ' + e(candidate.stage) + '</p>' +
-    '<p class="muted">Availability · ' + e(candidate.availability || 'To confirm') + ' · Notice · ' +
-    e(candidate.notice || 'To confirm') + '</p><div class="toolbar">' +
-    btn('Update stage / schedule','stage',candidate.id,true) + btn('Log milestone','activity',candidate.id) +
-    btn('Scorecard','score',candidate.id) + btn('Hiring checklist','checklist',candidate.id) +
-    '</div><h3>Hiring readiness</h3><ul class="checklist">' + checklist +
-    '</ul><h3>Record history</h3><ul class="timeline">' + history + '</ul>');
-}
-function openForm(kind,id = '',restored = null) {
-  const existingDraft = storageRead();
-  if (!restored && existingDraft) {
-    const same = existingDraft.kind === kind && existingDraft.id === id;
-    if (same) return openForm(kind,id,existingDraft);
-    flash('Resume or discard the existing draft before starting another entry.');
-    if (dialog.open) dialog.close();
-    render();
-    return;
-  }
-  const candidate = candidateById(id);
-  const job = state.jobs.find(item => item.id === id);
-  const openJobs = state.jobs.filter(item => item.status === 'Open');
-  if (kind === 'candidate' && !openJobs.length) {
-    flash('Open a position before adding a candidate.');
-    return;
-  }
-  const required = {required:true};
-  const next = (value = {}) => '<fieldset class="form-grid wide" id="next-fields"><legend>Next action</legend>' +
-    field('action','Next step',{...required,value:value.action}) +
-    field('due','Due date (SL)',{...required,kind:'date',value:value.due}) +
-    select('owner','Owner',[['','Choose owner'],...owners],value.owner) +
-    field('blocker','Blocker / decision needed',{value:value.blocker}) + '</fieldset>';
-  let title;
-  let fields;
-  if (kind === 'job') {
-    title = job ? 'Manage position' : 'Open a position';
-    fields = field('title','Job title',{...required,value:job?.title}) +
-      field('department','Department',{...required,value:job?.department || 'Client Services'}) +
-      field('location','Location / market',{...required,value:job?.location || 'Sri Lanka · Remote'}) +
-      select('employment','Engagement type',employmentTypes,job?.employment || 'Contract') +
-      field('headcount','Target headcount',{...required,kind:'number',value:job?.headcount || '1'}) +
-      field('target_date','Target hiring date',{kind:'date',value:job?.target_date}) +
-      notes('brief','Role requirements / success criteria',true,job?.brief || '') +
-      (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
-  } else if (kind === 'candidate') {
-    title = 'Add a candidate';
-    fields = field('alias','Unique candidate code',{...required,max:40}) +
-      select('job_id','Position',openJobs.map(item => [item.id,item.title]),openJobs[0].id) +
-      select('source','Source',sources,sources[0]) +
-      select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'], 'To confirm') +
-      field('notice','Notice period',{...required,value:'To confirm'}) + next();
-  } else if (kind === 'stage' && candidate) {
-    title = 'Update · ' + candidate.alias;
-    fields = select('stage','Stage',stages,candidate.stage) + next(candidate) +
-      field('r1','R1 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r1}) +
-      field('r2','R2 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r2}) +
-      '<div class="wide" id="start-field">' + field('start_date','Confirmed start date',{kind:'date',value:candidate.start_date}) + '</div>' +
-      notes('note','Reason / decision summary',true) +
-      '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
-  } else if (kind === 'checklist' && candidate) {
-    title = 'Hiring checklist · ' + candidate.alias;
-    fields = checklistItems.map(([key,label]) => select(key,label,['Pending','Complete','Waived'],
-      candidate.checklist[key] || 'Pending')).join('') +
-      notes('note','Evidence summary / reasons for any waiver',true);
-  } else if (kind === 'activity' && candidate) {
-    title = 'Log milestone · ' + candidate.alias;
-    fields = select('event','Milestone',milestones,milestones[0]) + notes('note','Public progress summary',true);
-  } else if (kind === 'score' && candidate) {
-    title = 'Scorecard · ' + candidate.alias;
-    fields = select('round','Round',['R1','R2'],'R1') +
-      select('reviewer','Reviewer role',['COO','Leadership'],'COO') +
-      select('recommendation','Recommendation',['Advance','Hold','Reject'],'Advance') +
-      '<div class="form-grid wide" id="round-fields"></div>' + notes('note','Observable evidence',true);
-  } else if (kind === 'summary') {
-    title = 'Daily COO summary';
-    fields = notes('progress','Progress today',true) + notes('blockers','Blockers / leadership decisions') +
-      notes('priorities','Next workday priorities',true);
-  } else return;
-  const revision = restored?.revision ?? candidate?.revision ?? job?.revision ?? 0;
-  show('<form id="entry" data-kind="' + e(kind) + '" data-id="' + e(id) +
-    '" data-request="' + e(restored?.request || newId()) + '" data-revision="' + revision +
-    '"><div class="section-top"><h2 id="dialog-title">' + e(title) + '</h2>' + btn('Close','close') +
-    '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p>' +
-    '<div class="form-grid">' + field('event_date','Event date (SL)',{kind:'date',required:true,
-      value:kind === 'summary' ? reportDate : dateSL()}) + fields + '</div>' +
-    '<p class="form-error" role="alert"></p><div class="form-actions">' + btn('Discard draft','discard') +
-    '<button class="btn primary" type="submit">Save record</button></div></form>');
-  pendingRecord = restored?.pending || null;
-  if (kind === 'score') setRoundFields(restored?.values?.round || 'R1');
-  if (restored?.values) {
-    for (const [key,value] of Object.entries(restored.values)) {
-      const input = dialog.querySelector('[name="' + key + '"]');
-      if (input) input.value = value;
+  var panel = (title, html, action = "") => '<section class="panel"><div class="section-top"><h2>' + escape(title) + "</h2>" + action + "</div>" + html + "</section>";
+  var heading = (title, subtitle, action = "") => '<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p><h1>' + escape(title) + '</h1><p class="sub">' + escape(subtitle) + "</p></div>" + action + "</div>";
+  var eventLabel = (event) => ({
+    job: event.payload.job_id ? "Position updated" : "Position opened",
+    candidate: "Candidate sourced",
+    stage: event.payload.stage,
+    activity: event.payload.event,
+    summary: "Daily summary",
+    score: event.payload.round + " scorecard"
+  })[event.kind];
+  var jobTitle = (id) => jobNames.get(id) || "Position unavailable";
+  var candidateById = (id) => candidateIndex.get(id);
+  function storageRead() {
+    try {
+      return JSON.parse(sessionStorage.getItem("qe-recruitment-draft") || "null");
+    } catch {
+      return null;
     }
   }
-  updateStageFields();
-  if (pendingRecord) freezePending();
-  dialog.querySelector('input,select,textarea')?.focus();
-}
-function setRoundFields(round) {
-  dialog.querySelector('#round-fields').innerHTML = roundFields[round].map((label,i) =>
-    field('score' + (i + 1),label,{kind:'select',choices:[['','Untested'],'1','2','3','4','5']})).join('');
-}
-function updateStageFields() {
-  const stage = dialog.querySelector('[name="stage"]')?.value;
-  if (!stage) return;
-  dialog.querySelector('#next-fields').disabled = closed.includes(stage);
-  const start = dialog.querySelector('#start-field');
-  start.hidden = stage !== 'Hired';
-  start.querySelector('input').required = stage === 'Hired';
-  for (const round of ['r1','r2']) {
-    dialog.querySelector('[name="' + round + '"]').required = stage === (round === 'r1' ? 'R1 Scheduled' : 'R2 Scheduled');
+  function storageWrite(value) {
+    try {
+      if (value) sessionStorage.setItem("qe-recruitment-draft", JSON.stringify(value));
+      else sessionStorage.removeItem("qe-recruitment-draft");
+    } catch {
+    }
   }
-}
-function draftValues(form) {
-  const result = {};
-  for (const input of form.querySelectorAll('[name]')) result[input.name] = input.value;
-  return result;
-}
-function saveDraft() {
-  const form = dialog.querySelector('#entry');
-  if (!form) return;
-  storageWrite({
-    kind:form.dataset.kind,id:form.dataset.id,request:form.dataset.request,
-    revision:Number(form.dataset.revision),values:draftValues(form),pending:pendingRecord
-  });
-}
-function freezePending() {
-  for (const input of dialog.querySelectorAll('input,select,textarea')) input.disabled = true;
-  const submit = dialog.querySelector('[type="submit"]');
-  submit.textContent = 'Retry same save';
-}
-function flash(text) {
-  notice.textContent = text;
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => { notice.textContent = '' },6000);
-}
-function download(name,content,type) {
-  const url = URL.createObjectURL(new Blob([content],{type}));
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url),1000);
-}
-function calendar(candidate) {
-  const round = candidate.stage === 'R1 Scheduled' ? 'R1' : 'R2';
-  const slot = candidate[round.toLowerCase()];
-  if (!slot) return;
-  const start = new Date(slot + ':00+05:30');
-  const end = new Date(+start + (round === 'R1' ? 30 : 60) * 60000);
-  const stamp = date => date.toISOString().replace(/[-:]/g,'').slice(0,15) + 'Z';
-  const safe = value => String(value).replaceAll('\\','\\\\').replaceAll(';','\\;').replaceAll(',','\\,').replace(/\r?\n/g,'\\n');
-  const content = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//QuidEdge//Recruitment//EN','BEGIN:VEVENT',
-    'UID:' + candidate.id + '-' + round + '@quidedge','DTSTAMP:' + stamp(new Date()),
-    'DTSTART:' + stamp(start),'DTEND:' + stamp(end),'SUMMARY:' + safe(candidate.alias + ' ' + round + ' interview'),
-    'DESCRIPTION:' + safe(jobTitle(candidate.job_id)),'END:VEVENT','END:VCALENDAR',''].join('\r\n');
-  download(candidate.alias + '-' + round + '.ics',content,'text/calendar;charset=utf-8');
-}
-async function refresh() {
-  if (refreshing || saving || !navigator.onLine) return;
-  refreshing = true;
-  sync.disabled = true;
-  try {
-    const cursor = events.at(-1)?.seq || 0;
-    const incoming = await loadEvents(cursor);
-    const changed = ingest(incoming);
-    const hadFailure = Boolean(failure);
-    failure = '';
-    const initial = !ready;
-    ready = true;
-    mode.textContent = 'Synced · ' + new Date().toLocaleTimeString('en-LK',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Colombo'}) + ' SL';
-    sync.className = 'pill live';
-    if (changed || initial || hadFailure) render();
-  } catch (error) {
-    failure = error.message;
-    mode.textContent = 'Retry sync';
-    sync.className = 'pill error';
-    render();
-  } finally {
-    refreshing = false;
-    sync.disabled = false;
+  function ingest(incoming) {
+    if (!incoming.length) return false;
+    const known = new Set(events.map((event) => event.id));
+    const fresh = incoming.filter((event) => !known.has(event.id));
+    if (!fresh.length) return false;
+    events = events.concat(fresh).sort((a, b) => a.seq - b.seq);
+    state = project(events);
+    jobNames = new Map(state.jobs.map((job) => [job.id, job.title]));
+    candidateIndex = new Map(state.candidates.map((candidate) => [candidate.id, candidate]));
+    return true;
   }
-}
-function resetFilters() {
-  stageFilter = '';jobFilter = '';ownerFilter = '';attentionFilter = '';search = '';currentPage = 1;
-}
-app.addEventListener('input',event => {
-  if (event.target.id !== 'search') return;
-  search = event.target.value;
-  currentPage = 1;
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    const result = app.querySelector('#candidate-results');
-    if (result) result.innerHTML = candidateResults();
-  },120);
-});
-app.addEventListener('change',event => {
-  const value = event.target.value;
-  const key = event.target.id;
-  if (key === 'report-date' && value) reportDate = value;
-  if (key === 'stage-filter') stageFilter = value;
-  if (key === 'job-filter') jobFilter = value;
-  if (key === 'attention-filter') attentionFilter = value;
-  if (key === 'owner-filter') ownerFilter = value;
-  if (key === 'sort-filter') sort = value;
-  if (key === 'guide-track') guideTrack = value;
-  currentPage = 1;
-  render();
-});
-document.addEventListener('click',event => {
-  if (event.target.closest('.skip')) {
-    event.preventDefault();
-    app.focus();
-    return;
+  function candidateTable(candidates) {
+    if (!candidates.length) return empty("No candidates in this view. Add a candidate or adjust the filters.");
+    return table(["Candidate", "Position", "Stage", "Next action", "Attention", "Actions"], candidates.map((candidate) => {
+      const flag = attention(candidate);
+      return [
+        "<strong>" + escape(candidate.alias) + "</strong><small>" + escape(candidate.source) + "</small><small>CV: " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + "</small>",
+        escape(jobTitle(candidate.job_id)),
+        tag(candidate.stage, candidate.stage === "Hired" ? "good" : "blue"),
+        escape(candidate.action || "Set the next step") + "<small>" + escape(candidate.due || "No due date") + " \xB7 " + escape(candidate.owner || "No owner") + "</small>",
+        tag(flag, ["Overdue", "Needs decision", "Missing next step"].includes(flag) ? "warn" : ""),
+        '<div class="row-actions">' + btn("View record", "view", candidate.id) + btn("Update", "stage", candidate.id, true) + "</div>"
+      ];
+    }));
   }
-  const control = event.target.closest('[data-action]');
-  if (!control || saving) return;
-  const {action,id} = control.dataset;
-  if (action === 'close') { saveDraft();dialog.close();render();return }
-  if (action === 'discard') { storageWrite(null);pendingRecord = null;dialog.close();render();return }
-  if (action === 'resume') {
-    const draft = storageRead();
-    if (draft) openForm(draft.kind,draft.id,draft);
-    return;
-  }
-  if (action === 'group' || action === 'attention') {
-    resetFilters();
-    if (action === 'group') stageFilter = 'group:' + id;
-    else attentionFilter = 'needs-action';
-    location.hash = 'pipeline';
-    render();
-    return;
-  }
-  if (action === 'reset') { resetFilters();render();return }
-  if (action === 'next' || action === 'previous') {
-    currentPage += action === 'next' ? 1 : -1;
-    render();
-    return;
-  }
-  if (action === 'view') {
-    const candidate = candidateById(id);
-    if (candidate) showRecord(candidate);
-    return;
-  }
-  if (action === 'calendar') { calendar(candidateById(id));return }
-  if (action === 'export') {
-    download('QuidEdge-records-' + dateSL() + '.json',
-      JSON.stringify({exported_at:new Date().toISOString(),events},null,2),'application/json');
-    return;
-  }
-  if (action === 'csv') {
-    const rows = [['Code','Position','Stage','Owner','Next action','Due','Attention']];
-    for (const candidate of filteredCandidates()) rows.push([
-      candidate.alias,jobTitle(candidate.job_id),candidate.stage,candidate.owner,candidate.action,candidate.due,attention(candidate)
+  function overview() {
+    const candidates = state.candidates;
+    const openJobs = state.jobs.filter((job) => job.status === "Open");
+    const metrics = groupStages.map(([label, values, tone]) => {
+      const count = candidates.filter((candidate) => values.includes(candidate.stage)).length;
+      return '<button class="metric" type="button" data-action="group" data-id="' + escape(label) + '" style="--tone:var(--' + tone + ')"><span class="metric-label">' + escape(label) + "</span><strong>" + count + '</strong><span class="metric-caption">View candidates</span></button>';
+    }).join("");
+    const active = candidates.filter((candidate) => !closed.includes(candidate.stage));
+    const queue = active.filter((candidate) => attention(candidate) !== "On track").sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
+    const jobRows = state.jobs.map((job) => [
+      "<strong>" + escape(job.title) + "</strong><small>" + escape(job.employment || "Terms to confirm") + "</small>",
+      escape(job.department) + "<small>" + escape(job.location) + "</small>",
+      String(candidates.filter((candidate) => candidate.job_id === job.id && candidate.stage === "Hired").length) + " / " + escape(job.headcount || "1") + " hired",
+      escape(job.target_date || "To confirm"),
+      tag(job.status, job.status === "Open" ? "good" : ""),
+      '<div class="row-actions">' + btn("Manage", "job", job.id) + (job.profile === "client-acquisition-v1" ? btn("Full job description", "role-view") : "") + "</div>"
     ]);
-    download('QuidEdge-candidates-' + dateSL() + '.csv',rows.map(row => row.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
-    return;
+    return heading(
+      "Recruitment management",
+      "Keep roles, next actions and hiring decisions moving.",
+      '<div class="toolbar">' + btn("Export records", "export") + btn("+ Open position", "job", "", true) + "</div>"
+    ) + '<div class="metrics" aria-label="Current pipeline counts">' + metrics + "</div>" + panel("Hiring now", "<p><strong>" + escape(hiringRole.title) + '</strong></p><p class="muted">Independent contractor \xB7 Remote \xB7 No fixed salary \xB7 10% / 20% / 30% recurring commission</p>', btn("View role & terms", "role-view", "", true)) + panel(
+      "Needs attention",
+      queue.length ? candidateTable(queue.slice(0, 5)) : empty(active.length ? "Every active candidate has a next step scheduled." : "Add your first candidate to build the action queue."),
+      btn("View all actions", "attention")
+    ) + panel(
+      "Positions",
+      jobRows.length ? table(["Role", "Department / market", "Headcount", "Target date", "Status", "Action"], jobRows) : empty("Open a position, define the role requirements, then add candidates."),
+      tag(openJobs.length + " open \xB7 " + active.length + " active candidates")
+    ) + panel("Recent candidates", candidateTable(candidates.slice(0, 6)), btn("+ Add candidate", "candidate", "", true));
   }
-  openForm(action,id);
-});
-dialog.addEventListener('input',saveDraft);
-dialog.addEventListener('change',event => {
-  if (event.target.name === 'stage') updateStageFields();
-  if (event.target.name === 'round') setRoundFields(event.target.value);
-  saveDraft();
-});
-dialog.addEventListener('cancel',event => {
-  if (saving) event.preventDefault();
-  else saveDraft();
-});
-dialog.addEventListener('close',() => {
-  if (!saving) render();
-  if (focusReturn?.isConnected) focusReturn.focus();
-});
-dialog.addEventListener('submit',async event => {
-  if (event.target.id !== 'entry') return;
-  event.preventDefault();
-  if (saving) return;
-  const form = event.target;
-  const errorBox = form.querySelector('.form-error');
-  const {kind,id} = form.dataset;
-  let record = pendingRecord;
-  if (!record) {
-    const values = Object.fromEntries([...new FormData(form)].map(([key,value]) => [key,value.trim()]));
-    const eventDate = values.event_date;
-    delete values.event_date;
-    if (kind === 'candidate') values.stage = 'Sourced';
-    if (kind === 'job' && id) values.job_id = id;
-    if (kind === 'checklist') values.event = 'Hiring checklist updated';
-    if (kind === 'stage') {
-      if (closed.includes(values.stage)) Object.assign(values,{action:'',due:'',owner:'',blocker:''});
-      const problem = stageProblem(values,candidateById(id),eventDate);
-      if (problem) { errorBox.textContent = problem;return }
+  function filteredCandidates() {
+    const group = groupStages.find(([name]) => "group:" + name === stageFilter);
+    const query = search.trim().toLowerCase();
+    const list = state.candidates.filter((candidate) => {
+      const stageMatch = !stageFilter || (group ? group[1].includes(candidate.stage) : candidate.stage === stageFilter);
+      const flag = attention(candidate);
+      return stageMatch && (!jobFilter || candidate.job_id === jobFilter) && (!ownerFilter || candidate.owner === ownerFilter) && (!attentionFilter || (attentionFilter === "needs-action" ? !["On track", "Closed"].includes(flag) : flag === attentionFilter)) && (!query || [candidate.alias, candidate.source, candidate.owner, jobTitle(candidate.job_id)].some((value) => String(value || "").toLowerCase().includes(query)));
+    });
+    if (sort === "due") list.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999") || b.revision - a.revision);
+    if (sort === "code") list.sort((a, b) => a.alias.localeCompare(b.alias, void 0, { numeric: true }));
+    return list;
+  }
+  function candidateResults() {
+    const list = filteredCandidates();
+    const pages = Math.max(1, Math.ceil(list.length / pageSize));
+    currentPage = Math.min(currentPage, pages);
+    const start = (currentPage - 1) * pageSize;
+    return '<p class="result-count" role="status">' + list.length + " candidates \xB7 page " + currentPage + " of " + pages + "</p>" + candidateTable(list.slice(start, start + pageSize)) + (pages > 1 ? '<div class="pagination">' + (currentPage > 1 ? btn("Previous", "previous") : "") + (currentPage < pages ? btn("Next", "next") : "") + "</div>" : "");
+  }
+  function pipeline() {
+    return heading(
+      "Candidate pipeline",
+      "Filter by role, stage, owner or outstanding action.",
+      '<div class="toolbar">' + btn("Export CSV", "csv") + btn("+ Add candidate", "candidate", "", true) + "</div>"
+    ) + panel("Candidates", '<div class="filters"><label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + escape(search) + '"></label><label class="field">Position<select id="job-filter">' + options([["", "All positions"], ...state.jobs.map((job) => [job.id, job.title])], jobFilter) + '</select></label><label class="field">Stage<select id="stage-filter">' + options([["", "All stages"], ...groupStages.map(([name]) => ["group:" + name, name + " group"]), ...stages], stageFilter) + '</select></label><label class="field">Action owner<select id="owner-filter">' + options([["", "All owners"], ...owners], ownerFilter) + '</select></label><label class="field">Attention<select id="attention-filter">' + options([["", "All candidates"], ["needs-action", "Needs action"], "Overdue", "Due today", "Needs decision", "Missing next step", "Closed"], attentionFilter) + '</select></label><label class="field">Sort<select id="sort-filter">' + options([["recent", "Newest first"], ["due", "Due date"], ["code", "Candidate code"]], sort) + '</select></label></div><div id="candidate-results">' + candidateResults() + "</div>", btn("Reset filters", "reset"));
+  }
+  function activity() {
+    const daily = events.filter((event) => event.event_date === reportDate).slice().reverse();
+    const summaries = daily.filter((event) => event.kind === "summary");
+    const entries = daily.filter((event) => event.kind !== "summary");
+    const aliases = new Map(state.candidates.map((candidate) => [candidate.id, candidate.alias]));
+    const metrics = ["Candidate sourced", "First outreach", "R1 completed", "R2 completed", "Offer sent", "Hired"];
+    return heading("Daily activity", "Progress, decisions and next workday priorities in Sri Lanka time.", btn("+ Daily summary", "summary", "", true)) + panel(
+      "Daily report",
+      '<div class="statline">' + metrics.map((label) => tag(label + " \xB7 " + entries.filter((event) => eventLabel(event) === label).length)).join("") + "</div>",
+      '<label class="field">Report date (SL)<input type="date" id="report-date" value="' + escape(reportDate) + '"></label>'
+    ) + '<div class="split">' + panel("COO updates", summaries.length ? '<ul class="timeline">' + summaries.map((event) => "<li><strong>Progress</strong><p>" + escape(event.payload.progress) + "</p><strong>Blockers / decisions</strong><p>" + escape(event.payload.blockers || "None recorded") + "</p><strong>Next priorities</strong><p>" + escape(event.payload.priorities) + "</p><time>" + escape(new Date(event.created_at).toLocaleString("en-LK", { timeZone: "Asia/Colombo" })) + " SL</time></li>").join("") + "</ul>" : empty("No summary for this date. Add one to record the COO handover.")) + panel("Event log", entries.length ? '<ul class="timeline">' + entries.slice(0, 100).map((event) => "<li><strong>" + escape(eventLabel(event)) + "</strong><p>" + escape(aliases.get(event.subject_id || event.id) || event.payload.title || "") + (event.payload.note ? " \xB7 " + escape(event.payload.note) : "") + "</p></li>").join("") + "</ul>" + (entries.length > 100 ? '<p class="muted">Showing the latest 100 events. Export records for the complete history.</p>' : "") : empty("No activity recorded for this date.")) + "</div>";
+  }
+  function scheduledInterviews() {
+    return state.candidates.flatMap((candidate) => {
+      const round = candidate.stage === "R1 Scheduled" ? "R1" : candidate.stage === "R2 Scheduled" ? "R2" : "";
+      const slot = round && candidate[round.toLowerCase()];
+      return slot ? [{ candidate, round, slot }] : [];
+    }).sort((a, b) => a.slot.localeCompare(b.slot));
+  }
+  function interviews() {
+    const bookings = scheduledInterviews();
+    return heading("Interview calendar", "Current bookings in Sri Lanka time. Reschedule or cancel through a candidate update.") + panel("Scheduled interviews", bookings.length ? table(
+      ["Candidate", "Position", "Round", "Sri Lanka time", "Actions"],
+      bookings.map(({ candidate, round, slot }) => [
+        "<strong>" + escape(candidate.alias) + "</strong>",
+        escape(jobTitle(candidate.job_id)),
+        tag(round, "blue"),
+        escape(slot.replace("T", " ")) + (slot.slice(0, 10) < dateSL() ? "<small>Past date \xB7 review the candidate stage</small>" : ""),
+        '<div class="row-actions">' + btn("Calendar file", "calendar", candidate.id) + btn("Reschedule / cancel", "stage", candidate.id, true) + "</div>"
+      ])
+    ) : empty("No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time."));
+  }
+  var relationsPrompts = [
+    ["Opening", 3, "Confirm the role, commission or payment structure, client markets and the interview plan."],
+    ["Prospect research", 10, "Present six slides on one target account, their likely need, decision maker, outreach angle, follow-up plan and success measures."],
+    ["Defence", 10, "Explain the account choice, the evidence behind the proposed need, what AI suggestions you rejected, and the first metric you would track."],
+    ["Client role-play", 20, "Handle an unhappy client, an unrealistic promise request, a budget objection, a confidentiality request and an interruption. Agree a concrete next step."],
+    ["Team behaviours", 10, "Use four questions from the existing team behaviours question bank."],
+    ["Candidate questions", 5, "Discuss the role and ways of working."],
+    ["Close", 2, "Confirm references, outstanding checks and the decision timeline."]
+  ];
+  function guideView() {
+    const original = ["R1", "R2", "Bank", "Other"].map((key) => {
+      const title = { R1: "Screening \xB7 30 min", R2: "Technical \xB7 60 min", Bank: "Team behaviours", Other: "Scoring and workflow" }[key];
+      return '<section class="panel"><details' + (key === "R1" ? " open" : "") + "><summary>" + title + "</summary>" + guide_default.filter(([round]) => key === "Other" ? !["R1", "R2", "Bank"].includes(round) : round === key).map(([, section, minutes, prompt, note]) => '<div class="guide-item"><strong>' + escape(section) + (minutes ? " \xB7 " + minutes + " min" : "") + "</strong><p>" + escape(prompt) + "</p>" + (note ? "<small>" + escape(note) + "</small>" : "") + "</div>").join("") + "</details></section>";
+    }).join("");
+    return heading(
+      "Interview guide",
+      "Use consistent prompts and record observable evidence.",
+      '<label class="field">Role track<select id="guide-track">' + options(["Social media", "Client Acquisition & Relations"], guideTrack) + "</select></label>"
+    ) + (guideTrack === "Social media" ? original : panel("Client Acquisition & Relations \xB7 Screening", hiringRole.screening.map(([label, prompt]) => '<div class="guide-item"><strong>' + escape(label) + "</strong><p>" + escape(prompt) + "</p></div>").join("")) + panel(
+      "Client Acquisition & Relations \xB7 Round 2",
+      '<p class="muted">Use the screening and team behaviours prompts below, with this role-specific technical brief.</p>' + relationsPrompts.map(([label, minutes, prompt]) => '<div class="guide-item"><strong>' + escape(label) + " \xB7 " + minutes + " min</strong><p>" + escape(prompt) + "</p></div>").join("")
+    ) + original);
+  }
+  function render() {
+    const activeId = document.activeElement?.id;
+    const selection = activeId === "search" ? [
+      document.activeElement.selectionStart,
+      document.activeElement.selectionEnd
+    ] : null;
+    const view = page();
+    for (const link of document.querySelectorAll("#nav a")) {
+      const selected = link.hash === "#" + view;
+      link.classList.toggle("active", selected);
+      if (selected) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
     }
-    record = {
-      id:form.dataset.request,kind:kind === 'checklist' ? 'activity' : kind,
-      subject_id:kind === 'job' ? null : id || null,event_date:eventDate,payload:values
-    };
-    if (id) record.expected_seq = Number(form.dataset.revision);
+    const screens = { overview, coo: cooView, role: roleView, pipeline, activity, interviews, guide: guideView };
+    const draft = storageRead();
+    const draftBanner = draft ? '<div class="draft-banner"><span>Unsaved ' + escape(draft.kind) + ' draft available.</span><div class="row-actions">' + btn("Resume draft", "resume") + btn("Discard draft", "discard") + "</div></div>" : "";
+    const alert = failure ? '<p class="banner" role="alert">' + escape(failure) + " Existing records remain visible. Use Refresh to retry.</p>" : "";
+    app.innerHTML = alert + draftBanner + (!ready && view !== "guide" ? panel("Recruitment workspace", empty(failure ? "The shared records could not be loaded." : "Loading shared records\u2026")) : screens[view]());
+    const active = activeId && document.getElementById(activeId);
+    if (active && app.contains(active)) {
+      active.focus({ preventScroll: true });
+      if (selection) active.setSelectionRange(...selection);
+    }
   }
-  pendingRecord = record;
-  saveDraft();
-  saving = true;
-  const controls = form.querySelectorAll('button,input,select,textarea');
-  for (const input of controls) input.disabled = true;
-  const submit = form.querySelector('[type="submit"]');
-  submit.textContent = 'Saving…';
-  errorBox.textContent = '';
-  try {
-    const saved = await append(record);
-    ingest([saved]);
-    pendingRecord = null;
-    storageWrite(null);
-    if (kind === 'summary') reportDate = record.event_date;
-    dialog.close();
+  function field(name, label, { kind = "text", value = "", choices = [], required = false, max = 240, wide = false } = {}) {
+    const attributes = 'name="' + escape(name) + '"' + (required ? " required" : "");
+    let input;
+    if (kind === "select") input = "<select " + attributes + ">" + options(choices, value) + "</select>";
+    else if (kind === "textarea") input = "<textarea " + attributes + ' maxlength="' + max + '">' + escape(value) + "</textarea>";
+    else input = '<input type="' + escape(kind) + '" ' + attributes + ' value="' + escape(value) + '"' + (kind === "text" ? ' maxlength="' + max + '"' : "") + (kind === "number" ? ' min="1" max="999" step="1"' : "") + ">";
+    return '<label class="field' + (wide ? " wide" : "") + '">' + escape(label) + (required ? ' <span class="required" aria-hidden="true">*</span>' : "") + input + "</label>";
+  }
+  var select = (name, label, choices, value) => field(name, label, { kind: "select", choices, value, required: true });
+  var notes = (name, label, required = false, value = "") => field(name, label, { kind: "textarea", wide: true, required, max: 600, value });
+  var roundFields = { R1: ["Acquisition evidence", "Client communication", "Commercial judgment", "Confidentiality & terms"], R2: ["Prospect research", "Discovery & proposals", "Objection handling", "Client relations & follow-up"] };
+  function show(html) {
+    focusReturn = document.activeElement;
+    dialog.innerHTML = html;
+    if (!dialog.open) dialog.showModal();
+    dialog.scrollTop = 0;
+  }
+  function showRecord(candidate) {
+    const checklist = checklistItems.map(([key, label]) => "<li><span>" + escape(label) + "</span>" + tag(
+      candidate.checklist[key] || "Pending",
+      candidate.checklist[key] === "Complete" ? "good" : ""
+    ) + "</li>").join("");
+    const history = candidate.history.slice().reverse().map((event) => {
+      const labels = { score1: "Criterion 1", score2: "Criterion 2", score3: "Criterion 3", score4: "Criterion 4" };
+      const text = Object.entries(event.payload).filter(([key, value]) => value && key !== "job_id").map(([key, value]) => (labels[key] || key.replaceAll("_", " ")) + " \xB7 " + value).join("\n");
+      return "<li><strong>" + escape(eventLabel(event)) + "</strong> <time>" + escape(event.event_date) + '</time><p class="snapshot">' + escape(text) + "</p></li>";
+    }).join("");
+    show('<div class="section-top"><h2 id="dialog-title">' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + '</div><p class="muted">' + escape(jobTitle(candidate.job_id)) + " \xB7 " + escape(candidate.stage) + '</p><p class="muted">Availability \xB7 ' + escape(candidate.availability || "To confirm") + " \xB7 Notice \xB7 " + escape(candidate.notice || "To confirm") + '</p><div class="toolbar">' + btn("Update stage / schedule", "stage", candidate.id, true) + btn("Log milestone", "activity", candidate.id) + btn("Scorecard", "score", candidate.id) + btn("Hiring checklist", "checklist", candidate.id) + btn("CV & cover letter", "documents", candidate.id) + btn("Commission review", "commission", candidate.id) + '</div><p class="public-note">Commission-only acknowledgement: ' + escape(candidate.commission_ack || "Not recorded") + " \xB7 CV: " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + '</p><h3>Hiring readiness</h3><ul class="checklist">' + checklist + '</ul><h3>Record history</h3><ul class="timeline">' + history + "</ul>");
+  }
+  function openForm(kind, id = "", restored = null) {
+    const existingDraft = storageRead();
+    if (!restored && existingDraft) {
+      const same = existingDraft.kind === kind && existingDraft.id === id;
+      if (same) return openForm(kind, id, existingDraft);
+      flash("Resume or discard the existing draft before starting another entry.");
+      if (dialog.open) dialog.close();
+      render();
+      return;
+    }
+    const candidate = candidateById(id);
+    const job = state.jobs.find((item) => item.id === id);
+    const openJobs = state.jobs.filter((item) => item.status === "Open");
+    if (kind === "candidate" && !openJobs.length) {
+      flash("Open a position before adding a candidate.");
+      return;
+    }
+    const required = { required: true };
+    const next = (value = {}) => '<fieldset class="form-grid wide" id="next-fields"><legend>Next action</legend>' + field("action", "Next step", { ...required, value: value.action }) + field("due", "Due date (SL)", { ...required, kind: "date", value: value.due }) + select("owner", "Owner", [["", "Choose owner"], ...owners], value.owner) + field("blocker", "Blocker / decision needed", { value: value.blocker }) + "</fieldset>";
+    let title;
+    let fields;
+    if (kind === "job") {
+      title = job ? "Manage position" : "Open a position";
+      fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + notes("brief", "Role requirements / success criteria", true, job?.brief || "") + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
+    } else if (kind === "candidate") {
+      title = "Add a candidate";
+      fields = field("alias", "Unique candidate code", { ...required, max: 40 }) + select("job_id", "Position", openJobs.map((item) => [item.id, item.title]), openJobs[0].id) + select("source", "Source", sources, sources[0]) + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { ...required, value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + '<p class="hint wide">Save the candidate code first, then open CV & cover letter to enter their private name and upload the application documents. Real names are kept out of the public record.</p>' + next();
+    } else if (kind === "stage" && candidate) {
+      title = "Update \xB7 " + candidate.alias;
+      fields = select("stage", "Stage", stages, candidate.stage) + next(candidate) + field("r1", "R1 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r1 }) + field("r2", "R2 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r2 }) + '<div class="wide" id="start-field">' + field("start_date", "Confirmed start date", { kind: "date", value: candidate.start_date }) + "</div>" + notes("note", "Reason / decision summary", true) + '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
+    } else if (kind === "checklist" && candidate) {
+      title = "Hiring checklist \xB7 " + candidate.alias;
+      fields = checklistItems.map(([key, label]) => select(
+        key,
+        label,
+        ["Pending", "Complete", "Waived"],
+        candidate.checklist[key] || "Pending"
+      )).join("") + notes("note", "Evidence summary / reasons for any waiver", true);
+    } else if (kind === "activity" && candidate) {
+      title = "Log milestone \xB7 " + candidate.alias;
+      fields = select("event", "Milestone", milestones, milestones[0]) + notes("note", "Public progress summary", true);
+    } else if (kind === "score" && candidate) {
+      title = "Scorecard \xB7 " + candidate.alias;
+      fields = select("round", "Round", ["R1", "R2"], "R1") + select("reviewer", "Reviewer role", ["COO", "Leadership"], "COO") + select("recommendation", "Recommendation", ["Advance", "Hold", "Reject"], "Advance") + '<div class="form-grid wide" id="round-fields"></div>' + notes("note", "Observable evidence", true);
+    } else if (kind === "commission" && candidate) {
+      title = "Commission review \xB7 " + candidate.alias;
+      fields = select("commission_plan", "Agreed structure", ["10 / 20 / 30 recurring", "Other agreed terms"], candidate.commission_plan || "10 / 20 / 30 recurring") + select("commission_ack", "Candidate acknowledgement", ["Pending", "Accepted", "Declined"], candidate.commission_ack || "Pending") + notes("note", "Terms explained / next action (public-safe)", true);
+    } else if (kind === "summary") {
+      title = "Daily COO summary";
+      fields = notes("progress", "Progress today", true) + notes("blockers", "Blockers / leadership decisions") + notes("priorities", "Next workday priorities", true);
+    } else return;
+    const revision = restored?.revision ?? candidate?.revision ?? job?.revision ?? 0;
+    show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + field("event_date", "Event date (SL)", {
+      kind: "date",
+      required: true,
+      value: kind === "summary" ? reportDate : dateSL()
+    }) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary" type="submit">Save record</button></div></form>');
+    pendingRecord = restored?.pending || null;
+    if (kind === "score") setRoundFields(restored?.values?.round || "R1");
+    if (restored?.values) {
+      for (const [key, value] of Object.entries(restored.values)) {
+        const input = dialog.querySelector('[name="' + key + '"]');
+        if (input) input.value = value;
+      }
+    }
+    updateStageFields();
+    if (pendingRecord) freezePending();
+    dialog.querySelector("input,select,textarea")?.focus();
+  }
+  function setRoundFields(round) {
+    dialog.querySelector("#round-fields").innerHTML = roundFields[round].map((label, i) => field("score" + (i + 1), label, { kind: "select", choices: [["", "Untested"], "1", "2", "3", "4", "5"] })).join("");
+  }
+  function updateStageFields() {
+    const stage = dialog.querySelector('[name="stage"]')?.value;
+    if (!stage) return;
+    dialog.querySelector("#next-fields").disabled = closed.includes(stage);
+    const start = dialog.querySelector("#start-field");
+    start.hidden = stage !== "Hired";
+    start.querySelector("input").required = stage === "Hired";
+    for (const round of ["r1", "r2"]) {
+      dialog.querySelector('[name="' + round + '"]').required = stage === (round === "r1" ? "R1 Scheduled" : "R2 Scheduled");
+    }
+  }
+  function draftValues(form) {
+    const result = {};
+    for (const input of form.querySelectorAll("[name]")) result[input.name] = input.value;
+    return result;
+  }
+  function saveDraft() {
+    const form = dialog.querySelector("#entry");
+    if (!form) return;
+    storageWrite({
+      kind: form.dataset.kind,
+      id: form.dataset.id,
+      request: form.dataset.request,
+      revision: Number(form.dataset.revision),
+      values: draftValues(form),
+      pending: pendingRecord
+    });
+  }
+  function freezePending() {
+    for (const input of dialog.querySelectorAll("input,select,textarea")) input.disabled = true;
+    const submit = dialog.querySelector('[type="submit"]');
+    submit.textContent = "Retry same save";
+  }
+  function flash(text) {
+    notice.textContent = text;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => {
+      notice.textContent = "";
+    }, 6e3);
+  }
+  function download(name, content, type) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  }
+  function calendar(candidate) {
+    const round = candidate.stage === "R1 Scheduled" ? "R1" : "R2";
+    const slot = candidate[round.toLowerCase()];
+    if (!slot) return;
+    const start = /* @__PURE__ */ new Date(slot + ":00+05:30");
+    const end = new Date(+start + (round === "R1" ? 30 : 60) * 6e4);
+    const stamp = (date) => date.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+    const safe = (value) => String(value).replaceAll("\\", "\\\\").replaceAll(";", "\\;").replaceAll(",", "\\,").replace(/\r?\n/g, "\\n");
+    const content = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//QuidEdge//Recruitment//EN",
+      "BEGIN:VEVENT",
+      "UID:" + candidate.id + "-" + round + "@quidedge",
+      "DTSTAMP:" + stamp(/* @__PURE__ */ new Date()),
+      "DTSTART:" + stamp(start),
+      "DTEND:" + stamp(end),
+      "SUMMARY:" + safe(candidate.alias + " " + round + " interview"),
+      "DESCRIPTION:" + safe(jobTitle(candidate.job_id)),
+      "END:VEVENT",
+      "END:VCALENDAR",
+      ""
+    ].join("\r\n");
+    download(candidate.alias + "-" + round + ".ics", content, "text/calendar;charset=utf-8");
+  }
+  async function refresh() {
+    if (refreshing || saving || !navigator.onLine) return;
+    refreshing = true;
+    sync.disabled = true;
+    try {
+      const cursor = events.at(-1)?.seq || 0;
+      const incoming = await loadEvents(cursor);
+      const changed = ingest(incoming);
+      const hadFailure = Boolean(failure);
+      failure = "";
+      const initial = !ready;
+      ready = true;
+      mode.textContent = "Synced \xB7 " + (/* @__PURE__ */ new Date()).toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Colombo" }) + " SL";
+      sync.className = "pill live";
+      if (changed || initial || hadFailure) render();
+    } catch (error) {
+      failure = error.message;
+      mode.textContent = "Retry sync";
+      sync.className = "pill error";
+      render();
+    } finally {
+      refreshing = false;
+      sync.disabled = false;
+    }
+  }
+  function resetFilters() {
+    stageFilter = "";
+    jobFilter = "";
+    ownerFilter = "";
+    attentionFilter = "";
+    search = "";
+    currentPage = 1;
+  }
+  app.addEventListener("input", (event) => {
+    if (event.target.id !== "search") return;
+    search = event.target.value;
+    currentPage = 1;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const result = app.querySelector("#candidate-results");
+      if (result) result.innerHTML = candidateResults();
+    }, 120);
+  });
+  app.addEventListener("change", (event) => {
+    const value = event.target.value;
+    const key = event.target.id;
+    if (key === "report-date" && value) reportDate = value;
+    if (key === "stage-filter") stageFilter = value;
+    if (key === "job-filter") jobFilter = value;
+    if (key === "attention-filter") attentionFilter = value;
+    if (key === "owner-filter") ownerFilter = value;
+    if (key === "sort-filter") sort = value;
+    if (key === "guide-track") guideTrack = value;
+    currentPage = 1;
     render();
-    flash('Saved to the shared workspace. The original history is preserved.');
-  } catch (error) {
-    errorBox.textContent = error.message;
-    if (error.status && error.status < 500) {
+  });
+  document.addEventListener("click", (event) => {
+    if (event.target.closest(".skip")) {
+      event.preventDefault();
+      app.focus();
+      return;
+    }
+    const control = event.target.closest("[data-action]");
+    if (!control || saving) return;
+    const { action, id } = control.dataset;
+    if (action === "close") {
+      saveDraft();
+      dialog.close();
+      render();
+      return;
+    }
+    if (action === "discard") {
+      storageWrite(null);
       pendingRecord = null;
-      form.dataset.request = newId();
-      if (error.status === 409) {
-        saving = false;
-        await refresh();
-        const current = candidateById(id) || state.jobs.find(job => job.id === id);
-        if (current) {
-          form.dataset.revision = current.revision;
-          errorBox.textContent += ' Latest saved status: ' + (current.stage || current.status) +
-            '. Next action: ' + (current.action || 'None') + '. Review before saving again.';
+      dialog.close();
+      render();
+      return;
+    }
+    if (action === "resume") {
+      const draft = storageRead();
+      if (draft) openForm(draft.kind, draft.id, draft);
+      return;
+    }
+    if (action === "group" || action === "attention") {
+      resetFilters();
+      if (action === "group") stageFilter = "group:" + id;
+      else attentionFilter = "needs-action";
+      location.hash = "pipeline";
+      render();
+      return;
+    }
+    if (action === "reset") {
+      resetFilters();
+      render();
+      return;
+    }
+    if (action === "next" || action === "previous") {
+      currentPage += action === "next" ? 1 : -1;
+      render();
+      return;
+    }
+    if (action === "view") {
+      const candidate = candidateById(id);
+      if (candidate) showRecord(candidate);
+      return;
+    }
+    if (action === "role-view") {
+      location.hash = "role";
+      render();
+      return;
+    }
+    if (action === "activate-role") {
+      activateRole();
+      return;
+    }
+    if (action === "documents") {
+      showDocuments(candidateById(id));
+      return;
+    }
+    if (action === "calendar") {
+      calendar(candidateById(id));
+      return;
+    }
+    if (action === "export") {
+      download(
+        "QuidEdge-records-" + dateSL() + ".json",
+        JSON.stringify({ exported_at: (/* @__PURE__ */ new Date()).toISOString(), events }, null, 2),
+        "application/json"
+      );
+      return;
+    }
+    if (action === "csv") {
+      const rows = [["Code", "Position", "Stage", "Owner", "Next action", "Due", "Attention"]];
+      for (const candidate of filteredCandidates()) rows.push([
+        candidate.alias,
+        jobTitle(candidate.job_id),
+        candidate.stage,
+        candidate.owner,
+        candidate.action,
+        candidate.due,
+        attention(candidate)
+      ]);
+      download("QuidEdge-candidates-" + dateSL() + ".csv", rows.map((row) => row.map(csvCell).join(",")).join("\r\n"), "text/csv;charset=utf-8");
+      return;
+    }
+    openForm(action, id);
+  });
+  dialog.addEventListener("input", saveDraft);
+  dialog.addEventListener("change", (event) => {
+    if (event.target.name === "stage") updateStageFields();
+    if (event.target.name === "round") setRoundFields(event.target.value);
+    if (event.target.name === "event" && event.target.value === "Commission terms reviewed") {
+      openForm("commission", event.target.form.dataset.id);
+      return;
+    }
+    saveDraft();
+  });
+  dialog.addEventListener("cancel", (event) => {
+    if (saving) event.preventDefault();
+    else saveDraft();
+  });
+  dialog.addEventListener("close", () => {
+    if (!saving) render();
+    if (focusReturn?.isConnected) focusReturn.focus();
+  });
+  dialog.addEventListener("submit", async (event) => {
+    if (event.target.id === "document-entry") {
+      event.preventDefault();
+      saveDocuments(event.target);
+      return;
+    }
+    if (event.target.id !== "entry") return;
+    event.preventDefault();
+    if (saving) return;
+    const form = event.target;
+    const errorBox = form.querySelector(".form-error");
+    const { kind, id } = form.dataset;
+    let record = pendingRecord;
+    if (!record) {
+      const values = Object.fromEntries([...new FormData(form)].map(([key, value]) => [key, value.trim()]));
+      const eventDate = values.event_date;
+      delete values.event_date;
+      if (kind === "candidate") values.stage = "Sourced";
+      if (kind === "job" && id) values.job_id = id;
+      if (kind === "commission") values.event = "Commission terms reviewed";
+      if (kind === "checklist") values.event = "Hiring checklist updated";
+      if (kind === "stage") {
+        if (closed.includes(values.stage)) Object.assign(values, { action: "", due: "", owner: "", blocker: "" });
+        const problem = stageProblem(values, candidateById(id), eventDate);
+        if (problem) {
+          errorBox.textContent = problem;
+          return;
         }
       }
-      for (const input of controls) input.disabled = false;
-      updateStageFields();
-      submit.textContent = 'Save record';
-      saveDraft();
-    } else {
-      for (const button of form.querySelectorAll('button')) button.disabled = false;
-      freezePending();
-      saveDraft();
+      record = {
+        id: form.dataset.request,
+        kind: ["checklist", "commission"].includes(kind) ? "activity" : kind,
+        subject_id: kind === "job" ? null : id || null,
+        event_date: eventDate,
+        payload: values
+      };
+      if (id) record.expected_seq = Number(form.dataset.revision);
     }
-  } finally {
-    saving = false;
+    pendingRecord = record;
+    saveDraft();
+    saving = true;
+    const controls = form.querySelectorAll("button,input,select,textarea");
+    for (const input of controls) input.disabled = true;
+    const submit = form.querySelector('[type="submit"]');
+    submit.textContent = "Saving\u2026";
+    errorBox.textContent = "";
+    try {
+      const saved = await append(record);
+      ingest([saved]);
+      pendingRecord = null;
+      storageWrite(null);
+      if (kind === "summary") reportDate = record.event_date;
+      dialog.close();
+      render();
+      flash("Saved to the shared workspace. The original history is preserved.");
+    } catch (error) {
+      errorBox.textContent = error.message;
+      if (error.status && error.status < 500) {
+        pendingRecord = null;
+        form.dataset.request = newId();
+        if (error.status === 409) {
+          saving = false;
+          await refresh();
+          const current = candidateById(id) || state.jobs.find((job) => job.id === id);
+          if (current) {
+            form.dataset.revision = current.revision;
+            errorBox.textContent += " Latest saved status: " + (current.stage || current.status) + ". Next action: " + (current.action || "None") + ". Review before saving again.";
+          }
+        }
+        for (const input of controls) input.disabled = false;
+        updateStageFields();
+        submit.textContent = "Save record";
+        saveDraft();
+      } else {
+        for (const button of form.querySelectorAll("button")) button.disabled = false;
+        freezePending();
+        saveDraft();
+      }
+    } finally {
+      saving = false;
+    }
+  });
+  sync.addEventListener("click", refresh);
+  window.addEventListener("hashchange", () => {
+    render();
+    app.focus({ preventScroll: true });
+  });
+  window.addEventListener("online", refresh);
+  window.addEventListener("offline", () => {
+    mode.textContent = "Offline \xB7 draft kept";
+    sync.className = "pill error";
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && !dialog.open) refresh();
+  });
+  window.addEventListener("pagehide", () => {
+    saveDraft();
+    clearInterval(timer);
+  });
+  render();
+  refresh();
+  timer = setInterval(() => {
+    if (!document.hidden && !dialog.open) refresh();
+  }, 45e3);
+  function roleView() {
+    const r = hiringRole, active = state.jobs.some((j) => j.id === r.id);
+    return heading(r.title, "QuidEdge \xB7 Client Services \xB7 Remote", active ? tag("Position added", "good") : btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
   }
-});
-sync.addEventListener('click',refresh);
-window.addEventListener('hashchange',() => { render();app.focus({preventScroll:true}) });
-window.addEventListener('online',refresh);
-window.addEventListener('offline',() => { mode.textContent = 'Offline · draft kept';sync.className = 'pill error' });
-document.addEventListener('visibilitychange',() => { if (!document.hidden && !dialog.open) refresh() });
-window.addEventListener('pagehide',() => { saveDraft();clearInterval(timer) });
-render();
-refresh();
-timer = setInterval(() => { if (!document.hidden && !dialog.open) refresh() },45000);
+  async function activateRole() {
+    if (saving) return;
+    saving = true;
+    try {
+      const saved = await append(defaultRoleRecord(dateSL()));
+      ingest([saved]);
+      render();
+      flash("Client Acquisition & Client Relations position added.");
+    } catch (err) {
+      flash(err.message);
+    } finally {
+      saving = false;
+    }
+  }
+  function cooView() {
+    const relatedJobs = state.jobs.filter((j) => j.profile === "client-acquisition-v1" || j.id === hiringRole.id);
+    const ids = new Set(relatedJobs.map((j) => j.id));
+    const candidates = state.candidates.filter((c) => ids.has(c.job_id));
+    const active = candidates.filter((c) => !closed.includes(c.stage));
+    const due = active.filter((c) => c.due && c.due <= dateSL()).sort((a, b) => a.due.localeCompare(b.due));
+    const documents = active.filter((c) => c.documents?.cv !== "Uploaded" || c.documents?.cover !== "Uploaded");
+    const terms = active.filter((c) => c.commission_ack !== "Accepted");
+    const review = active.filter((c) => ["R1 Review", "R2 Review", "Reference Check", "Offer / Agreement"].includes(c.stage));
+    const stats = [["Active candidates", active.length], ["Due / overdue", due.length], ["Documents incomplete", documents.length], ["Terms to confirm", terms.length]];
+    const summaries = events.filter((x) => x.kind === "summary" && x.event_date === dateSL());
+    return heading(
+      "COO recruitment workspace",
+      "Client Acquisition & Client Relations \xB7 Daily priorities and review queue",
+      '<div class="toolbar">' + btn("Role & commission terms", "role-view") + btn("+ Add candidate", "candidate", "", true) + "</div>"
+    ) + '<div class="coo-stats">' + stats.map(([title, total]) => '<div class="panel"><span>' + escape(title) + "</span><strong>" + total + "</strong></div>").join("") + "</div>" + panel("Today\u2019s next actions", candidateTable(due)) + '<div class="split">' + panel("Ready for COO review", candidateTable(review)) + panel("Commission acknowledgement", candidateTable(terms)) + "</div>" + panel("CV & cover letter checklist", documents.length ? table(["Candidate", "CV", "Cover letter", "Action"], documents.map((c) => [
+      "<strong>" + escape(c.alias) + "</strong>",
+      tag(c.documents?.cv || "Missing", c.documents?.cv === "Uploaded" ? "good" : "warn"),
+      tag(c.documents?.cover || "Missing", c.documents?.cover === "Uploaded" ? "good" : "warn"),
+      btn("Upload / view documents", "documents", c.id, true)
+    ])) : empty("All active candidates have both application documents.")) + panel("Daily COO handover", summaries.length ? "<p>" + escape(summaries.at(-1).payload.progress) + "</p><p><strong>Next priorities:</strong> " + escape(summaries.at(-1).payload.priorities) + "</p>" : empty("Add today\u2019s progress, blockers and next priorities."), btn("+ Daily summary", "summary", "", true)) + panel("Private application files", '<p>Candidate names, CVs and cover letters belong in the restricted recruitment Drive folder. This public workspace displays candidate codes and upload status.</p><a class="btn" target="_blank" rel="noopener noreferrer" href="https://drive.google.com/drive/folders/' + driveRoot + '">Open recruitment Drive folder</a>');
+  }
+  function showDocuments(candidate) {
+    if (!candidate) return;
+    const job = state.jobs.find((j) => j.id === candidate.job_id);
+    if (job?.profile !== "client-acquisition-v1") {
+      flash("Use the Client Acquisition & Client Relations position for this upload workflow.");
+      return;
+    }
+    const stateMarkup = '<div class="statline">' + tag("CV: " + (candidate.documents?.cv || "Missing")) + tag("Cover letter: " + (candidate.documents?.cover || "Missing")) + "</div>";
+    show('<div class="section-top"><h2 id="dialog-title">Application documents \xB7 ' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + "</div>" + stateMarkup + '<p class="public-note">The full name and document contents go to Google Drive. They are not saved to the public candidate record or browser draft.</p><p id="drive-connection" class="hint" role="status">Checking Google Drive connection\u2026</p><form id="document-entry" data-candidate="' + escape(candidate.id) + '"><div class="form-grid">' + field("private_name", "Candidate\u2019s full name (private)", { required: true, max: 120, wide: true }) + '<label class="field">CV<input type="file" name="cv" accept=".pdf,.doc,.docx"></label><label class="field">Cover letter<input type="file" name="cover" accept=".pdf,.doc,.docx"></label></div><p class="hint">PDF, DOC or DOCX \xB7 up to 5 MB per file. New versions are preserved; identical retries reuse the existing file.</p><p id="upload-progress" role="status"></p><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit" disabled>Upload to Google Drive</button></div></form><p><a class="btn" href="' + escape(privateFolderSearch(candidate.alias)) + '" target="_blank" rel="noopener noreferrer">Find candidate\u2019s private Drive folder</a></p>');
+    const form = dialog.querySelector("#document-entry");
+    form.dataset.cvRequest = newId();
+    form.dataset.coverRequest = newId();
+    fetch(apiBase + "/integrations", { cache: "no-store", signal: AbortSignal.timeout(1e4) }).then(async (response) => {
+      if (!response.ok) throw new Error("Connection check failed.");
+      const status = await response.json();
+      if (!form.isConnected) return;
+      const text = dialog.querySelector("#drive-connection");
+      text.textContent = status.drive_ready ? "Google Drive connected. A separate named folder is created automatically for this candidate." : "Owner setup required: Google Drive uploads are not connected yet. Candidate records and the hiring workflow remain available.";
+      form.querySelector("[type=submit]").disabled = !status.drive_ready;
+    }).catch(() => {
+      if (form.isConnected) dialog.querySelector("#drive-connection").textContent = "Could not check Drive. Close and reopen this panel to retry.";
+    });
+  }
+  async function saveDocuments(form) {
+    if (saving) return;
+    const errorBox = form.querySelector(".form-error"), progress = form.querySelector("#upload-progress");
+    errorBox.textContent = "";
+    const candidate = candidateById(form.dataset.candidate), name = form.elements.private_name.value.trim();
+    const tasks = ["cv", "cover"].map((type) => ({ type, file: form.elements[type].files[0] })).filter((t) => t.file);
+    if (name.length < 2) {
+      errorBox.textContent = "Enter the candidate\u2019s full name.";
+      return;
+    }
+    if (!tasks.length) {
+      errorBox.textContent = "Choose a CV, cover letter, or both.";
+      return;
+    }
+    try {
+      for (const task of tasks) await checkDocument(task.file);
+    } catch (err) {
+      errorBox.textContent = err.message;
+      return;
+    }
+    if (saving) return;
+    saving = true;
+    const controls = dialog.querySelectorAll("button,input");
+    for (const el of controls) el.disabled = true;
+    try {
+      for (const task of tasks) {
+        progress.textContent = "Uploading " + (task.type === "cv" ? "CV" : "cover letter") + "\u2026";
+        const result = await uploadDocument(apiBase, candidate, name, task.file, task.type, form.dataset[task.type + "Request"]);
+        ingest([result.event]);
+        form.elements[task.type].value = "";
+        form.dataset[task.type + "Request"] = newId();
+      }
+      progress.textContent = "Saved to Google Drive. Original files are preserved.";
+      form.elements.private_name.value = "";
+      render();
+      flash("Application documents saved to the candidate\u2019s private Drive folder.");
+    } catch (err) {
+      errorBox.textContent = err.message;
+      progress.textContent = "Completed files remain saved. Retry the remaining selected document.";
+    } finally {
+      saving = false;
+      for (const el of controls) el.disabled = false;
+    }
+  }
+})();
 </script>
 </body>
 </html>

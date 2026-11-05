@@ -472,6 +472,10 @@ function guideView() {
         ' min</strong><p>' + e(prompt) + '</p></div>').join('')) + original);
 }
 function render() {
+  const activeId = document.activeElement?.id;
+  const selection = activeId === 'search' ? [
+    document.activeElement.selectionStart,document.activeElement.selectionEnd
+  ] : null;
   const view = page();
   for (const link of document.querySelectorAll('#nav a')) {
     const selected = link.hash === '#' + view;
@@ -487,6 +491,11 @@ function render() {
     ' Existing records remain visible. Use Refresh to retry.</p>' : '';
   app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
     panel('Recruitment workspace',empty(failure ? 'The shared records could not be loaded.' : 'Loading shared records…')) : screens[view]());
+  const active = activeId && document.getElementById(activeId);
+  if (active && app.contains(active)) {
+    active.focus({preventScroll:true});
+    if (selection) active.setSelectionRange(...selection);
+  }
 }
 function field(name,label,{kind = 'text',value = '',choices = [],required = false,max = 240,wide = false} = {}) {
   const attributes = 'name="' + e(name) + '"' + (required ? ' required' : '');
@@ -729,6 +738,11 @@ app.addEventListener('change',event => {
   render();
 });
 document.addEventListener('click',event => {
+  if (event.target.closest('.skip')) {
+    event.preventDefault();
+    app.focus();
+    return;
+  }
   const control = event.target.closest('[data-action]');
   if (!control || saving) return;
   const {action,id} = control.dataset;
@@ -785,6 +799,7 @@ dialog.addEventListener('cancel',event => {
   else saveDraft();
 });
 dialog.addEventListener('close',() => {
+  if (!saving) render();
   if (focusReturn?.isConnected) focusReturn.focus();
 });
 dialog.addEventListener('submit',async event => {

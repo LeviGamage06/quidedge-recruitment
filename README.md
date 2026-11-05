@@ -14,4 +14,4 @@ Recruitment events are append-only. Updates add history; the database rejects UP
 
 The active role is Client Acquisition & Client Relations Specialist, remote independent contractor, with no fixed salary and agreed recurring commission terms. Exactly AUD 1,000 overlaps in the supplied tier descriptions and must be confirmed in the agreement.
 
-Verification: 20 automated regression tests passed, covering storage, retries, validation, commission gates, Drive bridge privacy, folder recovery, response integrity and calendar encoding. Tests use a disposable local database. Passing checks do not establish that all possible bugs have been eliminated.
+Verification: 21 automated regression tests passed, covering storage, retries, validation, commission gates, Drive bridge privacy, folder recovery, response integrity and calendar encoding. Tests use a disposable local database. Passing checks do not establish that all possible bugs have been eliminated.

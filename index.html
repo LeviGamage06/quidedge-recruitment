@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#efefe2">
+<title>QuidEdge · Recruitment</title>
+<style>:root{color-scheme:light;--ink:#191b17;--muted:#64675c;--paper:#fafaf3;--line:#dedfd3;--gold:#f8c87c;--amber:#d99c44;--blue:#6587e7;--coral:#e68d72;--purple:#ae6bd9;--green:#72b580;font-family:Inter,Aptos,system-ui,sans-serif;color:var(--ink);background:#eeeee1}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 8% 0,#e8ede5,transparent 62%),radial-gradient(ellipse at 100% 27%,#f7efdc,transparent 65%);min-height:100vh}a{color:inherit}button,input,select,textarea{font:inherit}button,a,input,select,textarea{outline-offset:4px}button{cursor:pointer}button:disabled{cursor:wait;opacity:.55}.top{min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px clamp(16px,3vw,46px);flex-wrap:wrap}.brand{text-decoration:none;font-size:clamp(24px,3vw,36px);font-weight:800;letter-spacing:-.075em;display:flex;align-items:center;gap:8px}.brand-dot{color:#bb651f;margin-left:-6px}.mark{color:#be651f;font-size:1.2em;line-height:1}.top nav{display:flex;gap:5px;flex-wrap:wrap}.top nav a,.pill,.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:10px 16px;border:1px solid var(--line);text-decoration:none;background:var(--paper);color:var(--ink);font-size:.86rem;white-space:nowrap}.top nav a.active{background:var(--ink);color:white;border-color:var(--ink)}.indicator{width:8px;height:8px;border-radius:100%;background:#aa6b23}.live .indicator{background:#398449}.error .indicator{background:#a5332b}.btn.primary{background:var(--gold);border-color:transparent;font-weight:650}.btn:hover,.pill:hover{filter:brightness(.96)}main{max-width:1600px;margin:auto;padding:18px clamp(16px,3vw,46px) 52px}.intro,.section-top,.form-actions,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.intro{margin-bottom:20px}.intro h1{font-size:clamp(31px,4vw,52px);line-height:1.02;letter-spacing:-.06em;margin:0 0 10px}.eyebrow{text-transform:uppercase;font-weight:750;letter-spacing:.13em;font-size:.69rem;color:#696b5f;margin:0 0 10px}.sub,.muted,small{color:var(--muted)}.sub{margin:0}.banner{border:1px solid #e9d8b5;background:#fff5df;border-radius:13px;padding:10px 14px;margin:0 0 14px;color:#624619;font-size:.84rem}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 12px}.metric,.panel{background:rgba(250,250,243,.86);border:1px solid rgba(255,255,255,.56);border-radius:24px}.metric{padding:16px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;text-align:left}.metric strong{display:block;font-size:clamp(26px,3.4vw,48px);line-height:1;letter-spacing:-.06em;margin-top:8px}.metric-label{font-size:.85rem;font-weight:600}.dots{display:grid;grid-template-columns:repeat(7,6px);gap:4px}.dots i{width:6px;height:6px;border-radius:50%;background:#e9ebe4}.dots i.on{background:var(--tone)}.panel{padding:clamp(14px,2vw,25px);margin-bottom:12px}.section-top{margin-bottom:14px}.section-top h2{margin:0;font-size:clamp(19px,2.6vw,29px);letter-spacing:-.045em}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;min-width:650px}th,td{border-bottom:1px solid var(--line);padding:13px 10px 13px 0;vertical-align:middle}tr:last-child td{border-bottom:0}th{text-transform:uppercase;font-size:.69rem;letter-spacing:.07em;color:#555a50}td{font-size:.89rem}td small{display:block;margin-top:3px}.tag{display:inline-block;max-width:100%;background:#ecece1;border-radius:999px;padding:5px 9px;font-size:.73rem;white-space:nowrap}.tag.good{background:#dcefdc;color:#295a36}.tag.warn{background:#ffe4da;color:#8a352b}.tag.blue{background:#e0e8fb;color:#2f5098}.row-actions{display:flex;gap:6px;align-items:center}.row-actions .btn{padding:6px 10px;font-size:.75rem}.avatar{display:inline-grid;place-items:center;background:#f5e0b9;border-radius:50%;width:31px;height:31px;margin-right:7px;font-size:.72rem;font-weight:800;color:#715320}.empty{padding:22px 0;color:var(--muted);margin:0}.toolbar{justify-content:flex-start}.toolbar input,.toolbar select{width:auto}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.statline{display:flex;gap:8px;flex-wrap:wrap}.timeline{list-style:none;padding:0;margin:0}.timeline li{padding:12px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.timeline li:last-child{border:0}.timeline p{margin:5px 0;white-space:pre-wrap}.timeline time{font-size:.75rem;color:var(--muted)}dialog{border:1px solid var(--line);border-radius:22px;width:min(680px,calc(100% - 24px));max-height:90vh;background:var(--paper);color:var(--ink);padding:22px;box-shadow:0 16px 80px #2426172b}dialog::backdrop{background:#22251e6c}dialog h2{margin:0;letter-spacing:-.04em}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:5px;font-size:.83rem;font-weight:650}.field.wide{grid-column:1/-1}input,textarea,select{min-width:0;width:100%;border:1px solid #cdcec1;background:#fffef8;border-radius:11px;padding:9px;color:var(--ink)}textarea{resize:vertical;min-height:65px}.form-actions{margin-top:14px;justify-content:flex-end}.form-error{color:#96352c;font-size:.85rem}.guide-item{padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}.guide-item p{margin:4px 0}.guide-item small{display:block}details summary{cursor:pointer;font-weight:700;padding:10px 0}#notice{position:fixed;bottom:14px;right:14px;z-index:2;background:var(--ink);color:white;padding:10px 14px;border-radius:14px;max-width:calc(100% - 28px);font-size:.85rem}#notice:empty{display:none}.danger-text{color:#903425}.snapshot{line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:1050px){.dots{display:none}}@media(max-width:700px){.top nav{order:3;width:100%;overflow:auto;flex-wrap:nowrap}.metrics{grid-template-columns:repeat(3,1fr)}.metric{padding:12px}.split{grid-template-columns:1fr}.panel{border-radius:18px}.form-grid{grid-template-columns:1fr}.top nav a{padding:8px 11px}}@media(max-width:360px){.metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a href="#overview" class="brand"><span class="mark" aria-hidden="true">✺</span>quidedge<span class="brand-dot">.</span></a>
+  <nav aria-label="Recruitment navigation" id="nav">
+    <a href="#overview">Overview</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#guide">Interview guide</a>
+  </nav>
+  <button id="sync" class="pill" type="button" title="Refresh data"><span class="indicator"></span><span id="mode">Connecting</span></button>
+</header>
+<main>
+  <div id="app"></div>
+</main>
+<dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+<div id="notice" role="status" aria-live="polite"></div>
+<script type="module">const config = { eventsUrl: 'https://quidedge-recruitment.felinedough1.chatgpt.site/api/events' };
+
+const guide = [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. “This is Sarah from Bloom Skincare in the UK. Honestly, I’m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend’s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.”", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, “Which other brands do you work with? Can you show me what you did for them?” What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they’ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "“We sell handmade candles in Australia. We need to go viral. Can you guarantee that?”", null], ["R2", "Client role-play", 2, "“Our sales have been flat, so we just want more followers.”", null], ["R2", "Client role-play", 2, "“We want it to feel more premium, but not too serious.”", null], ["R2", "Client role-play", 2, "“I heard you work with [a competitor]. What is their ad budget?”", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "“Honestly, what do you think is wrong with our brand right now?”", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does “being responsible for your work” mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate’s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];
+
+const stages = ['Sourced','Contacted','Replied','R1 Scheduled','R1 Review','R2 Prep','R2 Scheduled','R2 Review','Reference Check','Offer / Agreement','On Hold','Hired','Rejected','Withdrawn'];
+const closed = ['Hired','Rejected','Withdrawn'];
+const milestones = ['First outreach','Reply received','Follow-up sent','R1 completed','R2 brief sent','R2 completed','Writing task completed','References completed','Offer sent','Agreement / NDA signed','Blocker update'];
+const dateSL = (date = new Date()) => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Colombo',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+const groupStages = [
+  ['Sourced',['Sourced','Contacted','Replied'],'amber'],
+  ['Screening',['R1 Scheduled','R1 Review'],'blue'],
+  ['Technical',['R2 Prep','R2 Scheduled','R2 Review','Reference Check'],'coral'],
+  ['Offer',['Offer / Agreement'],'purple'],
+  ['Hired',['Hired'],'green']
+];
+function project(events) {
+  const jobs = new Map(), candidates = new Map();
+  for (const event of [...events].sort((a,b)=>a.seq-b.seq)) {
+    const p = event.payload;
+    if (event.kind === 'job') jobs.set(event.id,{...p,id:event.id});
+    if (event.kind === 'candidate') candidates.set(event.id,{...p,id:event.id,date:event.event_date,history:[event],r1:'',r2:''});
+    const candidate = candidates.get(event.subject_id);
+    if (!candidate) continue;
+    candidate.history.push(event);
+    if (event.kind === 'stage') {
+      for (const key of ['stage','action','due','owner','blocker']) candidate[key]=p[key] || '';
+      if ('r1' in p) candidate.r1=p.r1;
+      if ('r2' in p) candidate.r2=p.r2;
+    }
+  }
+  return {jobs:[...jobs.values()].reverse(),candidates:[...candidates.values()].reverse()};
+}
+function attention(candidate, today=dateSL()) {
+  if (closed.includes(candidate.stage)) return 'Closed';
+  if (candidate.due && candidate.due<today) return 'Overdue';
+  if (candidate.blocker || candidate.owner==='Leadership') return 'Needs decision';
+  if (!candidate.action || !candidate.due || !candidate.owner) return 'Missing next step';
+  return candidate.due===today?'Due today':'On track';
+}
+const escape = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+
+const connected = Boolean(config.eventsUrl);
+async function request(path='', options={}) {
+  const response = await fetch(config.eventsUrl + path, {
+    cache:'no-store', signal:AbortSignal.timeout(15000), ...options
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || 'Storage request failed.');
+  return body;
+}
+async function loadEvents() {
+  const events=[];
+  let after=0;
+  for (;;) {
+    const batch=await request('?after='+after);
+    if (!batch.length) return events;
+    events.push(...batch);
+    if (batch.length<500) return events;
+    after=batch.at(-1).seq;
+  }
+}
+function append(event) {
+  return request('', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(event)
+  });
+}
+
+const e = escape;
+
+const app=document.querySelector('#app'), dialog=document.querySelector('#dialog');
+const mode=document.querySelector('#mode'), sync=document.querySelector('#sync'), notice=document.querySelector('#notice');
+const owners=['COO','Leadership','Candidate'];
+const sources=['Headhunting','Referral','Inbound','Other'];
+let events=[], ready=false, failure='', refreshing=false, saving=false, timer;
+let writeRevision=0;
+let reportDate=dateSL(), stageFilter='', search='';
+const page=()=>location.hash.slice(1)||'overview';
+const btn=(label,action,id='',primary=false)=>`<button type="button" class="btn ${primary?'primary':''}" data-action="${e(action)}" data-id="${e(id)}">${e(label)}</button>`;
+const tag=(text,type='')=>`<span class="tag ${type}">${e(text)}</span>`;
+const empty=text=>`<p class="empty">${e(text)}</p>`;
+const options=(values,selected='')=>values.map(item=>{
+  const [value,label]=Array.isArray(item)?item:[item,item];
+  return `<option value="${e(value)}" ${value===selected?'selected':''}>${e(label)}</option>`;
+}).join('');
+const table=(head,rows)=>`<div class="scroll"><table><thead><tr>${head.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const panel=(title,html,action='')=>`<section class="panel"><div class="section-top"><h2>${e(title)}</h2>${action}</div>${html}</section>`;
+const heading=(title,sub,action='')=>`<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p><h1>${e(title)}</h1><p class="sub">${e(sub)}</p></div>${action}</div>`;
+const eventLabel=x=>({job:'Position opened',candidate:'Candidate sourced',stage:x.payload.stage,activity:x.payload.event,summary:'Daily summary',score:x.payload.round+' scorecard'})[x.kind];
+const formatTime=x=>x?.replace('T',' ')||'—';
+const candidateName=x=>`<span class="avatar" aria-hidden="true">${e(x.alias.slice(0,2).toUpperCase())}</span><strong>${e(x.alias)}</strong>`;
+function candidateTable(list,jobs) {
+  if (!list.length) return empty('No candidates match this view.');
+  const jobNames=new Map(jobs.map(j=>[j.id,j.title]));
+  return table(['Candidate','Position','Stage','Next action','Attention','Actions'],list.map(c=>{
+    const flag=attention(c);
+    return [candidateName(c),e(jobNames.get(c.job_id)||'—'),tag(c.stage,c.stage==='Hired'?'good':'blue'),
+      e(c.action||'—')+(c.due?`<small>${e(c.due)} · ${e(c.owner)}</small>`:''),
+      tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag)?'warn':''),
+      `<div class="row-actions">${btn('View record','view',c.id)}${btn('Log update','stage',c.id,true)}</div>`];
+  }));
+}
+function overview(jobs,candidates) {
+  const chart=groupStages.map(([label,values,tone])=>{
+    const count=candidates.filter(c=>values.includes(c.stage)).length;
+    return `<button class="metric" type="button" data-action="group" data-id="${e(label)}" style="--tone:var(--${tone})"><span><span class="metric-label">${e(label)}</span><strong>${count}</strong></span><span class="dots" aria-hidden="true">${Array.from({length:35},(_,i)=>`<i class="${(4-Math.floor(i/7))*7+i%7<Math.min(35,count)?'on':''}"></i>`).join('')}</span></button>`;
+  }).join('');
+  const jobList=jobs.length?table(['Job title','Department','Location','Candidates','Status'],jobs.map(j=>[
+    `<strong>${e(j.title)}</strong>`,e(j.department),e(j.location),String(candidates.filter(c=>c.job_id===j.id).length),tag('Open','good')
+  ])):empty('Open a position to start tracking candidates.');
+  const overdue=candidates.filter(c=>attention(c)==='Overdue').length;
+  const decisions=candidates.filter(c=>!closed.includes(c.stage)&&(c.blocker||c.owner==='Leadership')).length;
+  const due=candidates.filter(c=>!closed.includes(c.stage)&&c.due===dateSL()).length;
+  return heading('Recruitment management','Manage open roles, track candidates and see what needs attention.',btn('+ Open position','job','',true))+
+    `<div class="metrics" aria-label="Current pipeline counts">${chart}</div>`+
+    panel('Open job positions',jobList)+
+    panel('Recent candidates',`<div class="statline">${tag(overdue+' overdue',overdue?'warn':'')}${tag(due+' due today')}${tag(decisions+' need a decision',decisions?'warn':'')}</div>`+candidateTable(candidates.slice(0,6),jobs),btn('+ Add candidate','candidate','',true));
+}
+function pipeline(jobs,candidates) {
+  const group=groupStages.find(([name])=>'group:'+name===stageFilter);
+  const list=candidates.filter(c=>(!stageFilter||(group?group[1].includes(c.stage):c.stage===stageFilter))&&
+    (!search||[c.alias,c.source,c.owner,jobs.find(j=>j.id===c.job_id)?.title].some(x=>String(x||'').toLowerCase().includes(search.toLowerCase()))));
+  return heading('Candidate pipeline','A current view of candidate records. Every update is kept in the timeline.',btn('+ Add candidate','candidate','',true))+
+    panel('Candidates',`<div class="toolbar"><input id="search" aria-label="Search candidates" placeholder="Search alias, role or source" value="${e(search)}"><select id="stage-filter" aria-label="Filter stage">${options([['','All stages'],...groupStages.map(([n])=>['group:'+n,n+' group']),...stages],stageFilter)}</select>${tag(list.length+' matching')}</div>`+candidateTable(list,jobs));
+}
+function activity(candidates) {
+  const daily=events.filter(x=>x.event_date===reportDate).reverse();
+  const summaries=daily.filter(x=>x.kind==='summary');
+  const entries=daily.filter(x=>x.kind!=='summary');
+  const aliases=new Map(candidates.map(c=>[c.id,c.alias]));
+  const labels=['Candidate sourced','First outreach','R1 completed','R2 completed','Offer sent','Hired'];
+  return heading('Daily activity','Review recruiting progress and leadership requests by Sri Lanka date.',btn('+ Daily summary','summary','',true))+
+    panel('Daily report',`<div class="statline">${labels.map(label=>tag(label+' · '+entries.filter(x=>eventLabel(x)===label).length)).join('')}</div>`,
+      `<label class="field">Report date (SL)<input type="date" id="report-date" value="${e(reportDate)}"></label>`)+
+    `<div class="split">${panel('COO updates',summaries.length?`<ul class="timeline">${summaries.map(x=>`<li><strong>Progress</strong><p>${e(x.payload.progress)}</p><strong>Blockers / decisions</strong><p>${e(x.payload.blockers||'—')}</p><strong>Next priorities</strong><p>${e(x.payload.priorities)}</p><time>${e(new Date(x.created_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo'}))} SL</time></li>`).join('')}</ul>`:empty('No summary recorded for this date.'))}
+    ${panel('Event log',entries.length?`<ul class="timeline">${entries.map(x=>`<li><strong>${e(eventLabel(x))}</strong><p>${e(aliases.get(x.subject_id||x.id)||x.payload.title||'')}${x.payload.note?' · '+e(x.payload.note):''}</p></li>`).join('')}</ul>`:empty('No events recorded for this date.'))}</div>`;
+}
+function guideView() {
+  const sections=[['R1','Screening · 30 min'],['R2','Technical · 60 min'],['Bank','Team behaviours · question bank'],['Other','Scoring and workflow']];
+  return heading('Interview guide','The QuidEdge interview prompts and timing from your workbook.')+
+    sections.map(([key,title])=>`<section class="panel"><details ${key==='R1'?'open':''}><summary>${e(title)}</summary>${guide.filter(([r])=>key==='Other'?!['R1','R2','Bank'].includes(r):r===key).map(([,section,min,prompt,note])=>
+      `<div class="guide-item"><strong>${e(section)}${min?' · '+min+' min':''}</strong><p>${e(prompt)}</p>${note?`<small>${e(note)}</small>`:''}</div>`).join('')}</details></section>`).join('');
+}
+function render() {
+  const view=page();
+  document.querySelectorAll('#nav a').forEach(a=>{
+    const active=a.hash==='#'+view;a.classList.toggle('active',active);
+    if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+  });
+  const {jobs,candidates}=project(events);
+  let alert=connected?'':`<p class="banner"><strong>Demo mode.</strong> Sample data and temporary changes reset when this page reloads. Connect shared storage before entering live records.</p>`;
+  if(failure)alert+=`<p class="banner" role="alert">${e(failure)} Use the sync button to retry.</p>`;
+  const body=view==='pipeline'?pipeline(jobs,candidates):view==='activity'?activity(candidates):view==='guide'?guideView():overview(jobs,candidates);
+  app.innerHTML=alert+(!ready&&view!=='guide'?panel('Recruitment workspace',empty(failure?'Shared data could not be loaded.':'Loading records…')):body);
+}
+function field(name,label,{kind='text',value='',choices=[],required=false,max=240,wide=false}={}) {
+  const common=`name="${e(name)}" ${required?'required':''}`;
+  let input;
+  if(kind==='select') input=`<select ${common}>${options(choices,value)}</select>`;
+  else if(kind==='textarea') input=`<textarea ${common} maxlength="${max}">${e(value)}</textarea>`;
+  else input=`<input type="${e(kind)}" ${common} value="${e(value)}" ${kind==='text'?'maxlength="'+max+'"':''}>`;
+  return `<label class="field ${wide?'wide':''}">${e(label)}${input}</label>`;
+}
+const select=(name,label,choices,value)=>field(name,label,{kind:'select',choices,value,required:true});
+const notes=(name,label,required=false)=>field(name,label,{kind:'textarea',wide:true,required,max:600});
+const roundFields={R1:['Experience','Spoken English','AI judgment','Confidentiality'],R2:['Audit quality','Audit defence','Client role-play','Team behaviours']};
+function showRecord(c, jobs) {
+  const job=jobs.find(j=>j.id===c.job_id);
+  const history=c.history.slice().reverse().map(x=>{
+    const text=Object.entries(x.payload).filter(([k,v])=>v&&k!=='job_id').map(([k,v])=>k.replaceAll('_',' ')+': '+v).join('\n');
+    return `<li><strong>${e(eventLabel(x))}</strong> <time>${e(x.event_date)}</time><p class="snapshot">${e(text)}</p></li>`;
+  }).join('');
+  show(`<div class="section-top"><h2 id="dialog-title">${e(c.alias)}</h2>${btn('Close','close')}</div><p class="muted">${e(job?.title)} · ${e(c.source)} · ${e(c.stage)}</p><p>Round 1 · ${e(formatTime(c.r1))} SL<br>Round 2 · ${e(formatTime(c.r2))} SL</p><div class="toolbar">${btn('Update stage / schedule','stage',c.id,true)}${btn('Log milestone','activity',c.id)}${btn('Add scorecard','score',c.id)}</div><h3>Record history</h3><ul class="timeline">${history}</ul>`);
+}
+function show(html) {
+  dialog.innerHTML=html;
+  if(!dialog.open)dialog.showModal();
+  dialog.scrollTop=0;
+}
+function openForm(kind,id='') {
+  const {jobs,candidates}=project(events), c=candidates.find(x=>x.id===id);
+  if (kind==='candidate'&&!jobs.length) return openForm('job');
+  const req={required:true};
+  const next=(x={})=>field('action','Next action',{value:x.action})+
+    field('due','Action due (SL)',{kind:'date',value:x.due})+
+    field('owner','Action owner',{kind:'select',choices:[['','Select owner'],...owners],value:x.owner})+
+    field('blocker','Blocker / decision needed',{value:x.blocker});
+  let title,fields;
+  if(kind==='job') {
+    title='Open a position';
+    fields=field('title','Job title',req)+field('department','Department',{...req,value:'Client Services'})+
+      field('location','Location / market',{...req,value:'Sri Lanka · Remote'});
+  } else if(kind==='candidate') {
+    title='Add a candidate';
+    fields=field('alias','Candidate code or public alias',req)+
+      select('job_id','Position',jobs.map(j=>[j.id,j.title]),jobs[0].id)+
+      select('source','Source',sources,sources[0])+next();
+  } else if(kind==='stage'&&c) {
+    title='Log candidate update · '+c.alias;
+    fields=select('stage','Current stage',stages,c.stage)+next(c)+
+      field('r1','R1 interview (SL time)',{kind:'datetime-local',value:c.r1})+
+      field('r2','R2 interview (SL time)',{kind:'datetime-local',value:c.r2})+
+      notes('note','Reason / update note',true);
+  } else if(kind==='activity'&&c) {
+    title='Log milestone · '+c.alias;
+    fields=select('event','Milestone',milestones,milestones[0])+notes('note','Public progress note',true);
+  } else if(kind==='score'&&c) {
+    title='Add scorecard · '+c.alias;
+    fields=select('round','Interview round',['R1','R2'],'R1')+
+      select('recommendation','Recommendation',['Advance','Hold','Reject'],'Advance')+
+      '<div class="field wide form-grid" id="round-fields"></div>'+notes('note','Public evidence summary',true);
+  } else if(kind==='summary') {
+    title='Add daily summary';
+    fields=notes('progress','Progress today',true)+notes('blockers','Blockers / leadership decisions')+notes('priorities','Next workday priorities',true);
+  } else return;
+  const eventId=crypto.randomUUID();
+  show(`<form id="entry" data-kind="${e(kind)}" data-id="${e(id)}" data-request="${e(eventId)}"><div class="section-top"><h2 id="dialog-title">${e(title)}</h2>${btn('Close','close')}</div><p class="banner">Entries are public and permanent in the application. Use candidate codes and omit names, contact details, CV links and confidential notes.</p><div class="form-grid">${field('event_date','Event date (SL)',{kind:'date',required:true,value:kind==='summary'?reportDate:dateSL()})}${fields}</div><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit">Append record</button></div></form>`);
+  if(kind==='score')setRoundFields('R1');
+}
+function setRoundFields(round) {
+  document.querySelector('#round-fields').innerHTML=roundFields[round].map((name,i)=>
+    field('score'+(i+1),name,{kind:'select',choices:[['','Untested'],'1','2','3','4','5']})).join('');
+}
+let noticeTimer;
+function flash(text) {
+  notice.textContent=text;clearTimeout(noticeTimer);
+  noticeTimer=setTimeout(()=>{notice.textContent=''},4400);
+}
+async function refresh() {
+  if(refreshing||saving)return;
+  refreshing=true;sync.disabled=true;
+  try {
+    const revision=writeRevision;
+    const loaded=await loadEvents();
+    if(revision===writeRevision)events=loaded;
+    ready=true;failure='';
+  } catch(error) {
+    failure='Shared storage is unavailable. '+error.message;
+  } finally {
+    mode.textContent=failure?'Sync unavailable':connected?'Shared workspace':'Demo mode';
+    sync.className='pill '+(failure?'error':connected?'live':'');
+    sync.disabled=false;refreshing=false;
+    if(document.activeElement?.id!=='search') render();
+  }
+}
+app.addEventListener('input',event=>{
+  if(event.target.id!=='search')return;
+  const caret=event.target.selectionStart;search=event.target.value;render();
+  const input=document.querySelector('#search');input.focus();input.setSelectionRange(caret,caret);
+});
+app.addEventListener('change',event=>{
+  if(event.target.id==='stage-filter'){stageFilter=event.target.value;render()}
+  if(event.target.id==='report-date'&&event.target.value){reportDate=event.target.value;render()}
+});
+document.addEventListener('click',event=>{
+  const control=event.target.closest('[data-action]');
+  if(!control||saving)return;
+  const {action,id}=control.dataset;
+  if(action==='close')return dialog.close();
+  if(action==='group'){stageFilter='group:'+id;search='';location.hash='pipeline';return}
+  const {jobs,candidates}=project(events);
+  if(action==='view'){
+    const candidate=candidates.find(c=>c.id===id);
+    if(candidate)showRecord(candidate,jobs);
+    return;
+  }
+  openForm(action,id);
+});
+dialog.addEventListener('cancel',event=>{if(saving)event.preventDefault()});
+dialog.addEventListener('change',event=>{if(event.target.name==='round')setRoundFields(event.target.value)});
+dialog.addEventListener('submit',async event=>{
+  if(event.target.id!=='entry')return;
+  event.preventDefault();
+  if(saving)return;
+  const form=event.target;
+  const payload=Object.fromEntries([...new FormData(form)].map(([k,v])=>[k,v.trim()]));
+  const eventDate=payload.event_date;delete payload.event_date;
+  const {kind,id,request}=form.dataset;
+  if(kind==='candidate')payload.stage='Sourced';
+  const record={id:request,kind,subject_id:id||null,event_date:eventDate,payload};
+  const controls=form.querySelectorAll('button,input,select,textarea');
+  const errorBox=form.querySelector('.form-error');
+  if([...form.querySelectorAll('[required]')].some(input=>!input.value.trim())){
+    errorBox.textContent='Complete the required fields.';return;
+  }
+  saving=true;controls.forEach(input=>{input.disabled=true});errorBox.textContent='';
+  try {
+    const saved=await append(record);
+    writeRevision++;
+    if(!events.some(x=>x.id===saved.id))events.push(saved);
+    dialog.close();
+    flash(connected?'Record saved to shared storage.':'Demo record added for this session.');
+    if(kind==='summary')reportDate=eventDate;
+    render();
+  } catch(error) {
+    errorBox.textContent='Save could not be confirmed. Retry this same form. '+error.message;
+  } finally {
+    saving=false;controls.forEach(input=>{input.disabled=false});
+  }
+});
+sync.addEventListener('click',refresh);
+window.addEventListener('hashchange',render);
+async function start() {
+  if(!connected){
+    const demoDate=dateSL();
+    for (const [i,[title,department,location]] of [['Client Acquisition & Client Relations','Client Services','Sri Lanka · Remote'],['Social Media Strategist','Content','Remote']].entries()) {
+      const jobId='demo-job-'+i;
+      await append({id:jobId,kind:'job',event_date:demoDate,payload:{title,department,location}});
+      for(let n=0;n<4;n++){
+        const id='demo-'+i+'-'+n;
+        const stage=['Sourced','R1 Scheduled','R2 Review','Offer / Agreement','Contacted','R1 Review','Hired','Sourced'][i*4+n];
+        await append({id,kind:'candidate',event_date:demoDate,payload:{alias:'QE-00'+(i*4+n+1),job_id:jobId,source:n%2?'Referral':'Headhunting',stage,action:'Review next step',owner:'COO',due:demoDate}});
+      }
+    }
+  }
+  await refresh();
+  if(connected)timer=setInterval(()=>{if(!document.hidden&&!dialog.open)refresh()},45000);
+}
+window.addEventListener('pagehide',()=>clearInterval(timer));
+render();
+start();
+</script>
+</body>
+</html>

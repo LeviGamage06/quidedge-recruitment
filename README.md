@@ -1,30 +1,56 @@
 # QuidEdge Recruitment
 
-Live dashboard — https://levigamage06.github.io/quidedge-recruitment/
+Live app: https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/
 
-Public access with no visitor login. The dashboard includes open positions, candidate stages, interviews, scorecards, activity history and daily COO summaries.
+Alternative frontend: https://levigamage06.github.io/quidedge-recruitment/
 
-## Source
+## Independent hosting
 
-- index.html contains the complete frontend, styles and interview guide.
-- backend.js contains the deployed API worker and an initial database schema in its header comment.
+Both frontends now use the Cloudflare Worker API at https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/api/events.
+The Worker and D1 database belong to the owner's Cloudflare account. Running this app does not require a ChatGPT account or subscription.
 
-## Hosting and storage
+The previous chatgpt.site deployment is an old separate copy. Do not enter new records there; use either live link above.
 
-GitHub Pages publishes the main branch from the repository root.
-Recruiting data is stored in the existing shared D1 database served at https://quidedge-recruitment.felinedough1.chatgpt.site/api/events.
-The GitHub Pages interface and the original Sites interface use the same records.
+## Source and deployment
 
-The API accepts reads and append operations. Stage changes add events and preserve history. Database triggers reject update and delete operations.
-Anyone can view and append public records. Use candidate codes and public-safe notes.
+- index.html is the GitHub Pages frontend.
+- backend.js is the complete deployed Cloudflare Worker, including same-origin frontend assets.
+- The initial database schema is in the header comment of backend.js. Apply it only when creating a new database.
 
-## Backend deployment
+The production D1 database is named quidedge-recruitment, bound as DB.
+Its database ID is d0cf193c-eef2-46eb-8be3-2c73fa21e9e9.
+This ID is an identifier, not an authentication credential.
 
-The existing backend is already running. Backend changes require a separate Worker deployment with the existing D1 database bound as DB.
-GitHub Pages deployments update the frontend. The initial schema is for creating a fresh database only.
-Do not rerun the initial schema against the existing database.
+For Wrangler deployments, save this as wrangler.jsonc beside backend.js:
 
-## Retention
+```json
+{
+  "name": "quidedge-recruitment",
+  "main": "backend.js",
+  "compatibility_date": "2026-11-05",
+  "workers_dev": true,
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "quidedge-recruitment",
+    "database_id": "d0cf193c-eef2-46eb-8be3-2c73fa21e9e9"
+  }]
+}
+```
 
-Application controls preserve original entries. Database owners and hosting-provider retention can affect storage.
-Maintain provider backups appropriate to the required retention period.
+Authenticate with your Cloudflare account, then run `npx wrangler deploy`.
+Do not recreate the production database or rerun the initial schema.
+GitHub Pages automatically publishes the repository's main branch.
+
+## Records and verification
+
+The old database contained zero records at cutover. The new deployment and GitHub frontend were both verified as Synced. The independent Worker passed six local tests and a Wrangler deployment dry run before publication.
+
+The API permits reads and appends. Stage changes add events and retain original history. Database triggers reject UPDATE and DELETE. Owners and the hosting provider still control the underlying database and retention.
+
+Public access has no visitor login. Anyone can view and append records. Use candidate codes and public-safe notes.
+
+## Backups
+
+Use `npx wrangler d1 export DB --remote --output recruitment-backup.sql` with the configuration above.
+Store backups privately outside this public repository, and test restores in a separate database.
+Cloudflare Free plan limits apply.

@@ -59,6 +59,8 @@ dialog h2{max-width:calc(100% - 85px)}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
 .coo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.coo-stats .panel span{display:block;color:var(--muted);font-size:.84rem}.coo-stats strong{display:block;font-size:38px;margin-top:8px}.commission-lead{font-size:28px;font-weight:750;margin:4px 0}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.commission-grid>div{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff9ed}.commission-grid strong{display:block;font-size:34px}.commission-grid span{display:block;color:var(--muted);margin-top:6px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.benefit-grid h3{font-size:1rem}.role-list li{padding:7px 0;line-height:1.55}.panel p{line-height:1.6}.public-note{line-height:1.5}input[type=file]{font-size:.8rem}#upload-progress{font-size:.85rem;line-height:1.5}@media(max-width:850px){.coo-stats{grid-template-columns:repeat(2,1fr)}.benefit-grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.commission-grid,.benefit-grid{grid-template-columns:1fr}.commission-grid>div{padding:12px}.commission-grid strong{font-size:27px}.coo-stats strong{font-size:30px}}
+
+.split{grid-template-columns:repeat(2,minmax(0,1fr))}.split>*{min-width:0}@media(max-width:700px){.split{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -76,10 +78,37 @@ dialog h2{max-width:calc(100% - 85px)}
 <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
 <div id="notice" role="status" aria-live="polite"></div>
 <script>(() => {
-  // src/guide.js?v=a625ed1a0ceb
+  // src/record-utils.js
+  var kinds = /* @__PURE__ */ new Set(["job", "candidate", "stage", "activity", "summary", "score"]);
+  var idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+  function validEvent(event) {
+    return Boolean(event && typeof event === "object" && Number.isSafeInteger(event.seq) && event.seq > 0 && typeof event.id === "string" && idPattern.test(event.id) && kinds.has(event.kind) && (event.subject_id === null || typeof event.subject_id === "string" && idPattern.test(event.subject_id)) && typeof event.event_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(event.event_date) && event.payload && typeof event.payload === "object" && !Array.isArray(event.payload));
+  }
+  function validDraft(value) {
+    return Boolean(value && typeof value === "object" && !Array.isArray(value) && ["job", "candidate", "stage", "activity", "score", "checklist", "commission", "summary"].includes(value.kind) && typeof value.id === "string" && (!value.id || idPattern.test(value.id)) && typeof value.request === "string" && idPattern.test(value.request) && Number.isSafeInteger(value.revision) && value.revision >= 0 && value.values && typeof value.values === "object" && !Array.isArray(value.values) && Object.values(value.values).every((v) => typeof v === "string") && (!value.pending || typeof value.pending === "object" && value.pending.id === value.request && kinds.has(value.pending.kind)));
+  }
+  function foldCalendarLine(line) {
+    const encoder = new TextEncoder();
+    const lines = [];
+    let current = "", size = 0;
+    for (const char of line) {
+      const bytes = encoder.encode(char).length;
+      if (size + bytes > 75) {
+        lines.push(current);
+        current = " ";
+        size = 1;
+      }
+      current += char;
+      size += bytes;
+    }
+    lines.push(current);
+    return lines.join("\r\n");
+  }
+
+  // src/guide.js?v=270b21019da8
   var guide_default = [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. \u201CThis is Sarah from Bloom Skincare in the UK. Honestly, I\u2019m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend\u2019s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.\u201D", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, \u201CWhich other brands do you work with? Can you show me what you did for them?\u201D What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they\u2019ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "\u201CWe sell handmade candles in Australia. We need to go viral. Can you guarantee that?\u201D", null], ["R2", "Client role-play", 2, "\u201COur sales have been flat, so we just want more followers.\u201D", null], ["R2", "Client role-play", 2, "\u201CWe want it to feel more premium, but not too serious.\u201D", null], ["R2", "Client role-play", 2, "\u201CI heard you work with [a competitor]. What is their ad budget?\u201D", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "\u201CHonestly, what do you think is wrong with our brand right now?\u201D", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does \u201Cbeing responsible for your work\u201D mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate\u2019s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];
 
-  // src/model.js?v=a625ed1a0ceb
+  // src/model.js?v=270b21019da8
   var stages = ["Sourced", "Contacted", "Replied", "R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "On Hold", "Hired", "Rejected", "Withdrawn"];
   var closed = ["Hired", "Rejected", "Withdrawn"];
   var milestones = ["First outreach", "Reply received", "Follow-up sent", "R1 completed", "R2 brief sent", "R2 completed", "Writing task completed", "References completed", "Offer sent", "Agreement / NDA signed", "Interview no-show", "Interview cancelled", "Offer declined", "Blocker update", "Commission terms reviewed"];
@@ -121,7 +150,7 @@ dialog h2{max-width:calc(100% - 85px)}
     if (!stages.includes(payload.stage)) return "Choose a valid stage.";
     if (!String(payload.note || "").trim()) return "Add the reason for this update.";
     if (!closed.includes(payload.stage)) {
-      if (![payload.action, payload.due, payload.owner].every(Boolean)) return "Set the next action, owner and due date.";
+      if (![payload.action, payload.due, payload.owner].every((v) => typeof v === "string" && v.trim())) return "Set the next action, owner and due date.";
     }
     const slot = payload.stage === "R1 Scheduled" ? payload.r1 : payload.stage === "R2 Scheduled" ? payload.r2 : "";
     if (["R1 Scheduled", "R2 Scheduled"].includes(payload.stage)) {
@@ -324,13 +353,16 @@ dialog h2{max-width:calc(100% - 85px)}
     }
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || "Document upload failed. Retry with the same file.");
+    if (result.uploaded !== true || !validEvent(result.event) || result.event.id !== requestId || result.event.subject_id !== candidate.id || result.event.kind !== "activity" || result.event.payload.event !== "Document stored" || result.event.payload.document_type !== type) {
+      throw new Error("Drive did not confirm the saved document. Keep the file selected and retry.");
+    }
     return result;
   }
 
   // src/config.js?v=1d9777a50d5b
   var config = { eventsUrl: "https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/api/events" };
 
-  // src/store.js?v=a625ed1a0ceb
+  // src/store.js?v=270b21019da8
   var apiBase = config.eventsUrl.replace(/\/events$/, "");
   var connected = Boolean(config.eventsUrl);
   async function request(path = "", options2 = {}) {
@@ -344,7 +376,12 @@ dialog h2{max-width:calc(100% - 85px)}
     } catch {
       throw new Error("Connection interrupted. Your draft is kept. Retry to confirm the same save.");
     }
-    const body = await response.json().catch(() => ({}));
+    let body;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error("The server response could not be confirmed. Your draft is kept; retry the same save.");
+    }
     if (!response.ok) {
       const error = new Error(body.error || "Storage request failed. Try again.");
       error.status = response.status;
@@ -359,7 +396,14 @@ dialog h2{max-width:calc(100% - 85px)}
       const batch = await request("?after=" + cursor);
       if (!Array.isArray(batch)) throw new Error("The server returned an invalid event list.");
       if (!batch.length) return events2;
-      if (batch.some((event) => !Number.isSafeInteger(event.seq) || event.seq <= cursor)) {
+      let previous = cursor;
+      const ids = /* @__PURE__ */ new Set();
+      if (batch.some((event) => {
+        if (!validEvent(event) || event.seq <= previous || ids.has(event.id)) return true;
+        previous = event.seq;
+        ids.add(event.id);
+        return false;
+      })) {
         throw new Error("The event cursor is invalid. Refresh to retry.");
       }
       events2.push(...batch);
@@ -367,12 +411,16 @@ dialog h2{max-width:calc(100% - 85px)}
       if (batch.length < 500) return events2;
     }
   }
-  function append(event) {
-    return request("", {
+  async function append(event) {
+    const saved = await request("", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event)
     });
+    if (!validEvent(saved) || saved.id !== event.id || saved.kind !== event.kind || saved.subject_id !== event.subject_id) {
+      throw new Error("The saved record was not confirmed. Your draft is kept; retry the same save.");
+    }
+    return saved;
   }
 
   // src/app.js
@@ -396,7 +444,8 @@ dialog h2{max-width:calc(100% - 85px)}
   var timer;
   var focusReturn;
   var pendingRecord = null;
-  var reportDate = dateSL();
+  var lastDay = dateSL();
+  var reportDate = lastDay;
   var stageFilter = "";
   var jobFilter = "";
   var attentionFilter = "";
@@ -434,7 +483,8 @@ dialog h2{max-width:calc(100% - 85px)}
   var candidateById = (id) => candidateIndex.get(id);
   function storageRead() {
     try {
-      return JSON.parse(sessionStorage.getItem("qe-recruitment-draft") || "null");
+      const draft = JSON.parse(sessionStorage.getItem("qe-recruitment-draft") || "null");
+      return validDraft(draft) ? draft : null;
     } catch {
       return null;
     }
@@ -676,7 +726,7 @@ dialog h2{max-width:calc(100% - 85px)}
       )).join("") + notes("note", "Evidence summary / reasons for any waiver", true);
     } else if (kind === "activity" && candidate) {
       title = "Log milestone \xB7 " + candidate.alias;
-      fields = select("event", "Milestone", milestones, milestones[0]) + notes("note", "Public progress summary", true);
+      fields = select("event", "Milestone", milestones.filter((x) => x !== "Commission terms reviewed"), milestones[0]) + notes("note", "Public progress summary", true);
     } else if (kind === "score" && candidate) {
       title = "Scorecard \xB7 " + candidate.alias;
       fields = select("round", "Round", ["R1", "R2"], "R1") + select("reviewer", "Reviewer role", ["COO", "Leadership"], "COO") + select("recommendation", "Recommendation", ["Advance", "Hold", "Reject"], "Advance") + '<div class="form-grid wide" id="round-fields"></div>' + notes("note", "Observable evidence", true);
@@ -697,16 +747,24 @@ dialog h2{max-width:calc(100% - 85px)}
     if (kind === "score") setRoundFields(restored?.values?.round || "R1");
     if (restored?.values) {
       for (const [key, value] of Object.entries(restored.values)) {
-        const input = dialog.querySelector('[name="' + key + '"]');
+        const input = dialog.querySelector("#entry").elements.namedItem(key);
         if (input) input.value = value;
       }
     }
     updateStageFields();
     if (pendingRecord) freezePending();
+    const openedForm = dialog.querySelector("#entry");
+    openedForm.dataset.baseline = JSON.stringify(draftValues(openedForm));
+    openedForm.dataset.restored = restored ? "1" : "";
     dialog.querySelector("input,select,textarea")?.focus();
   }
   function setRoundFields(round) {
-    dialog.querySelector("#round-fields").innerHTML = roundFields[round].map((label, i) => field("score" + (i + 1), label, { kind: "select", choices: [["", "Untested"], "1", "2", "3", "4", "5"] })).join("");
+    const form = dialog.querySelector("#entry");
+    const cache = JSON.parse(form.dataset.roundScores || "{}");
+    if (form.dataset.scoreRound) cache[form.dataset.scoreRound] = Object.fromEntries([...form.querySelectorAll("#round-fields select")].map((i) => [i.name, i.value]));
+    form.dataset.roundScores = JSON.stringify(cache);
+    form.dataset.scoreRound = round;
+    dialog.querySelector("#round-fields").innerHTML = roundFields[round].map((label, i) => field("score" + (i + 1), label, { kind: "select", value: cache[round]?.["score" + (i + 1)] || "", choices: [["", "Untested"], "1", "2", "3", "4", "5"] })).join("");
   }
   function updateStageFields() {
     const stage = dialog.querySelector('[name="stage"]')?.value;
@@ -727,12 +785,14 @@ dialog h2{max-width:calc(100% - 85px)}
   function saveDraft() {
     const form = dialog.querySelector("#entry");
     if (!form) return;
+    const values = draftValues(form);
+    if (!pendingRecord && !form.dataset.restored && JSON.stringify(values) === form.dataset.baseline) return;
     storageWrite({
       kind: form.dataset.kind,
       id: form.dataset.id,
       request: form.dataset.request,
       revision: Number(form.dataset.revision),
-      values: draftValues(form),
+      values,
       pending: pendingRecord
     });
   }
@@ -775,10 +835,11 @@ dialog h2{max-width:calc(100% - 85px)}
       "DTEND:" + stamp(end),
       "SUMMARY:" + safe(candidate.alias + " " + round + " interview"),
       "DESCRIPTION:" + safe(jobTitle(candidate.job_id)),
+      "SEQUENCE:" + candidate.revision,
       "END:VEVENT",
       "END:VCALENDAR",
       ""
-    ].join("\r\n");
+    ].map(foldCalendarLine).join("\r\n");
     download(candidate.alias + "-" + round + ".ics", content, "text/calendar;charset=utf-8");
   }
   async function refresh() {
@@ -795,7 +856,12 @@ dialog h2{max-width:calc(100% - 85px)}
       ready = true;
       mode.textContent = "Synced \xB7 " + (/* @__PURE__ */ new Date()).toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Colombo" }) + " SL";
       sync.className = "pill live";
-      if (changed || initial || hadFailure) render();
+      const today = dateSL(), dayChanged = today !== lastDay;
+      if (dayChanged) {
+        if (reportDate === lastDay) reportDate = today;
+        lastDay = today;
+      }
+      if (changed || initial || hadFailure || dayChanged) render();
     } catch (error) {
       failure = error.message;
       mode.textContent = "Retry sync";
@@ -928,14 +994,20 @@ dialog h2{max-width:calc(100% - 85px)}
     }
     openForm(action, id);
   });
-  dialog.addEventListener("input", saveDraft);
+  dialog.addEventListener("input", (event) => {
+    if (event.target.form?.id === "document-entry") {
+      if (event.target.name === "private_name") {
+        event.target.form.dataset.cvRequest = newId();
+        event.target.form.dataset.coverRequest = newId();
+      }
+      if (["cv", "cover"].includes(event.target.name)) event.target.form.dataset[event.target.name + "Request"] = newId();
+      return;
+    }
+    saveDraft();
+  });
   dialog.addEventListener("change", (event) => {
     if (event.target.name === "stage") updateStageFields();
     if (event.target.name === "round") setRoundFields(event.target.value);
-    if (event.target.name === "event" && event.target.value === "Commission terms reviewed") {
-      openForm("commission", event.target.form.dataset.id);
-      return;
-    }
     saveDraft();
   });
   dialog.addEventListener("cancel", (event) => {
@@ -1044,12 +1116,23 @@ dialog h2{max-width:calc(100% - 85px)}
   window.addEventListener("pagehide", () => {
     saveDraft();
     clearInterval(timer);
+    timer = null;
+  });
+  window.addEventListener("pageshow", () => {
+    if (!timer) {
+      startSyncTimer();
+      refresh();
+    }
   });
   render();
   refresh();
-  timer = setInterval(() => {
-    if (!document.hidden && !dialog.open) refresh();
-  }, 45e3);
+  function startSyncTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      if (!document.hidden && !dialog.open) refresh();
+    }, 45e3);
+  }
+  startSyncTimer();
   function roleView() {
     const r = hiringRole, active = state.jobs.some((j) => j.id === r.id);
     return heading(r.title, "QuidEdge \xB7 Client Services \xB7 Remote", active ? tag("Position added", "good") : btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
@@ -1102,12 +1185,12 @@ dialog h2{max-width:calc(100% - 85px)}
     const form = dialog.querySelector("#document-entry");
     form.dataset.cvRequest = newId();
     form.dataset.coverRequest = newId();
-    fetch(apiBase + "/integrations", { cache: "no-store", signal: AbortSignal.timeout(1e4) }).then(async (response) => {
+    fetch(apiBase + "/integrations", { cache: "no-store", signal: AbortSignal.timeout(2e4) }).then(async (response) => {
       if (!response.ok) throw new Error("Connection check failed.");
       const status = await response.json();
       if (!form.isConnected) return;
       const text = dialog.querySelector("#drive-connection");
-      text.textContent = status.drive_ready ? "Google Drive connected. A separate named folder is created automatically for this candidate." : "Owner setup required: Google Drive uploads are not connected yet. Candidate records and the hiring workflow remain available.";
+      text.textContent = status.drive_ready ? "Google Drive connected. A separate named folder is created automatically for this candidate." : "Google Drive is not verified. Ask the owner to check authorization and the private destination folder, then reopen this dialog. Candidate records remain available.";
       form.querySelector("[type=submit]").disabled = !status.drive_ready;
     }).catch(() => {
       if (form.isConnected) dialog.querySelector("#drive-connection").textContent = "Could not check Drive. Close and reopen this panel to retry.";

@@ -85,7 +85,7 @@ dialog h2{max-width:calc(100% - 85px)}
     return Boolean(event && typeof event === "object" && Number.isSafeInteger(event.seq) && event.seq > 0 && typeof event.id === "string" && idPattern.test(event.id) && kinds.has(event.kind) && (event.subject_id === null || typeof event.subject_id === "string" && idPattern.test(event.subject_id)) && typeof event.event_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(event.event_date) && event.payload && typeof event.payload === "object" && !Array.isArray(event.payload));
   }
   function validDraft(value) {
-    return Boolean(value && typeof value === "object" && !Array.isArray(value) && ["job", "candidate", "stage", "activity", "score", "checklist", "commission", "summary"].includes(value.kind) && typeof value.id === "string" && (!value.id || idPattern.test(value.id)) && typeof value.request === "string" && idPattern.test(value.request) && Number.isSafeInteger(value.revision) && value.revision >= 0 && value.values && typeof value.values === "object" && !Array.isArray(value.values) && Object.values(value.values).every((v) => typeof v === "string") && (value.kind !== "score" || ["R1", "R2"].includes(value.values.round)) && (!value.pending || typeof value.pending === "object" && value.pending.id === value.request && kinds.has(value.pending.kind)));
+    return Boolean(value && typeof value === "object" && !Array.isArray(value) && ["job", "candidate", "stage", "activity", "score", "checklist", "commission", "summary", "correction"].includes(value.kind) && typeof value.id === "string" && (!value.id || idPattern.test(value.id)) && typeof value.request === "string" && idPattern.test(value.request) && Number.isSafeInteger(value.revision) && value.revision >= 0 && value.values && typeof value.values === "object" && !Array.isArray(value.values) && Object.values(value.values).every((v) => typeof v === "string") && (value.kind !== "score" || ["R1", "R2"].includes(value.values.round)) && (!value.pending || typeof value.pending === "object" && value.pending.id === value.request && kinds.has(value.pending.kind)));
   }
   function foldCalendarLine(line) {
     const encoder = new TextEncoder();
@@ -105,13 +105,13 @@ dialog h2{max-width:calc(100% - 85px)}
     return lines.join("\r\n");
   }
 
-  // src/guide.js?v=f03622ff07d8
+  // src/guide.js?v=1d9777a50d5b
   var guide_default = [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. \u201CThis is Sarah from Bloom Skincare in the UK. Honestly, I\u2019m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend\u2019s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.\u201D", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, \u201CWhich other brands do you work with? Can you show me what you did for them?\u201D What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they\u2019ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "\u201CWe sell handmade candles in Australia. We need to go viral. Can you guarantee that?\u201D", null], ["R2", "Client role-play", 2, "\u201COur sales have been flat, so we just want more followers.\u201D", null], ["R2", "Client role-play", 2, "\u201CWe want it to feel more premium, but not too serious.\u201D", null], ["R2", "Client role-play", 2, "\u201CI heard you work with [a competitor]. What is their ad budget?\u201D", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "\u201CHonestly, what do you think is wrong with our brand right now?\u201D", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does \u201Cbeing responsible for your work\u201D mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate\u2019s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];
 
-  // src/model.js?v=f03622ff07d8
+  // src/model.js?v=1d9777a50d5b
   var stages = ["Sourced", "Contacted", "Replied", "R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "On Hold", "Hired", "Rejected", "Withdrawn"];
   var closed = ["Hired", "Rejected", "Withdrawn"];
-  var milestones = ["First outreach", "Reply received", "Follow-up sent", "R1 completed", "R2 brief sent", "R2 completed", "Writing task completed", "References completed", "Offer sent", "Agreement / NDA signed", "Interview no-show", "Interview cancelled", "Offer declined", "Blocker update", "Commission terms reviewed"];
+  var milestones = ["First outreach", "Reply received", "Follow-up sent", "R1 completed", "R2 brief sent", "R2 completed", "Writing task completed", "References completed", "Offer sent", "Agreement / NDA signed", "Interview no-show", "Interview cancelled", "Offer declined", "Blocker update", "Commission terms reviewed", "Candidate details corrected", "Document availability checked"];
   var checklistItems = [
     ["terms", "Role and payment terms confirmed"],
     ["writing", "Writing / practical task reviewed"],
@@ -146,7 +146,7 @@ dialog h2{max-width:calc(100% - 85px)}
     return Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === value;
   }
   function stageProblem(payload, candidate, eventDate) {
-    if (payload.stage === "R1 Scheduled" && candidate.commission_ack && candidate.commission_ack !== "Accepted") return "Confirm that the candidate accepts the commission-only terms before scheduling Round 1.";
+    if (candidate.job_id === "e2173dde-bc77-409a-96a1-86dcb23841f0" && ["R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "Hired"].includes(payload.stage) && (candidate.commission_ack !== "Accepted" || !candidate.terms_detail?.trim())) return "Confirm accepted commission-only terms before advancing this candidate.";
     if (!stages.includes(payload.stage)) return "Choose a valid stage.";
     if (!String(payload.note || "").trim()) return "Add the reason for this update.";
     if (!closed.includes(payload.stage)) {
@@ -201,10 +201,18 @@ dialog h2{max-width:calc(100% - 85px)}
         }
       }
       if (event.kind === "activity") {
-        if (p.event === "Document stored" && ["cv", "cover"].includes(p.document_type)) candidate.documents[p.document_type] = "Uploaded";
+        if (p.event === "Candidate details corrected") {
+          for (const key of ["alias", "source", "availability", "notice", "market"]) if (key in p) candidate[key] = p[key];
+        }
+        if (p.event === "Document availability checked") {
+          candidate.documents_checked_at = event.created_at;
+          for (const type of ["cv", "cover"]) if (p[type + "_state"]) candidate.documents[type] = p[type + "_state"];
+        }
+        if (p.event === "Document stored" && ["cv", "cover"].includes(p.document_type)) candidate.documents[p.document_type] = "Receipt saved";
         if (p.event === "Commission terms reviewed") {
           candidate.commission_ack = p.commission_ack;
           candidate.commission_plan = p.commission_plan;
+          candidate.terms_detail = p.terms_detail || "";
         }
         if (p.event === "Hiring checklist updated") {
           for (const [key] of checklistItems) {
@@ -240,6 +248,13 @@ dialog h2{max-width:calc(100% - 85px)}
     bytes[8] = bytes[8] & 63 | 128;
     const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
     return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+  }
+  var roleScorecards = {
+    acquisition: { R1: ["Acquisition evidence", "Client communication", "Commercial judgment", "Confidentiality & terms"], R2: ["Prospect research", "Discovery & proposals", "Objection handling", "Client relations & follow-up"] },
+    social: { R1: ["Campaign ownership & results", "English & client communication", "AI judgment", "Confidentiality"], R2: ["Brand audit evidence", "Creative strategy", "Client role-play", "Team responsibility"] }
+  };
+  function scorecardFor(job) {
+    return roleScorecards[job?.profile === "client-acquisition-v1" ? "acquisition" : "social"];
   }
 
   // src/role.js
@@ -311,6 +326,493 @@ dialog h2{max-width:calc(100% - 85px)}
     } };
   }
 
+  // node_modules/fflate/esm/browser.js
+  var u8 = Uint8Array;
+  var u16 = Uint16Array;
+  var i32 = Int32Array;
+  var fleb = new u8([
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    0,
+    /* unused */
+    0,
+    0,
+    /* impossible */
+    0
+  ]);
+  var fdeb = new u8([
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    9,
+    9,
+    10,
+    10,
+    11,
+    11,
+    12,
+    12,
+    13,
+    13,
+    /* unused */
+    0,
+    0
+  ]);
+  var clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
+  var freb = function(eb, start) {
+    var b = new u16(31);
+    for (var i2 = 0; i2 < 31; ++i2) {
+      b[i2] = start += 1 << eb[i2 - 1];
+    }
+    var r = new i32(b[30]);
+    for (var i2 = 1; i2 < 30; ++i2) {
+      for (var j = b[i2]; j < b[i2 + 1]; ++j) {
+        r[j] = j - b[i2] << 5 | i2;
+      }
+    }
+    return { b, r };
+  };
+  var _a = freb(fleb, 2);
+  var fl = _a.b;
+  var revfl = _a.r;
+  fl[28] = 258, revfl[258] = 28;
+  var _b = freb(fdeb, 0);
+  var fd = _b.b;
+  var revfd = _b.r;
+  var rev = new u16(32768);
+  for (i = 0; i < 32768; ++i) {
+    x = (i & 43690) >> 1 | (i & 21845) << 1;
+    x = (x & 52428) >> 2 | (x & 13107) << 2;
+    x = (x & 61680) >> 4 | (x & 3855) << 4;
+    rev[i] = ((x & 65280) >> 8 | (x & 255) << 8) >> 1;
+  }
+  var x;
+  var i;
+  var hMap = (function(cd, mb, r) {
+    var s = cd.length;
+    var i2 = 0;
+    var l = new u16(mb);
+    for (; i2 < s; ++i2) {
+      if (cd[i2])
+        ++l[cd[i2] - 1];
+    }
+    var le = new u16(mb);
+    for (i2 = 1; i2 < mb; ++i2) {
+      le[i2] = le[i2 - 1] + l[i2 - 1] << 1;
+    }
+    var co;
+    if (r) {
+      co = new u16(1 << mb);
+      var rvb = 15 - mb;
+      for (i2 = 0; i2 < s; ++i2) {
+        if (cd[i2]) {
+          var sv = i2 << 4 | cd[i2];
+          var r_1 = mb - cd[i2];
+          var v = le[cd[i2] - 1]++ << r_1;
+          for (var m = v | (1 << r_1) - 1; v <= m; ++v) {
+            co[rev[v] >> rvb] = sv;
+          }
+        }
+      }
+    } else {
+      co = new u16(s);
+      for (i2 = 0; i2 < s; ++i2) {
+        if (cd[i2]) {
+          co[i2] = rev[le[cd[i2] - 1]++] >> 15 - cd[i2];
+        }
+      }
+    }
+    return co;
+  });
+  var flt = new u8(288);
+  for (i = 0; i < 144; ++i)
+    flt[i] = 8;
+  var i;
+  for (i = 144; i < 256; ++i)
+    flt[i] = 9;
+  var i;
+  for (i = 256; i < 280; ++i)
+    flt[i] = 7;
+  var i;
+  for (i = 280; i < 288; ++i)
+    flt[i] = 8;
+  var i;
+  var fdt = new u8(32);
+  for (i = 0; i < 32; ++i)
+    fdt[i] = 5;
+  var i;
+  var flrm = /* @__PURE__ */ hMap(flt, 9, 1);
+  var fdrm = /* @__PURE__ */ hMap(fdt, 5, 1);
+  var max = function(a) {
+    var m = a[0];
+    for (var i2 = 1; i2 < a.length; ++i2) {
+      if (a[i2] > m)
+        m = a[i2];
+    }
+    return m;
+  };
+  var bits = function(d, p, m) {
+    var o = p / 8 | 0;
+    return (d[o] | d[o + 1] << 8) >> (p & 7) & m;
+  };
+  var bits16 = function(d, p) {
+    var o = p / 8 | 0;
+    return (d[o] | d[o + 1] << 8 | d[o + 2] << 16) >> (p & 7);
+  };
+  var shft = function(p) {
+    return (p + 7) / 8 | 0;
+  };
+  var slc = function(v, s, e) {
+    if (s == null || s < 0)
+      s = 0;
+    if (e == null || e > v.length)
+      e = v.length;
+    return new u8(v.subarray(s, e));
+  };
+  var ec = [
+    "unexpected EOF",
+    "invalid block type",
+    "invalid length/literal",
+    "invalid distance",
+    "stream finished",
+    "no stream handler",
+    ,
+    "no callback",
+    "invalid UTF-8 data",
+    "extra field too long",
+    "date not in range 1980-2099",
+    "filename too long",
+    "stream finishing",
+    "invalid zip data"
+    // determined by unknown compression method
+  ];
+  var err = function(ind, msg, nt) {
+    var e = new Error(msg || ec[ind]);
+    e.code = ind;
+    if (Error.captureStackTrace)
+      Error.captureStackTrace(e, err);
+    if (!nt)
+      throw e;
+    return e;
+  };
+  var inflt = function(dat, st, buf, dict) {
+    var sl = dat.length, dl = dict ? dict.length : 0;
+    if (!sl || st.f && !st.l)
+      return buf || new u8(0);
+    var noBuf = !buf;
+    var resize = noBuf || st.i != 2;
+    var noSt = st.i;
+    if (noBuf)
+      buf = new u8(sl * 3);
+    var cbuf = function(l2) {
+      var bl = buf.length;
+      if (l2 > bl) {
+        var nbuf = new u8(Math.max(bl * 2, l2));
+        nbuf.set(buf);
+        buf = nbuf;
+      }
+    };
+    var final = st.f || 0, pos = st.p || 0, bt = st.b || 0, lm = st.l, dm = st.d, lbt = st.m, dbt = st.n;
+    var tbts = sl * 8;
+    do {
+      if (!lm) {
+        final = bits(dat, pos, 1);
+        var type = bits(dat, pos + 1, 3);
+        pos += 3;
+        if (!type) {
+          var s = shft(pos) + 4, l = dat[s - 4] | dat[s - 3] << 8, t = s + l;
+          if (t > sl) {
+            if (noSt)
+              err(0);
+            break;
+          }
+          if (resize)
+            cbuf(bt + l);
+          buf.set(dat.subarray(s, t), bt);
+          st.b = bt += l, st.p = pos = t * 8, st.f = final;
+          continue;
+        } else if (type == 1)
+          lm = flrm, dm = fdrm, lbt = 9, dbt = 5;
+        else if (type == 2) {
+          var hLit = bits(dat, pos, 31) + 257, hcLen = bits(dat, pos + 10, 15) + 4;
+          var tl = hLit + bits(dat, pos + 5, 31) + 1;
+          pos += 14;
+          var ldt = new u8(tl);
+          var clt = new u8(19);
+          for (var i2 = 0; i2 < hcLen; ++i2) {
+            clt[clim[i2]] = bits(dat, pos + i2 * 3, 7);
+          }
+          pos += hcLen * 3;
+          var clb = max(clt), clbmsk = (1 << clb) - 1;
+          var clm = hMap(clt, clb, 1);
+          for (var i2 = 0; i2 < tl; ) {
+            var r = clm[bits(dat, pos, clbmsk)];
+            pos += r & 15;
+            var s = r >> 4;
+            if (s < 16) {
+              ldt[i2++] = s;
+            } else {
+              var c = 0, n = 0;
+              if (s == 16)
+                n = 3 + bits(dat, pos, 3), pos += 2, c = ldt[i2 - 1];
+              else if (s == 17)
+                n = 3 + bits(dat, pos, 7), pos += 3;
+              else if (s == 18)
+                n = 11 + bits(dat, pos, 127), pos += 7;
+              while (n--)
+                ldt[i2++] = c;
+            }
+          }
+          var lt = ldt.subarray(0, hLit), dt = ldt.subarray(hLit);
+          lbt = max(lt);
+          dbt = max(dt);
+          lm = hMap(lt, lbt, 1);
+          dm = hMap(dt, dbt, 1);
+        } else
+          err(1);
+        if (pos > tbts) {
+          if (noSt)
+            err(0);
+          break;
+        }
+      }
+      if (resize)
+        cbuf(bt + 131072);
+      var lms = (1 << lbt) - 1, dms = (1 << dbt) - 1;
+      var lpos = pos;
+      for (; ; lpos = pos) {
+        var c = lm[bits16(dat, pos) & lms], sym = c >> 4;
+        pos += c & 15;
+        if (pos > tbts) {
+          if (noSt)
+            err(0);
+          break;
+        }
+        if (!c)
+          err(2);
+        if (sym < 256)
+          buf[bt++] = sym;
+        else if (sym == 256) {
+          lpos = pos, lm = null;
+          break;
+        } else {
+          var add = sym - 254;
+          if (sym > 264) {
+            var i2 = sym - 257, b = fleb[i2];
+            add = bits(dat, pos, (1 << b) - 1) + fl[i2];
+            pos += b;
+          }
+          var d = dm[bits16(dat, pos) & dms], dsym = d >> 4;
+          if (!d)
+            err(3);
+          pos += d & 15;
+          var dt = fd[dsym];
+          if (dsym > 3) {
+            var b = fdeb[dsym];
+            dt += bits16(dat, pos) & (1 << b) - 1, pos += b;
+          }
+          if (pos > tbts) {
+            if (noSt)
+              err(0);
+            break;
+          }
+          if (resize)
+            cbuf(bt + 131072);
+          var end = bt + add;
+          if (bt < dt) {
+            var shift = dl - dt, dend = Math.min(dt, end);
+            if (shift + bt < 0)
+              err(3);
+            for (; bt < dend; ++bt)
+              buf[bt] = dict[shift + bt];
+          }
+          for (; bt < end; ++bt)
+            buf[bt] = buf[bt - dt];
+        }
+      }
+      st.l = lm, st.p = lpos, st.b = bt, st.f = final;
+      if (lm)
+        final = 1, st.m = lbt, st.d = dm, st.n = dbt;
+    } while (!final);
+    return bt != buf.length && noBuf ? slc(buf, 0, bt) : buf.subarray(0, bt);
+  };
+  var et = /* @__PURE__ */ new u8(0);
+  var b2 = function(d, b) {
+    return d[b] | d[b + 1] << 8;
+  };
+  var b4 = function(d, b) {
+    return (d[b] | d[b + 1] << 8 | d[b + 2] << 16 | d[b + 3] << 24) >>> 0;
+  };
+  var b8 = function(d, b) {
+    return b4(d, b) + b4(d, b + 4) * 4294967296;
+  };
+  function inflateSync(data, opts) {
+    return inflt(data, { i: 2 }, opts && opts.out, opts && opts.dictionary);
+  }
+  var td = typeof TextDecoder != "undefined" && /* @__PURE__ */ new TextDecoder();
+  var tds = 0;
+  try {
+    td.decode(et, { stream: true });
+    tds = 1;
+  } catch (e) {
+  }
+  var dutf8 = function(d) {
+    for (var r = "", i2 = 0; ; ) {
+      var c = d[i2++];
+      var eb = (c > 127) + (c > 223) + (c > 239);
+      if (i2 + eb > d.length)
+        return { s: r, r: slc(d, i2 - 1) };
+      if (!eb)
+        r += String.fromCharCode(c);
+      else if (eb == 3) {
+        c = ((c & 15) << 18 | (d[i2++] & 63) << 12 | (d[i2++] & 63) << 6 | d[i2++] & 63) - 65536, r += String.fromCharCode(55296 | c >> 10, 56320 | c & 1023);
+      } else if (eb & 1)
+        r += String.fromCharCode((c & 31) << 6 | d[i2++] & 63);
+      else
+        r += String.fromCharCode((c & 15) << 12 | (d[i2++] & 63) << 6 | d[i2++] & 63);
+    }
+  };
+  function strFromU8(dat, latin1) {
+    if (latin1) {
+      var r = "";
+      for (var i2 = 0; i2 < dat.length; i2 += 16384)
+        r += String.fromCharCode.apply(null, dat.subarray(i2, i2 + 16384));
+      return r;
+    } else if (td) {
+      return td.decode(dat);
+    } else {
+      var _a2 = dutf8(dat), s = _a2.s, r = _a2.r;
+      if (r.length)
+        err(8);
+      return s;
+    }
+  }
+  var slzh = function(d, b) {
+    return b + 30 + b2(d, b + 26) + b2(d, b + 28);
+  };
+  var zh = function(d, b, z) {
+    var fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl, bs = b4(d, b + 20);
+    var _a2 = z && bs == 4294967295 ? z64e(d, es) : [bs, b4(d, b + 24), b4(d, b + 42)], sc = _a2[0], su = _a2[1], off = _a2[2];
+    return [b2(d, b + 10), sc, su, fn, es + b2(d, b + 30) + b2(d, b + 32), off];
+  };
+  var z64e = function(d, b) {
+    for (; b2(d, b) != 1; b += 4 + b2(d, b + 2))
+      ;
+    return [b8(d, b + 12), b8(d, b + 4), b8(d, b + 20)];
+  };
+  function unzipSync(data, opts) {
+    var files = {};
+    var e = data.length - 22;
+    for (; b4(data, e) != 101010256; --e) {
+      if (!e || data.length - e > 65558)
+        err(13);
+    }
+    ;
+    var c = b2(data, e + 8);
+    if (!c)
+      return {};
+    var o = b4(data, e + 16);
+    var z = o == 4294967295 || c == 65535;
+    if (z) {
+      var ze = b4(data, e - 12);
+      z = b4(data, ze) == 101075792;
+      if (z) {
+        c = b4(data, ze + 32);
+        o = b4(data, ze + 48);
+      }
+    }
+    var fltr = opts && opts.filter;
+    for (var i2 = 0; i2 < c; ++i2) {
+      var _a2 = zh(data, o, z), c_2 = _a2[0], sc = _a2[1], su = _a2[2], fn = _a2[3], no = _a2[4], off = _a2[5], b = slzh(data, off);
+      o = no;
+      if (!fltr || fltr({
+        name: fn,
+        size: sc,
+        originalSize: su,
+        compression: c_2
+      })) {
+        if (!c_2)
+          files[fn] = slc(data, b, b + sc);
+        else if (c_2 == 8)
+          files[fn] = inflateSync(data.subarray(b, b + sc), { out: new u8(su) });
+        else
+          err(14, "unknown compression type " + c_2);
+      }
+    }
+    return files;
+  }
+
+  // src/binary.js
+  function validateDocumentBytes(bytes, extension) {
+    if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > 5 * 1024 * 1024) throw Error("Each document must be 1 byte to 5 MB.");
+    if (extension === "pdf") {
+      const header = new TextDecoder().decode(bytes.slice(0, 16)), tail = new TextDecoder().decode(bytes.slice(-2048));
+      if (!/^%PDF-\d\.\d/.test(header) || !tail.includes("%%EOF") || bytes.length < 40) throw Error("This is not a complete PDF document. Export it again and retry.");
+      return;
+    }
+    if (extension === "doc") {
+      const magic = [208, 207, 17, 224, 161, 177, 26, 225];
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+      if (bytes.length < 1024 || !magic.every((b, i2) => bytes[i2] === b) || view.getUint16(28, true) !== 65534 || ![9, 12].includes(view.getUint16(30, true)) || !new TextDecoder("utf-16le").decode(bytes).includes("WordDocument")) throw Error("This is not a supported Word DOC file. Export it as DOCX or PDF.");
+      return;
+    }
+    if (extension !== "docx") throw Error("Use PDF, DOC or DOCX.");
+    let count = 0, total = 0, macro = false, files;
+    try {
+      files = unzipSync(bytes, { filter: (file) => {
+        if (++count > 2048 || (total += file.originalSize) > 32 * 1024 * 1024 || file.originalSize > 16 * 1024 * 1024) throw Error("Oversized archive");
+        if (/vbaproject|activex|\.\.\//i.test(file.name)) macro = true;
+        return ["[Content_Types].xml", "word/document.xml", "_rels/.rels"].includes(file.name);
+      } });
+    } catch {
+      throw Error("The DOCX archive is damaged or too large when expanded.");
+    }
+    if (macro || !files["[Content_Types].xml"] || !files["word/document.xml"] || !files["_rels/.rels"] || !strFromU8(files["[Content_Types].xml"]).includes("wordprocessingml.document.main+xml") || !/wordprocessingml\/2006\/main|ooxml.org\/wordprocessingml\/main/.test(strFromU8(files["word/document.xml"]))) throw Error("The file is not a standard DOCX document. Export it again as DOCX or PDF.");
+  }
+
   // src/documents.js
   var driveRoot = "1n2x6MZ8wqBCPe2bQcU4Z0XQDCV8121Mj";
   var maxDocumentBytes = 5 * 1024 * 1024;
@@ -318,21 +820,19 @@ dialog h2{max-width:calc(100% - 85px)}
     if (!file || !file.size) throw new Error("Choose a non-empty document.");
     if (file.size > maxDocumentBytes) throw new Error("Each document must be 5 MB or smaller.");
     const ext = file.name.split(".").at(-1).toLowerCase();
-    const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
-    const pdf = ext === "pdf" && String.fromCharCode(...bytes.slice(0, 5)) === "%PDF-";
-    const doc = ext === "doc" && [208, 207, 17, 224, 161, 177, 26, 225].every((b, i) => bytes[i] === b);
-    const docx = ext === "docx" && bytes[0] === 80 && bytes[1] === 75 && bytes[2] === 3 && bytes[3] === 4;
-    if (!pdf && !doc && !docx) throw new Error("Use a valid PDF, DOC or DOCX file.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    validateDocumentBytes(bytes, ext);
+    const pdf = ext === "pdf", doc = ext === "doc";
     return { extension: ext, mime: pdf ? "application/pdf" : doc ? "application/msword" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
   }
   function privateFolderSearch(alias) {
-    return "https://drive.google.com/drive/u/0/search?q=" + encodeURIComponent("type:folder " + alias);
+    return "https://drive.google.com/drive/u/0/search?q=" + encodeURIComponent('type:folder "' + alias + '"');
   }
   async function uploadDocument(apiBase2, candidate, fullName, file, type, requestId) {
     const metadata = await checkDocument(file);
     const buffer = new Uint8Array(await file.arrayBuffer());
     let binary = "";
-    for (let i = 0; i < buffer.length; i += 32768) binary += String.fromCharCode(...buffer.subarray(i, i + 32768));
+    for (let i2 = 0; i2 < buffer.length; i2 += 32768) binary += String.fromCharCode(...buffer.subarray(i2, i2 + 32768));
     let response;
     try {
       response = await fetch(apiBase2 + "/documents", {
@@ -362,7 +862,7 @@ dialog h2{max-width:calc(100% - 85px)}
   // src/config.js?v=1d9777a50d5b
   var config = { eventsUrl: "https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/api/events" };
 
-  // src/store.js?v=f03622ff07d8
+  // src/store.js?v=1d9777a50d5b
   var apiBase = config.eventsUrl.replace(/\/events$/, "");
   var connected = Boolean(config.eventsUrl);
   async function request(path = "", options2 = {}) {
@@ -389,11 +889,11 @@ dialog h2{max-width:calc(100% - 85px)}
     }
     return body;
   }
-  async function loadEvents(after = 0) {
+  async function loadEvents(after = 0, filters = {}) {
     const events2 = [];
     let cursor = after;
     for (; ; ) {
-      const batch = await request("?after=" + cursor);
+      const batch = await request("?" + new URLSearchParams({ ...filters, after: String(cursor) }));
       if (!Array.isArray(batch)) throw new Error("The server returned an invalid event list.");
       if (!batch.length) return events2;
       let previous = cursor;
@@ -423,8 +923,22 @@ dialog h2{max-width:calc(100% - 85px)}
     return saved;
   }
   function createEventReader() {
-    let cursor = 0;
+    let cursor = 0, started = false;
     return async () => {
+      if (!started) {
+        const response = await fetch(apiBase + "/bootstrap", { cache: "no-store", signal: AbortSignal.timeout(2e4) });
+        if (!response.ok) {
+          const events2 = await loadEvents(0);
+          cursor = events2.at(-1)?.seq || 0;
+          started = true;
+          return events2;
+        }
+        const snapshot = await response.json();
+        if (!Number.isSafeInteger(snapshot.cursor) || snapshot.cursor < 0 || !Array.isArray(snapshot.events) || snapshot.events.some((e) => !validEvent(e) || e.seq > snapshot.cursor)) throw Error("Invalid recruitment snapshot. Retry sync.");
+        cursor = snapshot.cursor;
+        started = true;
+        return snapshot.events;
+      }
       const incoming = await loadEvents(cursor);
       if (incoming.length) cursor = incoming.at(-1).seq;
       return incoming;
@@ -476,7 +990,7 @@ dialog h2{max-width:calc(100% - 85px)}
     }).join("");
   }
   function table(head, rows) {
-    return '<div class="scroll"><table><thead><tr>' + head.map((h) => '<th scope="col">' + escape(h) + "</th>").join("") + "</tr></thead><tbody>" + rows.map((row) => "<tr>" + row.map((cell, i) => '<td data-label="' + escape(head[i]) + '">' + cell + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
+    return '<div class="scroll"><table><thead><tr>' + head.map((h) => '<th scope="col">' + escape(h) + "</th>").join("") + "</tr></thead><tbody>" + rows.map((row) => "<tr>" + row.map((cell, i2) => '<td data-label="' + escape(head[i2]) + '">' + cell + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
   }
   var panel = (title, html, action = "") => '<section class="panel"><div class="section-top"><h2>' + escape(title) + "</h2>" + action + "</div>" + html + "</section>";
   var heading = (title, subtitle, action = "") => '<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p><h1>' + escape(title) + '</h1><p class="sub">' + escape(subtitle) + "</p></div>" + action + "</div>";
@@ -503,6 +1017,7 @@ dialog h2{max-width:calc(100% - 85px)}
       if (value) sessionStorage.setItem("qe-recruitment-draft", JSON.stringify(value));
       else sessionStorage.removeItem("qe-recruitment-draft");
     } catch {
+      flash("Browser draft storage is unavailable. Keep this tab open until the server confirms your save.");
     }
   }
   function ingest(incoming) {
@@ -517,11 +1032,12 @@ dialog h2{max-width:calc(100% - 85px)}
     return true;
   }
   function candidateTable(candidates) {
+    if (candidates.length > 25) return candidateTable(candidates.slice(0, 25)) + '<p class="hint">Showing 25 of ' + candidates.length + " candidates. Use Pipeline for all records and filters.</p>";
     if (!candidates.length) return empty("No candidates in this view. Add a candidate or adjust the filters.");
     return table(["Candidate", "Position", "Stage", "Next action", "Attention", "Actions"], candidates.map((candidate) => {
       const flag = attention(candidate);
       return [
-        "<strong>" + escape(candidate.alias) + "</strong><small>" + escape(candidate.source) + "</small><small>CV: " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + "</small>",
+        "<strong>" + escape(candidate.alias) + "</strong><small>" + escape(candidate.source) + "</small><small>CV (last receipt/check): " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + "</small>",
         escape(jobTitle(candidate.job_id)),
         tag(candidate.stage, candidate.stage === "Hired" ? "good" : "blue"),
         escape(candidate.action || "Set the next step") + "<small>" + escape(candidate.due || "No due date") + " \xB7 " + escape(candidate.owner || "No owner") + "</small>",
@@ -551,7 +1067,7 @@ dialog h2{max-width:calc(100% - 85px)}
       "Recruitment management",
       "Keep roles, next actions and hiring decisions moving.",
       '<div class="toolbar">' + btn("Export records", "export") + btn("+ Open position", "job", "", true) + "</div>"
-    ) + '<div class="metrics" aria-label="Current pipeline counts">' + metrics + "</div>" + panel("Hiring now", "<p><strong>" + escape(hiringRole.title) + '</strong></p><p class="muted">Independent contractor \xB7 Remote \xB7 No fixed salary \xB7 10% / 20% / 30% recurring commission</p>', btn("View role & terms", "role-view", "", true)) + panel(
+    ) + '<div class="metrics" aria-label="Current pipeline counts">' + metrics + "</div>" + panel("Hiring now", openJobs.length ? "<ul>" + openJobs.map((j) => "<li>" + escape(j.title) + "</li>").join("") + "</ul>" : empty("There are no open positions."), btn("View role & terms", "role-view", "", true)) + panel(
       "Needs attention",
       queue.length ? candidateTable(queue.slice(0, 5)) : empty(active.length ? "Every active candidate has a next step scheduled." : "Add your first candidate to build the action queue."),
       btn("View all actions", "attention")
@@ -587,7 +1103,20 @@ dialog h2{max-width:calc(100% - 85px)}
       '<div class="toolbar">' + btn("Export CSV", "csv") + btn("+ Add candidate", "candidate", "", true) + "</div>"
     ) + panel("Candidates", '<div class="filters"><label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + escape(search) + '"></label><label class="field">Position<select id="job-filter">' + options([["", "All positions"], ...state.jobs.map((job) => [job.id, job.title])], jobFilter) + '</select></label><label class="field">Stage<select id="stage-filter">' + options([["", "All stages"], ...groupStages.map(([name]) => ["group:" + name, name + " group"]), ...stages], stageFilter) + '</select></label><label class="field">Action owner<select id="owner-filter">' + options([["", "All owners"], ...owners], ownerFilter) + '</select></label><label class="field">Attention<select id="attention-filter">' + options([["", "All candidates"], ["needs-action", "Needs action"], "Overdue", "Due today", "Needs decision", "Missing next step", "Closed"], attentionFilter) + '</select></label><label class="field">Sort<select id="sort-filter">' + options([["recent", "Newest first"], ["due", "Due date"], ["code", "Candidate code"]], sort) + '</select></label></div><div id="candidate-results">' + candidateResults() + "</div>", btn("Reset filters", "reset"));
   }
+  var loadedReportDates = /* @__PURE__ */ new Set();
+  async function loadReport(date) {
+    if (loadedReportDates.has(date)) return;
+    loadedReportDates.add(date);
+    try {
+      ingest(await loadEvents(0, { date }));
+      if (page() === "activity" && reportDate === date) render();
+    } catch (err2) {
+      loadedReportDates.delete(date);
+      flash(err2.message);
+    }
+  }
   function activity() {
+    if (!loadedReportDates.has(reportDate)) loadReport(reportDate);
     const daily = events.filter((event) => event.event_date === reportDate).slice().reverse();
     const summaries = daily.filter((event) => event.kind === "summary");
     const entries = daily.filter((event) => event.kind !== "summary");
@@ -666,24 +1195,34 @@ dialog h2{max-width:calc(100% - 85px)}
       if (selection) active.setSelectionRange(...selection);
     }
   }
-  function field(name, label, { kind = "text", value = "", choices = [], required = false, max = 240, wide = false } = {}) {
+  function field(name, label, { kind = "text", value = "", choices = [], required = false, max: max2 = 240, wide = false } = {}) {
     const attributes = 'name="' + escape(name) + '"' + (required ? " required" : "");
     let input;
     if (kind === "select") input = "<select " + attributes + ">" + options(choices, value) + "</select>";
-    else if (kind === "textarea") input = "<textarea " + attributes + ' maxlength="' + max + '">' + escape(value) + "</textarea>";
-    else input = '<input type="' + escape(kind) + '" ' + attributes + ' value="' + escape(value) + '"' + (kind === "text" ? ' maxlength="' + max + '"' : "") + (kind === "number" ? ' min="1" max="999" step="1"' : "") + ">";
+    else if (kind === "textarea") input = "<textarea " + attributes + ' maxlength="' + max2 + '">' + escape(value) + "</textarea>";
+    else input = '<input type="' + escape(kind) + '" ' + attributes + ' value="' + escape(value) + '"' + (kind === "text" ? ' maxlength="' + max2 + '"' : "") + (kind === "number" ? ' min="1" max="999" step="1"' : "") + ">";
     return '<label class="field' + (wide ? " wide" : "") + '">' + escape(label) + (required ? ' <span class="required" aria-hidden="true">*</span>' : "") + input + "</label>";
   }
   var select = (name, label, choices, value) => field(name, label, { kind: "select", choices, value, required: true });
   var notes = (name, label, required = false, value = "") => field(name, label, { kind: "textarea", wide: true, required, max: 600, value });
-  var roundFields = { R1: ["Acquisition evidence", "Client communication", "Commercial judgment", "Confidentiality & terms"], R2: ["Prospect research", "Discovery & proposals", "Objection handling", "Client relations & follow-up"] };
   function show(html) {
     focusReturn = document.activeElement;
     dialog.innerHTML = html;
     if (!dialog.open) dialog.showModal();
     dialog.scrollTop = 0;
   }
-  function showRecord(candidate) {
+  async function showRecord(candidate) {
+    const request2 = newId();
+    show('<h2 id="dialog-title">Loading candidate history</h2>' + btn("Close", "close"));
+    dialog.dataset.recordRequest = request2;
+    try {
+      ingest(await loadEvents(0, { subject: candidate.id }));
+    } catch (err2) {
+      if (dialog.open && dialog.dataset.recordRequest === request2) show('<h2 id="dialog-title">History unavailable</h2><p>' + escape(err2.message) + "</p>" + btn("Close", "close"));
+      return;
+    }
+    if (!dialog.open || dialog.dataset.recordRequest !== request2) return;
+    candidate = candidateById(candidate.id);
     const checklist = checklistItems.map(([key, label]) => "<li><span>" + escape(label) + "</span>" + tag(
       candidate.checklist[key] || "Pending",
       candidate.checklist[key] === "Complete" ? "good" : ""
@@ -693,7 +1232,7 @@ dialog h2{max-width:calc(100% - 85px)}
       const text = Object.entries(event.payload).filter(([key, value]) => value && !["job_id", "upload_fingerprint"].includes(key)).map(([key, value]) => (labels[key] || key.replaceAll("_", " ")) + " \xB7 " + value).join("\n");
       return "<li><strong>" + escape(eventLabel(event)) + "</strong> <time>" + escape(event.event_date) + '</time><p class="snapshot">' + escape(text) + "</p></li>";
     }).join("");
-    show('<div class="section-top"><h2 id="dialog-title">' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + '</div><p class="muted">' + escape(jobTitle(candidate.job_id)) + " \xB7 " + escape(candidate.stage) + '</p><p class="muted">Availability \xB7 ' + escape(candidate.availability || "To confirm") + " \xB7 Notice \xB7 " + escape(candidate.notice || "To confirm") + '</p><div class="toolbar">' + btn("Update stage / schedule", "stage", candidate.id, true) + btn("Log milestone", "activity", candidate.id) + btn("Scorecard", "score", candidate.id) + btn("Hiring checklist", "checklist", candidate.id) + btn("CV & cover letter", "documents", candidate.id) + btn("Commission review", "commission", candidate.id) + '</div><p class="public-note">Commission-only acknowledgement: ' + escape(candidate.commission_ack || "Not recorded") + " \xB7 CV: " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + '</p><h3>Hiring readiness</h3><ul class="checklist">' + checklist + '</ul><h3>Record history</h3><ul class="timeline">' + history + "</ul>");
+    show('<div class="section-top"><h2 id="dialog-title">' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + '</div><p class="muted">' + escape(jobTitle(candidate.job_id)) + " \xB7 " + escape(candidate.stage) + '</p><p class="muted">Availability \xB7 ' + escape(candidate.availability || "To confirm") + " \xB7 Notice \xB7 " + escape(candidate.notice || "To confirm") + '</p><div class="toolbar">' + btn("Update stage / schedule", "stage", candidate.id, true) + btn("Log milestone", "activity", candidate.id) + btn("Scorecard", "score", candidate.id) + btn("Hiring checklist", "checklist", candidate.id) + btn("CV & cover letter", "documents", candidate.id) + btn("Commission review", "commission", candidate.id) + btn("Correct candidate details", "correction", candidate.id) + '</div><p class="public-note">Commission-only acknowledgement: ' + escape(candidate.commission_ack || "Not recorded") + " \xB7 CV (last receipt/check): " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + '</p><h3>Hiring readiness</h3><ul class="checklist">' + checklist + '</ul><h3>Record history</h3><ul class="timeline">' + history + "</ul>");
   }
   function openForm(kind, id = "", restored = null) {
     const existingDraft = storageRead();
@@ -718,10 +1257,10 @@ dialog h2{max-width:calc(100% - 85px)}
     let fields;
     if (kind === "job") {
       title = job ? "Manage position" : "Open a position";
-      fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + notes("brief", "Role requirements / success criteria", true, job?.brief || "") + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
+      fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + notes("brief", "Role requirements / success criteria", true, job?.brief || "") + field("description", "Full job description (public-safe)", { kind: "textarea", wide: true, max: 12e3, value: job?.description || "" }) + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
     } else if (kind === "candidate") {
       title = "Add a candidate";
-      fields = field("alias", "Unique candidate code", { ...required, max: 40 }) + select("job_id", "Position", openJobs.map((item) => [item.id, item.title]), openJobs[0].id) + select("source", "Source", sources, sources[0]) + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { ...required, value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + '<p class="hint wide">Save the candidate code first, then open CV & cover letter to enter their private name and upload the application documents. Real names are kept out of the public record.</p>' + next();
+      fields = field("alias", "Unique candidate code", { ...required, max: 40 }) + select("job_id", "Position", openJobs.map((item) => [item.id, item.title]), openJobs[0].id) + select("source", "Source", sources, sources[0]) + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { ...required, value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + notes("terms_detail", "Agreed commission boundaries / exceptions (required when accepted)", false, "") + '<p class="hint wide">Save the candidate code first, then open CV & cover letter to enter their private name and upload the application documents. Real names are kept out of the public record.</p>' + next();
     } else if (kind === "stage" && candidate) {
       title = "Update \xB7 " + candidate.alias;
       fields = select("stage", "Stage", stages, candidate.stage) + next(candidate) + field("r1", "R1 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r1 }) + field("r2", "R2 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r2 }) + '<div class="wide" id="start-field">' + field("start_date", "Confirmed start date", { kind: "date", value: candidate.start_date }) + "</div>" + notes("note", "Reason / decision summary", true) + '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
@@ -735,13 +1274,16 @@ dialog h2{max-width:calc(100% - 85px)}
       )).join("") + notes("note", "Evidence summary / reasons for any waiver", true);
     } else if (kind === "activity" && candidate) {
       title = "Log milestone \xB7 " + candidate.alias;
-      fields = select("event", "Milestone", milestones.filter((x) => x !== "Commission terms reviewed"), milestones[0]) + notes("note", "Public progress summary", true);
+      fields = select("event", "Milestone", milestones.filter((x2) => x2 !== "Commission terms reviewed"), milestones[0]) + notes("note", "Public progress summary", true);
     } else if (kind === "score" && candidate) {
       title = "Scorecard \xB7 " + candidate.alias;
       fields = select("round", "Round", ["R1", "R2"], "R1") + select("reviewer", "Reviewer role", ["COO", "Leadership"], "COO") + select("recommendation", "Recommendation", ["Advance", "Hold", "Reject"], "Advance") + '<div class="form-grid wide" id="round-fields"></div>' + notes("note", "Observable evidence", true);
+    } else if (kind === "correction" && candidate) {
+      title = "Correct candidate details \xB7 " + candidate.alias;
+      fields = field("alias", "Candidate code", { required: true, max: 40, value: candidate.alias }) + select("source", "Source", sources, candidate.source) + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], candidate.availability || "To confirm") + field("notice", "Notice period", { required: true, value: candidate.notice || "To confirm" }) + field("market", "Target client markets", { value: candidate.market || "" }) + notes("note", "Correction reason (original history is preserved)", true);
     } else if (kind === "commission" && candidate) {
       title = "Commission review \xB7 " + candidate.alias;
-      fields = select("commission_plan", "Agreed structure", ["10 / 20 / 30 recurring", "Other agreed terms"], candidate.commission_plan || "10 / 20 / 30 recurring") + select("commission_ack", "Candidate acknowledgement", ["Pending", "Accepted", "Declined"], candidate.commission_ack || "Pending") + notes("note", "Terms explained / next action (public-safe)", true);
+      fields = select("commission_plan", "Agreed structure", ["10 / 20 / 30 recurring", "Other agreed terms"], candidate.commission_plan || "10 / 20 / 30 recurring") + select("commission_ack", "Candidate acknowledgement", ["Pending", "Accepted", "Declined"], candidate.commission_ack || "Pending") + notes("terms_detail", "Agreed boundaries and exceptional terms (including AUD 1,000)", true, candidate.terms_detail || "") + notes("note", "Terms explained / next action (public-safe)", true);
     } else if (kind === "summary") {
       title = "Daily COO summary";
       fields = notes("progress", "Progress today", true) + notes("blockers", "Blockers / leadership decisions") + notes("priorities", "Next workday priorities", true);
@@ -770,10 +1312,11 @@ dialog h2{max-width:calc(100% - 85px)}
   function setRoundFields(round) {
     const form = dialog.querySelector("#entry");
     const cache = JSON.parse(form.dataset.roundScores || "{}");
-    if (form.dataset.scoreRound) cache[form.dataset.scoreRound] = Object.fromEntries([...form.querySelectorAll("#round-fields select")].map((i) => [i.name, i.value]));
+    if (form.dataset.scoreRound) cache[form.dataset.scoreRound] = Object.fromEntries([...form.querySelectorAll("#round-fields select")].map((i2) => [i2.name, i2.value]));
     form.dataset.roundScores = JSON.stringify(cache);
     form.dataset.scoreRound = round;
-    dialog.querySelector("#round-fields").innerHTML = roundFields[round].map((label, i) => field("score" + (i + 1), label, { kind: "select", value: cache[round]?.["score" + (i + 1)] || "", choices: [["", "Untested"], "1", "2", "3", "4", "5"] })).join("");
+    const job = state.jobs.find((j) => j.id === candidateById(form.dataset.id)?.job_id);
+    dialog.querySelector("#round-fields").innerHTML = scorecardFor(job)[round].map((label, i2) => field("score" + (i2 + 1), label, { kind: "select", value: cache[round]?.["score" + (i2 + 1)] || "", choices: [["", "Untested"], "1", "2", "3", "4", "5"] })).join("");
   }
   function updateStageFields() {
     const stage = dialog.querySelector('[name="stage"]')?.value;
@@ -911,7 +1454,7 @@ dialog h2{max-width:calc(100% - 85px)}
     currentPage = 1;
     render();
   });
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     if (event.target.closest(".skip")) {
       event.preventDefault();
       app.focus();
@@ -970,6 +1513,10 @@ dialog h2{max-width:calc(100% - 85px)}
       activateRole();
       return;
     }
+    if (action === "verify-documents") {
+      await verifyDocuments(id, control);
+      return;
+    }
     if (action === "documents") {
       showDocuments(candidateById(id));
       return;
@@ -979,11 +1526,20 @@ dialog h2{max-width:calc(100% - 85px)}
       return;
     }
     if (action === "export") {
-      download(
-        "QuidEdge-records-" + dateSL() + ".json",
-        JSON.stringify({ exported_at: (/* @__PURE__ */ new Date()).toISOString(), events }, null, 2),
-        "application/json"
-      );
+      control.disabled = true;
+      flash("Preparing complete history export\u2026");
+      try {
+        const all = await loadEvents(0);
+        download(
+          "QuidEdge-records-" + dateSL() + ".json",
+          JSON.stringify({ exported_at: (/* @__PURE__ */ new Date()).toISOString(), events: all }, null, 2),
+          "application/json"
+        );
+      } catch (err2) {
+        flash(err2.message);
+      } finally {
+        control.disabled = false;
+      }
       return;
     }
     if (action === "csv") {
@@ -1045,6 +1601,7 @@ dialog h2{max-width:calc(100% - 85px)}
       delete values.event_date;
       if (kind === "candidate") values.stage = "Sourced";
       if (kind === "job" && id) values.job_id = id;
+      if (kind === "correction") values.event = "Candidate details corrected";
       if (kind === "commission") values.event = "Commission terms reviewed";
       if (kind === "checklist") values.event = "Hiring checklist updated";
       if (kind === "stage") {
@@ -1057,7 +1614,7 @@ dialog h2{max-width:calc(100% - 85px)}
       }
       record = {
         id: form.dataset.request,
-        kind: ["checklist", "commission"].includes(kind) ? "activity" : kind,
+        kind: ["checklist", "commission", "correction"].includes(kind) ? "activity" : kind,
         subject_id: kind === "job" ? null : id || null,
         event_date: eventDate,
         payload: values
@@ -1092,7 +1649,9 @@ dialog h2{max-width:calc(100% - 85px)}
           const current = candidateById(id) || state.jobs.find((job) => job.id === id);
           if (current) {
             form.dataset.revision = current.revision;
-            errorBox.textContent += " Latest saved status: " + (current.stage || current.status) + ". Next action: " + (current.action || "None") + ". Review before saving again.";
+            const changes = Object.entries(current).filter(([key, value]) => typeof value === "string" && key in draftValues(form)).map(([key, value]) => key + ": " + value).join("; ");
+            const checkboxes = Object.entries(current.checklist || {}).map(([key, value]) => key + ": " + value).join("; ");
+            errorBox.textContent += " Latest saved fields: " + changes + (checkboxes ? "; checklist: " + checkboxes : "") + ". Your draft is unchanged. Compare these values before saving again. Latest saved status: " + (current.stage || current.status) + ". Next action: " + (current.action || "None") + ". Review before saving again.";
           }
         }
         for (const input of controls) input.disabled = false;
@@ -1142,8 +1701,9 @@ dialog h2{max-width:calc(100% - 85px)}
   }
   startSyncTimer();
   function roleView() {
-    const r = hiringRole, active = state.jobs.some((j) => j.id === r.id);
-    return heading(r.title, "QuidEdge \xB7 Client Services \xB7 Remote", active ? tag("Position added", "good") : btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
+    const r = hiringRole, job = state.jobs.find((j) => j.id === r.id), active = Boolean(job);
+    if (job?.description) return heading(job.title, job.status, tag(job.status, job.status === "Open" ? "good" : "")) + panel("Full job description", '<div class="snapshot">' + escape(job.description) + "</div>") + panel("Approved compensation reference", "<p>" + escape(r.compensation) + "</p><p>" + escape(r.boundary) + "</p>");
+    return heading(job?.title || r.title, "QuidEdge \xB7 Client Services \xB7 " + (job?.status || "Not added"), active ? tag("Position added", "good") : btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + (job ? panel("Saved role requirements", "<p>" + escape(job.brief || "") + "</p>") : "") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
   }
   async function activateRole() {
     if (saving) return;
@@ -1153,33 +1713,34 @@ dialog h2{max-width:calc(100% - 85px)}
       ingest([saved]);
       render();
       flash("Client Acquisition & Client Relations position added.");
-    } catch (err) {
-      flash(err.message);
+    } catch (err2) {
+      flash(err2.message);
     } finally {
       saving = false;
     }
   }
   function cooView() {
+    queueMicrotask(() => loadMaintenanceStatus());
     const relatedJobs = state.jobs.filter((j) => j.profile === "client-acquisition-v1" || j.id === hiringRole.id);
     const ids = new Set(relatedJobs.map((j) => j.id));
     const candidates = state.candidates.filter((c) => ids.has(c.job_id));
     const active = candidates.filter((c) => !closed.includes(c.stage));
     const due = active.filter((c) => c.due && c.due <= dateSL()).sort((a, b) => a.due.localeCompare(b.due));
-    const documents = active.filter((c) => c.documents?.cv !== "Uploaded" || c.documents?.cover !== "Uploaded");
+    const documents = active.filter((c) => c.documents?.cv !== "Available" || c.documents?.cover !== "Available");
     const terms = active.filter((c) => c.commission_ack !== "Accepted");
     const review = active.filter((c) => ["R1 Review", "R2 Review", "Reference Check", "Offer / Agreement"].includes(c.stage));
     const stats = [["Active candidates", active.length], ["Due / overdue", due.length], ["Documents incomplete", documents.length], ["Terms to confirm", terms.length]];
-    const summaries = events.filter((x) => x.kind === "summary" && x.event_date === dateSL());
+    const summaries = events.filter((x2) => x2.kind === "summary" && x2.event_date === dateSL());
     return heading(
       "COO recruitment workspace",
       "Client Acquisition & Client Relations \xB7 Daily priorities and review queue",
       '<div class="toolbar">' + btn("Role & commission terms", "role-view") + btn("+ Add candidate", "candidate", "", true) + "</div>"
     ) + '<div class="coo-stats">' + stats.map(([title, total]) => '<div class="panel"><span>' + escape(title) + "</span><strong>" + total + "</strong></div>").join("") + "</div>" + panel("Today\u2019s next actions", candidateTable(due)) + '<div class="split">' + panel("Ready for COO review", candidateTable(review)) + panel("Commission acknowledgement", candidateTable(terms)) + "</div>" + panel("CV & cover letter checklist", documents.length ? table(["Candidate", "CV", "Cover letter", "Action"], documents.map((c) => [
       "<strong>" + escape(c.alias) + "</strong>",
-      tag(c.documents?.cv || "Missing", c.documents?.cv === "Uploaded" ? "good" : "warn"),
-      tag(c.documents?.cover || "Missing", c.documents?.cover === "Uploaded" ? "good" : "warn"),
+      tag(c.documents?.cv || "Missing", c.documents?.cv === "Available" ? "good" : "warn"),
+      tag(c.documents?.cover || "Missing", c.documents?.cover === "Available" ? "good" : "warn"),
       btn("Upload / view documents", "documents", c.id, true)
-    ])) : empty(active.length ? "All active candidates have both application documents." : "No candidates added yet. Upload status will appear here.")) + panel("Daily COO handover", summaries.length ? "<p>" + escape(summaries.at(-1).payload.progress) + "</p><p><strong>Next priorities:</strong> " + escape(summaries.at(-1).payload.priorities) + "</p>" : empty("Add today\u2019s progress, blockers and next priorities."), btn("+ Daily summary", "summary", "", true)) + panel("Private application files", '<p>Candidate names, CVs and cover letters belong in the restricted recruitment Drive folder. This public workspace displays candidate codes and upload status.</p><a class="btn" target="_blank" rel="noopener noreferrer" href="https://drive.google.com/drive/folders/' + driveRoot + '">Open recruitment Drive folder</a>');
+    ])) : empty(active.length ? "All active candidates have both application documents." : "No candidates added yet. Upload status will appear here.")) + panel("Daily COO handover", summaries.length ? "<p>" + escape(summaries.at(-1).payload.progress) + "</p><p><strong>Blockers / decisions:</strong> " + escape(summaries.at(-1).payload.blockers || "None recorded") + "</p><p><strong>Next priorities:</strong> " + escape(summaries.at(-1).payload.priorities) + "</p>" : empty("Add today\u2019s progress, blockers and next priorities."), btn("+ Daily summary", "summary", "", true)) + panel("Storage maintenance", '<p id="maintenance-state">Checking recovery and backup status\u2026</p>') + panel("Private application files", '<p>Candidate names, CVs and cover letters belong in the restricted recruitment Drive folder. This public workspace displays candidate codes and upload status.</p><a class="btn" target="_blank" rel="noopener noreferrer" href="https://drive.google.com/drive/folders/' + driveRoot + '">Open recruitment Drive folder</a>');
   }
   function showDocuments(candidate) {
     if (!candidate) return;
@@ -1189,16 +1750,16 @@ dialog h2{max-width:calc(100% - 85px)}
       return;
     }
     const stateMarkup = '<div class="statline">' + tag("CV: " + (candidate.documents?.cv || "Missing")) + tag("Cover letter: " + (candidate.documents?.cover || "Missing")) + "</div>";
-    show('<div class="section-top"><h2 id="dialog-title">Application documents \xB7 ' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + "</div>" + stateMarkup + '<p class="public-note">The full name and document contents go to Google Drive. They are not saved to the public candidate record or browser draft.</p><p id="drive-connection" class="hint" role="status">Checking Google Drive connection\u2026</p><form id="document-entry" data-candidate="' + escape(candidate.id) + '"><div class="form-grid">' + field("private_name", "Candidate\u2019s full name (private)", { required: true, max: 120, wide: true }) + '<label class="field">CV<input type="file" name="cv" accept=".pdf,.doc,.docx"></label><label class="field">Cover letter<input type="file" name="cover" accept=".pdf,.doc,.docx"></label></div><p class="hint">PDF, DOC or DOCX \xB7 up to 5 MB per file. New versions are preserved; identical retries reuse the existing file.</p><p id="upload-progress" role="status"></p><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit" disabled>Upload to Google Drive</button></div></form><p><a class="btn" href="' + escape(privateFolderSearch(candidate.alias)) + '" target="_blank" rel="noopener noreferrer">Find candidate\u2019s private Drive folder</a></p>');
+    show('<div class="section-top"><h2 id="dialog-title">Application documents \xB7 ' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + "</div>" + stateMarkup + '<p class="public-note">The full name and document contents go to Google Drive. They are not saved to the public candidate record or browser draft.</p><p class="hint">Search results are not an exact folder link. Check the complete candidate code before opening files.</p><p id="drive-connection" class="hint" role="status">Checking Google Drive connection\u2026</p><form id="document-entry" data-candidate="' + escape(candidate.id) + '"><div class="form-grid">' + field("private_name", "Candidate\u2019s full name (private)", { required: true, max: 120, wide: true }) + '<label class="field">CV<input type="file" name="cv" accept=".pdf,.doc,.docx"></label><label class="field">Cover letter<input type="file" name="cover" accept=".pdf,.doc,.docx"></label></div><p class="hint">PDF, DOC or DOCX \xB7 up to 5 MB per file. New versions are preserved; identical retries reuse the existing file.</p><button class="btn" type="button" data-action="verify-documents" data-id="' + escape(candidate.id) + '">Verify current file availability</button><p id="upload-progress" role="status"></p><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit" disabled>Upload to Google Drive</button></div></form><p><a class="btn" href="' + escape(privateFolderSearch(candidate.alias)) + '" target="_blank" rel="noopener noreferrer">Search private Drive by candidate code</a></p>');
     const form = dialog.querySelector("#document-entry");
     form.dataset.cvRequest = newId();
     form.dataset.coverRequest = newId();
-    fetch(apiBase + "/integrations", { cache: "no-store", signal: AbortSignal.timeout(2e4) }).then(async (response) => {
+    fetch(apiBase + "/integrations?candidate_id=" + encodeURIComponent(candidate.id), { cache: "no-store", signal: AbortSignal.timeout(2e4) }).then(async (response) => {
       if (!response.ok) throw new Error("Connection check failed.");
       const status = await response.json();
       if (!form.isConnected) return;
       const text = dialog.querySelector("#drive-connection");
-      text.textContent = status.drive_ready ? "Google Drive connected. A separate named folder is created automatically for this candidate." : "Google Drive is not verified. Ask the owner to check authorization and the private destination folder, then reopen this dialog. Candidate records remain available.";
+      text.textContent = status.drive_ready ? "Private Drive destination verified. A named folder is created on first upload. Corrected names rename only that folder; original files remain preserved." : "Google Drive is not verified. Ask the owner to check authorization and the private destination folder, then reopen this dialog. Candidate records remain available.";
       form.querySelector("[type=submit]").disabled = !status.drive_ready;
     }).catch(() => {
       if (form.isConnected) dialog.querySelector("#drive-connection").textContent = "Could not check Drive. Close and reopen this panel to retry.";
@@ -1220,8 +1781,8 @@ dialog h2{max-width:calc(100% - 85px)}
     }
     try {
       for (const task of tasks) await checkDocument(task.file);
-    } catch (err) {
-      errorBox.textContent = err.message;
+    } catch (err2) {
+      errorBox.textContent = err2.message;
       return;
     }
     if (saving) return;
@@ -1240,12 +1801,40 @@ dialog h2{max-width:calc(100% - 85px)}
       form.elements.private_name.value = "";
       render();
       flash("Application documents saved to the candidate\u2019s private Drive folder.");
-    } catch (err) {
-      errorBox.textContent = err.message;
+    } catch (err2) {
+      errorBox.textContent = err2.message;
       progress.textContent = "Completed files remain saved. Retry the remaining selected document.";
     } finally {
       saving = false;
       for (const el of controls) el.disabled = false;
+    }
+  }
+  async function verifyDocuments(id, control) {
+    if (saving) return;
+    control.disabled = true;
+    try {
+      const response = await fetch(apiBase + "/document-status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate_id: id, id: newId() }), signal: AbortSignal.timeout(25e3) });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || "Verification failed.");
+      ingest([result.event]);
+      dialog.querySelector("#upload-progress").textContent = "Checked now \xB7 CV: " + result.cv + " \xB7 Cover letter: " + result.cover + ". These are statuses at this check time.";
+      render();
+    } catch (err2) {
+      flash(err2.message);
+    } finally {
+      control.disabled = false;
+    }
+  }
+  async function loadMaintenanceStatus() {
+    const target = document.querySelector("#maintenance-state");
+    if (!target) return;
+    try {
+      const response = await fetch(apiBase + "/maintenance", { cache: "no-store" });
+      const status = await response.json();
+      if (!response.ok) throw Error();
+      if (target.isConnected) target.textContent = "Last successful maintenance: " + (status.last_success ? new Date(status.last_success).toLocaleString("en-LK", { timeZone: "Asia/Colombo" }) + " SL" : "Not yet run") + " \xB7 Private event backup through record " + status.backup_cursor + " \xB7 Pending document confirmations: " + status.pending_receipts + ". File availability is verified separately.";
+    } catch {
+      if (target.isConnected) target.textContent = "Maintenance status unavailable. Ask the owner to check the scheduled Worker.";
     }
   }
 })();

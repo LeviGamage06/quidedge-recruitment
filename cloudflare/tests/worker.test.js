@@ -221,3 +221,42 @@ test('unconfirmed old uploads cannot starve later receipt recovery jobs',async()
  const original=globalThis.fetch,checked=new Set();globalThis.fetch=async(url,options)=>{const p=JSON.parse(options.body);if(p.action==='receipt'){checked.add(p.id);return Response.json({ok:true,uploaded:false});}if(p.action==='backup')return Response.json({ok:true,saved:true,last:p.last});throw Error('Unexpected operation');};
  try{for(let run=0;run<3;run++){let task;await worker.scheduled({}, {DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test_deployment/exec',DRIVE_WEB_APP_SECRET:'test-only-connection-key-with-32-characters'},{waitUntil:p=>{task=p;}});await task;}for(const requestId of created)assert.ok(checked.has(requestId));}finally{globalThis.fetch=original;}
 });
+
+test('complete hiring journey preserves scorecards, checklist gates and original application',async()=>{
+ const {project}=await import('../src/model.js');
+ const candidate={id:id(),kind:'candidate',subject_id:null,event_date:'2026-11-06',payload:{alias:'QE-JOURNEY',job_id:defaultRoleRecord('2026-11-06').id,source:'Headhunting',stage:'Sourced',action:'Review application',owner:'COO',due:'2026-11-08',commission_plan:'10 / 20 / 30 recurring',commission_ack:'Accepted',terms_detail:'Applicable commission boundaries confirmed in writing'}};
+ const expectSaved=async record=>{const response=await saveRecord(record);assert.equal(response.status,201,JSON.stringify(await response.json()));};
+ await expectSaved(candidate);
+ const stage=(value,extra={})=>linked('stage',{stage:value,note:'Evidence reviewed',action:'Next review',owner:'COO',due:'2026-11-08',...extra},candidate.id);
+ for(const value of ['Contacted','Replied'])await expectSaved(stage(value));
+ await expectSaved(stage('R1 Scheduled',{r1:'2026-11-08T09:00'}));
+ for(const [round,review,next] of [['R1','R1 Review','R2 Prep'],['R2','R2 Review','Reference Check']]){
+  if(round==='R2')await expectSaved(stage('R2 Scheduled',{r2:'2026-11-08T10:00'}));
+  await expectSaved(linked('score',{round,reviewer:'COO',recommendation:'Advance',score1:'5',score2:'4',score3:'4',score4:'5',note:'Observed evidence recorded'},candidate.id));
+  await expectSaved(stage(review));await expectSaved(stage(next));
+ }
+ await expectSaved(stage('Offer / Agreement'));
+ assert.equal((await saveRecord(stage('Hired',{start_date:'2026-11-10'}))).status,400);
+ await expectSaved(linked('activity',{event:'Hiring checklist updated',note:'All required evidence checked',terms:'Complete',writing:'Complete',references:'Complete',offer:'Complete',agreement:'Complete',nda:'Complete'},candidate.id));
+ assert.equal((await saveRecord(stage('Hired'))).status,400);
+ await expectSaved(stage('Hired',{start_date:'2026-11-10'}));
+ const history=await(await worker.fetch(request('/api/events?subject='+candidate.id),{DB})).json();
+ const current=project(history).candidates[0];
+ assert.equal(current.stage,'Hired');assert.equal(current.start_date,'2026-11-10');
+ assert.equal(history.filter(e=>e.kind==='score').length,2);
+ assert.deepEqual(history[0].payload,candidate.payload);
+ const snapshot=await(await worker.fetch(request('/api/bootstrap'),{DB})).json();
+ assert.equal(project(snapshot.events).candidates.find(c=>c.id===candidate.id).stage,'Hired');
+});
+
+test('paused positions reject new applications and reopening preserves role history',async()=>{
+ const job={id:id(),kind:'job',subject_id:null,event_date:'2026-11-06',payload:{title:'QA temporary role',department:'Operations',location:'Remote',status:'Open'}};
+ assert.equal((await saveRecord(job)).status,201);
+ const update=status=>({id:id(),kind:'job',subject_id:null,event_date:'2026-11-06',payload:{...job.payload,job_id:job.id,status,note:'Role availability updated'}});
+ assert.equal((await saveRecord(update('Paused'))).status,201);
+ const candidate={id:id(),kind:'candidate',subject_id:null,event_date:'2026-11-06',payload:{alias:'QE-REOPEN',job_id:job.id,source:'Referral',stage:'Sourced',action:'Review',owner:'COO',due:'2026-11-08'}};
+ assert.equal((await saveRecord(candidate)).status,400);
+ assert.equal((await saveRecord(update('Open'))).status,201);
+ assert.equal((await saveRecord(candidate)).status,201);
+ assert.equal(sql('SELECT COUNT(*) AS n FROM recruitment_events WHERE id=? OR json_extract(payload,\'$.job_id\')=?',[job.id,job.id])[0].n,4);
+});

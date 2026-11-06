@@ -1,5 +1,4 @@
 import {validateDocumentBytes} from './binary.js';
-export const driveRoot = '1n2x6MZ8wqBCPe2bQcU4Z0XQDCV8121Mj';
 import {validEvent} from './record-utils.js';
 export const maxDocumentBytes = 5 * 1024 * 1024;
 export async function checkDocument(file) {
@@ -10,9 +9,6 @@ export async function checkDocument(file) {
   validateDocumentBytes(bytes,ext);
   const pdf=ext==='pdf',doc=ext==='doc';
   return {extension:ext,mime:pdf?'application/pdf':doc?'application/msword':'application/vnd.openxmlformats-officedocument.wordprocessingml.document'};
-}
-export function privateFolderSearch(alias) {
-  return 'https://drive.google.com/drive/u/0/search?q=' + encodeURIComponent('type:folder "'+alias+'"');
 }
 export async function uploadDocument(apiBase,candidate,fullName,file,type,requestId) {
   const metadata = await checkDocument(file);

@@ -5,7 +5,7 @@ import {
   escape as e,csvCell,stageProblem,newId,scorecardFor
 } from './model.js?v=1d9777a50d5b';
 import {hiringRole,defaultRoleRecord} from './role.js';
-import {checkDocument,privateFolderSearch,uploadDocument,driveRoot} from './documents.js';
+import {checkDocument,uploadDocument} from './documents.js';
 import {append,loadEvents,createEventReader,apiBase} from './store.js?v=1d9777a50d5b';
 
 const readUpdates=createEventReader();

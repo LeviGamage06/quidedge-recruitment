@@ -187,8 +187,10 @@ test('maintenance reconciles a Drive-success/database-failure receipt and saves 
 });
 test('application write limits reject bursts without deleting or rewriting recruitment data',async()=>{
  const env={DB,DRIVE_WEB_APP_SECRET:'test-only-connection-key-with-32-characters'};
- let response;for(let i=0;i<61;i++)response=await worker.fetch(request('/api/events',{method:'POST',headers:{'Content-Type':'application/json','CF-Connecting-IP':'198.51.100.15'},body:'{}'}),env);
- assert.equal(response.status,429);assert.ok(response.headers.get('Retry-After'));
+ const originalNow=Date.now;Date.now=()=>1793932800000;
+ try{let response;for(let i=0;i<61;i++)response=await worker.fetch(request('/api/events',{method:'POST',headers:{'Content-Type':'application/json','CF-Connecting-IP':'198.51.100.15'},body:'{}'}),env);
+ assert.equal(response.status,429);assert.ok(response.headers.get('Retry-After'));}
+ finally{Date.now=originalNow;}
 });
 test('obsolete asset version URLs are revalidated instead of immutable caching',async()=>{const response=await worker.fetch(request('/app.js?v=old-version'),{});assert.equal(response.headers.get('Cache-Control'),'no-cache');});
 test('DOCX validation checks package contents and rejects fake ZIP and truncated PDFs',async()=>{
@@ -212,4 +214,10 @@ test('accepted commission cannot be recorded on a new candidate without agreed b
  const record={id:id(),kind:'candidate',subject_id:null,event_date:'2026-11-06',payload:{alias:'QE-TERMS-REQUIRED',job_id:defaultRoleRecord('2026-11-06').id,source:'Referral',stage:'Sourced',action:'Review',owner:'COO',due:'2026-11-07',commission_plan:'10 / 20 / 30 recurring',commission_ack:'Accepted'}};
  assert.equal((await saveRecord(record)).status,400);
  assert.equal((await saveRecord({...record,payload:{...record.payload,terms_detail:'Written agreement sets the applicable boundaries'}})).status,201);
+});
+test('unconfirmed old uploads cannot starve later receipt recovery jobs',async()=>{
+ const created=[];
+ for(let n=0;n<17;n++){const requestId=id();created.push(requestId);sql('INSERT INTO document_outbox(id,candidate_id,fingerprint,document_type,event_date,payload) VALUES (?,?,?,?,?,?)',[requestId,candidateId,'fair-'+n,'cv','2026-11-06',JSON.stringify({event:'Document stored',document_type:'cv',upload_fingerprint:'fair-'+n,note:'Recovery fixture'})]);}
+ const original=globalThis.fetch,checked=new Set();globalThis.fetch=async(url,options)=>{const p=JSON.parse(options.body);if(p.action==='receipt'){checked.add(p.id);return Response.json({ok:true,uploaded:false});}if(p.action==='backup')return Response.json({ok:true,saved:true,last:p.last});throw Error('Unexpected operation');};
+ try{for(let run=0;run<3;run++){let task;await worker.scheduled({}, {DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test_deployment/exec',DRIVE_WEB_APP_SECRET:'test-only-connection-key-with-32-characters'},{waitUntil:p=>{task=p;}});await task;}for(const requestId of created)assert.ok(checked.has(requestId));}finally{globalThis.fetch=original;}
 });

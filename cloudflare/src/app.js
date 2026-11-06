@@ -504,6 +504,7 @@ async function refresh() {
     const today=dateSL(),dayChanged=today!==lastDay;
     if(dayChanged){if(reportDate===lastDay)reportDate=today;lastDay=today;}
     if (changed || initial || hadFailure || dayChanged) render();
+    else if(page()==='coo')loadMaintenanceStatus();
   } catch (error) {
     failure = error.message;
     mode.textContent = 'Retry sync';

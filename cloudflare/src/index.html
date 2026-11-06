@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#efefe2">
+<title>QuidEdge · Recruitment</title>
+<link rel="stylesheet" href="./styles.css?v=1d9777a50d5b">
+</head>
+<body>
+<a class="skip" href="#app">Skip to recruitment workspace</a>
+<header class="top">
+  <a href="#overview" class="brand"><span class="mark" aria-hidden="true">✺</span>quidedge<span class="brand-dot">.</span></a>
+  <nav aria-label="Recruitment navigation" id="nav">
+    <a href="#overview">Overview</a><a href="#coo">COO workspace</a><a href="#role">Hiring role</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#interviews">Interviews</a><a href="#guide">Interview guide</a>
+  </nav>
+  <button id="sync" class="pill" type="button" title="Refresh data"><span class="indicator"></span><span id="mode">Connecting</span></button>
+</header>
+<main>
+  <div id="app" tabindex="-1"></div>
+</main>
+<dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+<div id="notice" role="status" aria-live="polite"></div>
+<script type="module" src="./app.js?v=1d9777a50d5b"></script>
+</body>
+</html>

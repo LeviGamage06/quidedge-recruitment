@@ -1,0 +1,47 @@
+# QuidEdge Recruitment
+
+Live app: https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/#coo
+
+Alternate frontend: https://levigamage06.github.io/quidedge-recruitment/
+
+The Worker, database and scheduled maintenance run in the owner's Cloudflare account, independently of ChatGPT. Private documents and event backups use the owner's Google Drive bridge. No visitor login is required. Public readers can also append public-safe recruitment records: this is intentional, rate-limited public access, not verified staff access. Reviewer roles are self-reported.
+
+## Source and verification
+
+The complete source is in `cloudflare/src`, Google Apps Script in `cloudflare/integrations`, database migrations in `cloudflare/migrations`, restore tooling in `cloudflare/scripts`, and regression tests in `cloudflare/tests`.
+
+With Node 24 and Python 3 installed:
+
+```
+npm ci --prefix cloudflare
+npm run build --prefix cloudflare
+npm test --prefix cloudflare
+```
+
+GitHub Actions runs these checks and verifies generated outputs. `index.html` is generated for GitHub Pages; `backend.js` and `cloudflare/worker.js` are the bundled Worker. Edit source files and rebuild. The frontend uses a reduced current-state snapshot; complete candidate history, daily activity and full event exports are loaded on demand.
+
+## Deployments
+
+Keep the existing DB binding and encrypted `DRIVE_WEB_APP_SECRET`, and the `DRIVE_WEB_APP_URL` runtime variable. Never put credentials in source. `npm run deploy --prefix cloudflare` builds and deploys code; apply new tracked database migrations separately. Production's original schema and operations migration have been recorded in `d1_migrations`; do not rerun schema SQL manually.
+
+A GitHub Pages commit deploys the alternate frontend only. Worker and Google Apps Script deployments are separate. Update the existing Apps Script deployment to protocol 3, executing as the owner, with the existing secret. Preserve restricted sharing. When the schedule from `wrangler.jsonc` is applied, the cron `*/10 * * * *` reconciles pending Drive receipts and saves incremental private event backups. Maintenance state is visible in the COO workspace.
+
+## Data and privacy
+
+Recruitment events remain append-only and SQL triggers reject UPDATE/DELETE. Candidate corrections add events. Candidate names and application bytes never enter public event records. Keep names and contact details out of all public notes; automated pattern checks do not recognize every kind of personal information.
+
+Uploads accept PDF, DOC and DOCX up to 5 MB, with structural checks and bounded DOCX expansion. These checks are not antivirus scanning. The private named folder can be renamed when the full name is corrected during an upload; original application files remain preserved. Receipts record prior storage; use Verify current file availability for an up-to-date check. The latest displayed availability remains a statement about the recorded check time.
+
+## Backups and recovery
+
+Private incremental JSON event backups are stored under the recruitment root's `_System backups` folder. Original CVs/cover letters stay in their candidate folders; they are not duplicated into event backups. Download all event backup chunks privately and run:
+
+```
+python3 cloudflare/scripts/restore_backup.py /private/backup-directory --output /private/recovery.sql
+```
+
+The tool validates chunks and emits SQL for a NEW, separate recovery database. It never connects to production. Test recovery before switching any live binding. Owner actions, account access, provider quotas and retention still affect availability; the app cannot guarantee permanent retention against owner/provider actions.
+
+## Commission terms
+
+The supplied 10% / 20% / 30% ranges overlap at exactly AUD 1,000. Amounts below AUD 300 and decimal boundary amounts need a business decision. Commission review records the actual agreed boundaries and exceptional terms. The app does not invent a rate or replace the signed agreement.

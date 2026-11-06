@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.env*
+.dev.vars*
+backups/
+*.sqlite
+__pycache__/

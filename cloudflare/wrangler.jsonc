@@ -1,0 +1,15 @@
+{
+  "name": "quidedge-recruitment",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-05",
+  "workers_dev": true,
+  "triggers": {"crons": ["*/10 * * * *"]},
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "quidedge-recruitment",
+      "database_id": "d0cf193c-eef2-46eb-8be3-2c73fa21e9e9",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

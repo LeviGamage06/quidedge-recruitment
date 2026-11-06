@@ -1413,6 +1413,7 @@ dialog h2{max-width:calc(100% - 85px)}
         lastDay = today;
       }
       if (changed || initial || hadFailure || dayChanged) render();
+      else if (page() === "coo") loadMaintenanceStatus();
     } catch (error) {
       failure = error.message;
       mode.textContent = "Retry sync";

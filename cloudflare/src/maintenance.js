@@ -47,12 +47,15 @@ async function documentStatus(request,env,url){
 async function maintenance(env){
  if(!env.DB||!driveConfigured(env))return;
  const db=env.DB.withSession('first-primary');
- const jobs=await db.prepare("SELECT * FROM document_outbox WHERE state='pending' ORDER BY created_at LIMIT 10").all();
+ const scan=await db.prepare("SELECT value FROM maintenance_state WHERE key='outbox_scan_cursor'").first();
+ let jobs=await db.prepare("SELECT * FROM document_outbox WHERE state='pending' AND id>? ORDER BY id LIMIT 10").bind(scan?.value||'').all();
+ if(!jobs.results.length)jobs=await db.prepare("SELECT * FROM document_outbox WHERE state='pending' ORDER BY id LIMIT 10").all();
  for(const job of jobs.results){
   try{const receipt=await bridgeRequest(env,{action:'receipt',id:job.id,candidate_id:job.candidate_id,fingerprint:job.fingerprint});
    if(receipt.uploaded===true&&receipt.document_type===job.document_type)await finalizeDocument(db,job);
   }catch{console.warn('Document reconciliation will retry.');}
  }
+ if(jobs.results.length)await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('outbox_scan_cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(jobs.results.at(-1).id).run();
  const state=await db.prepare("SELECT value FROM maintenance_state WHERE key='backup_cursor'").first();
  const cursor=Number(state?.value||0);
  const rows=await db.prepare('SELECT * FROM recruitment_events WHERE seq>? ORDER BY seq LIMIT 500').bind(cursor).all();

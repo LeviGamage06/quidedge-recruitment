@@ -29,7 +29,7 @@ function cooView() {
     '<div class="toolbar">'+btn('Role & commission terms','role-view')+btn('+ Add candidate','candidate','',true)+'</div>')+
     '<div class="coo-stats">'+stats.map(([title,total])=>'<div class="panel"><span>'+e(title)+'</span><strong>'+total+'</strong></div>').join('')+'</div>'+
     panel('Today’s next actions',candidateTable(due))+
-    '<div class="split">'+panel('Ready for COO review',candidateTable(review))+panel('Commission acknowledgement',candidateTable(terms))+'</div>'+
+    '<div class="split">'+panel('Ready for COO review',candidateTable(review))+panel('Commission acknowledgement',candidateTable(terms,'commission','Review terms'))+'</div>'+
     panel('CV & cover letter checklist',documents.length?table(['Candidate','CV','Cover letter','Action'],documents.map(c=>[
       '<strong>'+e(c.alias)+'</strong>',tag(c.documents?.cv||'Missing',c.documents?.cv==='Available'?'good':'warn'),
       tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn('Upload documents','documents',c.id,true)

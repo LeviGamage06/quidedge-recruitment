@@ -26,3 +26,9 @@ export function foldCalendarLine(line) {
   }
   lines.push(current);return lines.join('\r\n');
 }
+
+// One draft per form and candidate; switching tools must not block or erase work.
+export function mergeDrafts(drafts,value,kind=value?.kind,id=value?.id) {
+  const remaining=drafts.filter(d=>d.kind!==kind || d.id!==id);
+  return value ? [...remaining,value] : remaining;
+}

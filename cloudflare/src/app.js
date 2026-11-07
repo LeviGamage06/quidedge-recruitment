@@ -1,4 +1,4 @@
-import {validDraft,foldCalendarLine} from './record-utils.js';
+import {validDraft,mergeDrafts,foldCalendarLine} from './record-utils.js';
 import guide from './guide.js?v=1d9777a50d5b';
 import {
   stages,closed,milestones,checklistItems,dateSL,groupStages,project,attention,
@@ -74,16 +74,21 @@ const eventLabel = event => ({
 })[event.kind];
 const jobTitle = id => jobNames.get(id) || 'Position unavailable';
 const candidateById = id => candidateIndex.get(id);
-function storageRead() {
-  try { const draft=JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null'); return validDraft(draft)?draft:null; }
-  catch { return null }
-}
-function storageWrite(value) {
+function storageDrafts() {
   try {
-    if (value) sessionStorage.setItem('qe-recruitment-draft',JSON.stringify(value));
+    const saved=JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null');
+    return (Array.isArray(saved)?saved:[saved]).filter(validDraft);
+  } catch { return []; }
+}
+function storageRead(kind,id) {
+  return storageDrafts().find(d=>!kind || d.kind===kind && d.id===id) || null;
+}
+function storageWrite(value,kind,id) {
+  try {
+    const drafts=mergeDrafts(storageDrafts(),value,kind,id);
+    if(drafts.length)sessionStorage.setItem('qe-recruitment-draft',JSON.stringify(drafts));
     else sessionStorage.removeItem('qe-recruitment-draft');
   } catch {flash('Browser draft storage is unavailable. Keep this tab open until the server confirms your save.');}
-
 }
 function ingest(incoming) {
   if (!incoming.length) return false;
@@ -96,8 +101,8 @@ function ingest(incoming) {
   candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
   return true;
 }
-function candidateTable(candidates) {
-  if(candidates.length>25)return candidateTable(candidates.slice(0,25))+'<p class="hint">Showing 25 of '+candidates.length+' candidates. Use Pipeline for all records and filters.</p>';
+function candidateTable(candidates,action='stage',label='Update') {
+  if(candidates.length>25)return candidateTable(candidates.slice(0,25),action,label)+'<p class="hint">Showing 25 of '+candidates.length+' candidates. Use Pipeline for all records and filters.</p>';
   if (!candidates.length) return empty('No candidates in this view. Add a candidate or adjust the filters.');
   return table(['Candidate','Position','Stage','Next action','Attention','Actions'],candidates.map(candidate => {
     const flag = attention(candidate);
@@ -109,7 +114,7 @@ function candidateTable(candidates) {
         ' · ' + e(candidate.owner || 'No owner') + '</small>',
       tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag) ? 'warn' : ''),
       '<div class="row-actions">' + btn('View record','view',candidate.id) +
-        btn('Update','stage',candidate.id,true) + '</div>'
+        btn(label,action,candidate.id,true) + '</div>'
     ];
   }));
 }
@@ -227,7 +232,8 @@ function interviews() {
         e(slot.replace('T',' ')) + (slot.slice(0,10) < dateSL() ? '<small>Past date · review the candidate stage</small>' : ''),
         '<div class="row-actions">' + btn('Calendar file','calendar',candidate.id) +
           btn('Reschedule / cancel','stage',candidate.id,true) + '</div>'
-      ])) : empty('No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time.'));
+      ])) : empty('No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time.')) +
+    panel('Schedule an interview',candidateTable(state.candidates.filter(c=>!closed.includes(c.stage))));
 }
 const relationsPrompts = [
   ['Opening',3,'Confirm the role, commission or payment structure, client markets and the interview plan.'],
@@ -267,9 +273,9 @@ function render() {
     else link.removeAttribute('aria-current');
   }
   const screens = {overview,coo:cooView,role:roleView,pipeline,activity,interviews,guide:guideView};
-  const draft = storageRead();
-  const draftBanner = draft ? '<div class="draft-banner"><span>Unsaved ' + e(draft.kind) + ' draft available.</span>' +
-    '<div class="row-actions">' + btn('Resume draft','resume') + btn('Discard draft','discard') + '</div></div>' : '';
+  const drafts = storageDrafts();
+  const draftBanner = drafts.map(draft => '<div class="draft-banner"><span>Unsaved ' + e(draft.kind) + ' draft available.</span>' +
+    '<div class="row-actions">' + btn('Resume draft','resume',draft.kind+':'+draft.id) + btn('Discard draft','discard',draft.kind+':'+draft.id) + '</div></div>').join('');
   const alert = failure ? '<p class="banner" role="alert">' + e(failure) +
     ' Existing records remain visible. Use Refresh to retry.</p>' : '';
   app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
@@ -323,15 +329,9 @@ async function showRecord(candidate) {
     '</ul><h3>Record history</h3><ul class="timeline">' + history + '</ul>');
 }
 function openForm(kind,id = '',restored = null) {
-  const existingDraft = storageRead();
-  if (!restored && existingDraft) {
-    const same = existingDraft.kind === kind && existingDraft.id === id;
-    if (same) return openForm(kind,id,existingDraft);
-    flash('Resume or discard the existing draft before starting another entry.');
-    if (dialog.open) dialog.close();
-    render();
-    return;
-  }
+  saveDraft();
+  const existingDraft = storageRead(kind,id);
+  if (!restored && existingDraft) return openForm(kind,id,existingDraft);
   const candidate = candidateById(id);
   const job = state.jobs.find(item => item.id === id);
   const openJobs = state.jobs.filter(item => item.status === 'Open');
@@ -371,6 +371,8 @@ function openForm(kind,id = '',restored = null) {
       field('r2','R2 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r2}) +
       '<div class="wide" id="start-field">' + field('start_date','Confirmed start date',{kind:'date',value:candidate.start_date}) + '</div>' +
       notes('note','Reason / decision summary',true) +
+      '<div class="hint wide" id="schedule-help" role="status"></div>' +
+      (candidate.commission_ack!=='Accepted'||!candidate.terms_detail ? '<div class="wide"><p class="hint">Confirm commission terms before scheduling an interview.</p>'+btn('Review commission terms','commission',candidate.id)+'</div>':'') +
       '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
   } else if (kind === 'checklist' && candidate) {
     title = 'Hiring checklist · ' + candidate.alias;
@@ -437,6 +439,8 @@ function updateStageFields() {
   const start = dialog.querySelector('#start-field');
   start.hidden = stage !== 'Hired';
   start.querySelector('input').required = stage === 'Hired';
+  const scheduled=stage==='R1 Scheduled'||stage==='R2 Scheduled';
+  dialog.querySelector('#schedule-help').textContent=scheduled ? 'This save books the selected interview in the calendar. All times are Sri Lanka time (UTC+05:30).' : 'Interview times are reference details until Stage is R1 Scheduled or R2 Scheduled. Choose a scheduled stage to book the calendar.';
   for (const round of ['r1','r2']) {
     dialog.querySelector('[name="' + round + '"]').required = stage === (round === 'r1' ? 'R1 Scheduled' : 'R2 Scheduled');
   }
@@ -551,9 +555,14 @@ document.addEventListener('click',async event => {
   if (!control || saving) return;
   const {action,id} = control.dataset;
   if (action === 'close') { saveDraft();dialog.close();render();return }
-  if (action === 'discard') { storageWrite(null);pendingRecord = null;dialog.close();render();return }
+  if (action === 'discard') {
+    const form=dialog.querySelector('#entry');
+    const [kind,recordId]=id ? id.split(':') : [form?.dataset.kind,form?.dataset.id];
+    storageWrite(null,kind,recordId);pendingRecord = null;dialog.close();render();return;
+  }
   if (action === 'resume') {
-    const draft = storageRead();
+    const [kind,recordId]=id.split(':');
+    const draft = storageRead(kind,recordId);
     if (draft) openForm(draft.kind,draft.id,draft);
     return;
   }
@@ -579,7 +588,7 @@ document.addEventListener('click',async event => {
   if (action === 'role-view') {location.hash='role';render();return;}
   if (action === 'activate-role') {activateRole();return;}
   if(action==='verify-documents'){await verifyDocuments(id,control);return;}
-  if (action === 'documents') {showDocuments(candidateById(id));return;}
+  if (action === 'documents') {saveDraft();showDocuments(candidateById(id));return;}
   if (action === 'calendar') { calendar(candidateById(id));return }
   if (action === 'export') {
     control.disabled=true;flash('Preparing complete history export…');
@@ -659,7 +668,7 @@ dialog.addEventListener('submit',async event => {
     const saved = await append(record);
     ingest([saved]);
     pendingRecord = null;
-    storageWrite(null);
+    storageWrite(null,kind,id);
     if (kind === 'summary') reportDate = record.event_date;
     dialog.close();
     render();

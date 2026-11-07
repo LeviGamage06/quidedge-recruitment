@@ -46,3 +46,18 @@ test('commission acceptance also requires recorded boundaries and scorecards fol
  assert.equal(stageProblem(payload,{...candidate,terms_detail:'Agreed written boundaries'},'2026-11-06'),'');
  assert.notDeepEqual(scorecardFor({profile:'client-acquisition-v1'}).R1,scorecardFor({}).R1);
 });
+
+
+test('independent form drafts survive switching, saving and discarding another tool',async()=>{
+ const {mergeDrafts}=await import('../src/record-utils.js');
+ const base={id:event.id,request:event.id,revision:1,values:{note:'Unsaved evidence'}};
+ const stage={...base,kind:'stage'},commission={...base,kind:'commission'};
+ let drafts=mergeDrafts([],stage);
+ drafts=mergeDrafts(drafts,commission);
+ assert.equal(drafts.length,2);
+ const changed={...stage,values:{note:'Changed evidence'}};
+ drafts=mergeDrafts(drafts,changed);
+ assert.deepEqual(drafts,[commission,changed]);
+ assert.deepEqual(mergeDrafts(drafts,null,'commission',event.id),[changed]);
+ assert.deepEqual(mergeDrafts(drafts,null,'stage',event.id),[commission]);
+});

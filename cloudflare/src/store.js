@@ -21,6 +21,7 @@ async function request(path = '', options = {}) {
     error.status = response.status;
     throw error;
   }
+  if(body&&typeof body==='object')body.purgeEpoch=response.headers.get('X-Purge-Epoch')||'';
   return body;
 }
 export async function loadEvents(after = 0,filters = {}) {
@@ -29,6 +30,7 @@ export async function loadEvents(after = 0,filters = {}) {
   for (;;) {
     const batch = await request('?'+new URLSearchParams({...filters,after:String(cursor)}));
     if (!Array.isArray(batch)) throw new Error('The server returned an invalid event list.');
+    events.purgeEpoch=batch.purgeEpoch||'';
     if (!batch.length) return events;
     let previous=cursor;const ids=new Set();
     if (batch.some(event => {
@@ -54,15 +56,15 @@ export async function append(event) {
 
 // Advance only after reading the ordered server feed, never from a local save receipt.
 export function createEventReader() {
- let cursor=0,started=false;
- return async()=>{
+ let cursor=0,started=false,epoch='';
+ return async function read(){
   if(!started){
    const response=await fetch(apiBase+'/bootstrap',{cache:'no-store',signal:AbortSignal.timeout(20000)});
    if(!response.ok){const events=await loadEvents(0);cursor=events.at(-1)?.seq||0;started=true;return events;}
    const snapshot=await response.json();
    if(!Number.isSafeInteger(snapshot.cursor)||snapshot.cursor<0||!Array.isArray(snapshot.events)||snapshot.events.some(e=>!validEvent(e)||e.seq>snapshot.cursor))throw Error('Invalid recruitment snapshot. Retry sync.');
-   cursor=snapshot.cursor;started=true;return snapshot.events;
+   epoch=response.headers.get('X-Purge-Epoch')||'';cursor=snapshot.cursor;started=true;return snapshot.events;
   }
-  const incoming=await loadEvents(cursor);if(incoming.length)cursor=incoming.at(-1).seq;return incoming;
+  const incoming=await loadEvents(cursor);if((incoming.purgeEpoch||'')!==epoch){started=false;const all=await read();all.reset=true;return all;}if(incoming.length)cursor=incoming.at(-1).seq;return incoming;
  };
 }

@@ -129,3 +129,13 @@ function assertOwnedTree_(id){
  if(!Drive.Files.get(id,{fields:'ownedByMe'}).ownedByMe)throw Error('NOT_OWNER');
  var page;do{var result=Drive.Files.list({q:"'"+id+"' in parents",fields:'nextPageToken,files(id,mimeType,ownedByMe)',pageSize:1000,pageToken:page});(result.files||[]).forEach(function(f){if(!f.ownedByMe)throw Error('NOT_OWNER');if(f.mimeType==='application/vnd.google-apps.folder')assertOwnedTree_(f.id);});page=result.nextPageToken;}while(page);
 }
+
+/** Read-only owner check; does not delete or create any files or recruitment records. */
+function verifyPermanentDeletionSetup(){
+ var metadata=Drive.Files.get(ROOT_FOLDER_ID,{fields:'id,ownedByMe,capabilities(canDelete)'});
+ if(metadata.ownedByMe!==true||!metadata.capabilities||metadata.capabilities.canDelete!==true)throw Error('The connected owner cannot permanently remove files from the recruitment destination.');
+ var secret=PropertiesService.getScriptProperties().getProperty('DRIVE_WEB_APP_SECRET');
+ var health=JSON.parse(doPost({postData:{contents:JSON.stringify({secret:secret,action:'health',purge:true})}}).getContent());
+ if(health.ok!==true||health.purge_ready!==true)throw Error('Permanent deletion is not ready.');
+ console.log('PERMANENT_DELETE_READY: Drive API v3 connected; destination ownership and delete capability verified; authenticated cleanup readiness confirmed. No data was deleted.');
+}

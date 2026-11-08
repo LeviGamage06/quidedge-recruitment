@@ -68,3 +68,7 @@ test('restoring a deleted candidate or booking requires a new reminder but score
  history.push({seq:4,id:'delete',kind:'summary',payload:{operation:'delete',target_id:'candidate'}});history.push({seq:5,id:'restore',kind:'summary',payload:{operation:'restore',target_id:'candidate'}});assert.equal(interviewRevision(history,c),5);
  history.push({seq:6,id:'delete-stage',kind:'summary',payload:{operation:'delete',target_id:'booking'}});assert.equal(interviewRevision(history,c),6);
 });
+test('another browser forgets permanently removed records when the purge epoch changes',async()=>{
+ const original=globalThis.fetch;let epoch='',removed=false;globalThis.fetch=async url=>Response.json(String(url).includes('/bootstrap')?{cursor:1,events:removed?[]:[event]}:[],{headers:{'X-Purge-Epoch':epoch}});
+ try{const read=createEventReader();assert.equal((await read()).length,1);assert.equal((await read()).length,0);epoch='new-clean-state';removed=true;const clean=await read();assert.equal(clean.length,0);assert.equal(clean.reset,true);}finally{globalThis.fetch=original;}
+});

@@ -166,13 +166,13 @@ test('interview overlap is checked atomically and adjacent slots are allowed',as
  assert.equal((await schedule(b,'2026-11-07T12:15')).status,409);
  assert.equal((await schedule(b,'2026-11-07T12:30')).status,201);
 });
-test('bootstrap projection matches full history without loading irrelevant past activity',async()=>{
+test('bootstrap includes history required to undo deleted or edited records',async()=>{
  const {project}=await import('../src/model.js');
  for(let i=0;i<8;i++)assert.equal((await saveRecord({...linked('activity',{event:'Follow-up sent',note:'Old follow up'}),event_date:'2025-01-01'})).status,201);
  const full=await(await worker.fetch(request('/api/events'),{DB})).json();
  const response=await worker.fetch(request('/api/bootstrap'),{DB});assert.equal(response.status,200);const snapshot=await response.json();
  const trim=events=>{const state=project(events);for(const c of state.candidates)delete c.history;return state;};
- assert.deepEqual(trim(snapshot.events),trim(full));assert.ok(snapshot.events.length<full.length);assert.equal(snapshot.cursor,full.at(-1).seq);
+ assert.deepEqual(trim(snapshot.events),trim(full));assert.equal(snapshot.events.length,full.length);assert.equal(snapshot.cursor,full.at(-1).seq);
 });
 test('status checks only expose safe availability and never accept manual availability events',async()=>{
  assert.equal((await saveRecord(linked('activity',{event:'Document availability checked',note:'Spoofed',cv_state:'Available',cover_state:'Available'}))).status,400);
@@ -259,4 +259,68 @@ test('paused positions reject new applications and reopening preserves role hist
  assert.equal((await saveRecord(update('Open'))).status,201);
  assert.equal((await saveRecord(candidate)).status,201);
  assert.equal(sql('SELECT COUNT(*) AS n FROM recruitment_events WHERE id=? OR json_extract(payload,\'$.job_id\')=?',[job.id,job.id])[0].n,4);
+});
+
+async function currentEvents(){return sql('SELECT * FROM recruitment_events ORDER BY seq').map(row=>({...row,payload:JSON.parse(row.payload)}));}
+async function currentRevision(target){const {project,recordStates}=await import('../src/model.js');const all=await currentEvents(),state=project(all),event=all.find(e=>e.id===target);return Math.max(recordStates(all).get(target)?.revision||event?.seq||0,state.candidates.find(c=>c.id===target)?.revision||0,state.jobs.find(j=>j.id===target)?.revision||0);}
+async function control(target,operation,expected){return saveRecord({id:id(),kind:'summary',subject_id:null,event_date:'2026-11-08',expected_seq:expected??await currentRevision(target),payload:{operation,target_id:target,note:'QA record management'}});}
+async function crudFixture(code){const job={id:id(),kind:'job',subject_id:null,event_date:'2026-11-08',payload:{title:'QA operations',department:'Operations',location:'Remote',status:'Open'}};assert.equal((await saveRecord(job)).status,201);const c={id:id(),kind:'candidate',subject_id:null,event_date:'2026-11-08',payload:{alias:code,job_id:job.id,source:'Referral',stage:'Sourced',action:'Review',owner:'COO',due:'2026-11-20'}};assert.equal((await saveRecord(c)).status,201);return {job,c};}
+async function crudSave(candidate,kind,payload){const event={id:id(),kind,subject_id:candidate,event_date:'2026-11-08',expected_seq:await currentRevision(candidate),payload};const response=await saveRecord(event);assert.equal(response.status,201,JSON.stringify(await response.json()));return event;}
+test('candidate and position delete/restore preserve originals and reject stale writes',async()=>{
+ const {project}=await import('../src/model.js');const {job,c}=await crudFixture('QA-TRASH-LIFECYCLE');
+ const old=await currentRevision(c.id);
+ await crudSave(c.id,'activity',{event:'Follow-up sent',note:'New evidence'});
+ assert.equal((await control(c.id,'delete',old)).status,409);
+ assert.equal((await control(c.id,'delete')).status,201);
+ assert.equal(project(await currentEvents()).candidates.find(x=>x.id===c.id).deleted,true);
+ assert.equal((await saveRecord({...linked('activity',{event:'Follow-up sent',note:'Blocked'},c.id),expected_seq:await currentRevision(c.id)})).status,400);
+ assert.equal((await control(c.id,'restore')).status,201);
+ assert.equal(project(await currentEvents()).candidates.find(x=>x.id===c.id).deleted,false);
+ assert.equal((await control(job.id,'delete')).status,201);
+ assert.equal(project(await currentEvents()).jobs.find(x=>x.id===job.id).deleted,true);
+ const copy={...c,id:id(),payload:{...c.payload,alias:'QA-DELETED-POSITION'}};
+ assert.equal((await saveRecord(copy)).status,400);
+ assert.equal((await control(job.id,'restore')).status,201);
+ assert.equal((await saveRecord(copy)).status,201);
+ assert.equal(sql('SELECT COUNT(*) AS n FROM recruitment_events WHERE id=?',[c.id])[0].n,1);
+});
+test('deleted scorecards, checklists and milestones disappear and restore without losing evidence',async()=>{
+ const {project,visibleEvents}=await import('../src/model.js');const {c}=await crudFixture('QA-ENTRY-TRASH');
+ const a=await crudSave(c.id,'activity',{event:'Hiring checklist updated',note:'Checked',terms:'Complete',writing:'Complete',references:'Complete',offer:'Complete',agreement:'Complete',nda:'Complete'});
+ assert.equal(project(await currentEvents()).candidates.find(x=>x.id===c.id).checklist.terms,'Complete');
+ assert.equal((await control(a.id,'delete')).status,201);
+ assert.equal(project(await currentEvents()).candidates.find(x=>x.id===c.id).checklist.terms,undefined);
+ assert.equal((await control(a.id,'restore')).status,201);
+ const score=await crudSave(c.id,'score',{round:'R1',recommendation:'Hold',reviewer:'COO',score1:'3',note:'Evidence'});
+ assert.equal((await control(score.id,'delete')).status,201);
+ assert.equal(visibleEvents(await currentEvents()).some(e=>e.id===score.id),false);
+ assert.equal((await control(score.id,'restore')).status,201);
+ assert.equal(visibleEvents(await currentEvents()).some(e=>e.id===score.id),true);
+});
+test('editing an entry replaces its effective value and summary edits reject stale originals',async()=>{
+ const {project,visibleEvents}=await import('../src/model.js');const {c}=await crudFixture('QA-ENTRY-EDIT');
+ const first=await crudSave(c.id,'activity',{event:'Candidate details corrected',alias:'QA-ENTRY-EDITED',source:'Other',availability:'Available now',notice:'None',note:'Correct code'});
+ await crudSave(c.id,'activity',{...first.payload,alias:'QA-ENTRY-EDITED-AGAIN',supersedes:first.id});
+ assert.equal(project(await currentEvents()).candidates.find(x=>x.id===c.id).alias,'QA-ENTRY-EDITED-AGAIN');
+ assert.equal(visibleEvents(await currentEvents()).some(e=>e.id===first.id),false);
+ const summary={id:id(),kind:'summary',subject_id:null,event_date:'2026-11-08',payload:{progress:'Reviewed',priorities:'Follow up'}};
+ assert.equal((await saveRecord(summary)).status,201);
+ const edit={id:id(),kind:'summary',subject_id:null,event_date:'2026-11-08',expected_seq:await currentRevision(summary.id),payload:{progress:'Corrected progress',priorities:'New priorities',supersedes:summary.id}};
+ assert.equal((await saveRecord(edit)).status,201);
+ assert.equal((await saveRecord({...edit,id:id()})).status,409);
+ assert.equal((await control(edit.id,'delete')).status,201);
+ assert.equal((await control(edit.id,'restore')).status,201);
+});
+test('interview cancellation frees the slot and restore cannot introduce an overlap',async()=>{
+ const {project}=await import('../src/model.js');const {c:a}=await crudFixture('QA-BOOK-A'),{c:b}=await crudFixture('QA-BOOK-B');
+ const booking={stage:'R1 Scheduled',r1:'2026-12-01T10:00',action:'Interview',due:'2026-12-01',owner:'COO',note:'Book interview'};
+ const original=await crudSave(a.id,'stage',booking);
+ await crudSave(a.id,'stage',{...booking,stage:'Replied',r1:'',note:'Cancel interview'});
+ await crudSave(b.id,'stage',booking);
+ assert.equal((await control(a.id,'delete')).status,201);
+ assert.equal((await control(a.id,'restore')).status,201);
+ const candidate=project(await currentEvents()).candidates.find(x=>x.id===a.id);
+ const cancel=candidate.history.findLast(e=>e.kind==='stage');
+ assert.equal((await control(cancel.id,'delete')).status,409);
+ assert.equal((await control(original.id,'delete')).status,201);
 });

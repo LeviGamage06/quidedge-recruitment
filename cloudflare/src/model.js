@@ -153,3 +153,9 @@ export function scorecardFor(job){return roleScorecards[job?.profile==='client-a
 export function privacyProblem(value){
  return /[\w.+%-]+@[\w.-]+\.[a-z]{2,}|https?:\/\/|www\./i.test(value)||/(?:\+\d[\d() .-]{7,}\d)|(?:\b0\d{9}\b)|(?:\b\d{3}[- .]\d{3}[- .]\d{4}\b)|(?:\b(?:phone|mobile|tel|contact|whatsapp)\s*:?\s*\d[\d() .-]{6,}\d)/i.test(value);
 }
+
+// Include recoverable changes to bookings so restoring a record never revives an old email.
+export function interviewRevision(events,candidate){
+ const stages=new Set(events.filter(e=>e.kind==='stage'&&e.subject_id===candidate.id).map(e=>e.id));
+ return events.reduce((seq,e)=>stages.has(e.id)||e.kind==='summary'&&['delete','restore'].includes(e.payload.operation)&&(e.payload.target_id===candidate.id||stages.has(e.payload.target_id))?Math.max(seq,e.seq):seq,0);
+}

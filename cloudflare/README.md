@@ -55,3 +55,11 @@ Editable history entries append a replacement linked with `supersedes`; the orig
 The interview page provides Schedule R1, Schedule R2, Reschedule and Cancel interview. Closed candidates remain outside the scheduling list. Clearing pipeline filters shows every active record; adding a candidate clears stale filters automatically. Successful saves are never recreated as unsaved drafts.
 
 `npm test --prefix cloudflare` includes a synthetic DOM interaction test covering forms, edits, scheduling, cancellation, Trash/restore and draft preservation, plus database and private-document regression tests. These tests do not create production candidate records.
+
+### Permanent Trash cleanup
+
+Apply `migrations/0003_permanent_trash.sql` after the first two migrations. Enable the **Drive API v3** advanced service (identifier `Drive`) in the existing owner Apps Script project, then deploy a new version of that existing web app. Existing Drive ownership and private-folder checks remain required.
+
+Trash provides **Delete permanently** for one record and **Empty Trash** for all current Trash records. The confirmation phrase is `DELETE PERMANENTLY`. Cleanup removes the selected records and their version/control history, candidate documents, document receipts and interview settings. Managed event backups are rewritten without the removed events and the old backup files are permanently deleted. Other active candidates are preserved; a position with active linked candidates cannot be purged.
+
+A server job pauses writes while cleanup runs. Private-file failure leaves the job pending, retries through the minute scheduler and never reports success prematurely. Completed jobs retain only a generic request receipt/count/time, and browser feeds refresh after the deletion epoch changes. Hashed candidate revocation markers prevent delayed document uploads from recreating removed files. Already-sent email, exported/downloaded copies and hosting-provider recovery retention are outside the app's deletion controls.

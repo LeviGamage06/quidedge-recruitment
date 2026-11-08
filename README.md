@@ -18,7 +18,7 @@ npm run build --prefix cloudflare
 npm test --prefix cloudflare
 ```
 
-GitHub Actions runs these checks and verifies generated outputs. `index.html` is generated for GitHub Pages; `backend.js` and `cloudflare/worker.js` are the bundled Worker. Edit source files and rebuild. The frontend uses a reduced current-state snapshot; complete candidate history, daily activity and full event exports are loaded on demand.
+GitHub Actions runs these checks and verifies generated outputs. `index.html` is generated for GitHub Pages; `backend.js` and `cloudflare/worker.js` are the bundled Worker. Edit source files and rebuild. The frontend loads the ordered audit history so deleted and edited entries can be reconstructed correctly. Candidate history, daily activity and full exports remain available.
 
 ## Deployments
 
@@ -45,3 +45,13 @@ The tool validates chunks and emits SQL for a NEW, separate recovery database. I
 ## Commission terms
 
 The supplied 10% / 20% / 30% ranges overlap at exactly AUD 1,000. Amounts below AUD 300 and decimal boundary amounts need a business decision. Commission review records the actual agreed boundaries and exceptional terms. The app does not invent a rate or replace the signed agreement.
+
+## Reversible record management
+
+Candidates, positions, milestones, scorecards, checklists, commission reviews, candidate corrections and daily summaries support reversible deletion through Trash. No SQL row or private application file is permanently deleted. Restore the candidate before restoring its child history. System-generated document receipts remain read-only.
+
+Editable history entries append a replacement linked with `supersedes`; the original audit evidence remains in exports. Deletion and restoration append control records using the existing event schema, so this update needs no new database migration. Candidate codes remain reserved by historical records. Booking conflicts and stale edits are checked before saving; restored bookings cannot overlap another active interview.
+
+The interview page provides Schedule R1, Schedule R2, Reschedule and Cancel interview. Closed candidates remain outside the scheduling list. Clearing pipeline filters shows every active record; adding a candidate clears stale filters automatically. Successful saves are never recreated as unsaved drafts.
+
+`npm test --prefix cloudflare` includes a synthetic DOM interaction test covering forms, edits, scheduling, cancellation, Trash/restore and draft preservation, plus database and private-document regression tests. These tests do not create production candidate records.

@@ -61,6 +61,16 @@ dialog h2{max-width:calc(100% - 85px)}
 .coo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.coo-stats .panel span{display:block;color:var(--muted);font-size:.84rem}.coo-stats strong{display:block;font-size:38px;margin-top:8px}.commission-lead{font-size:28px;font-weight:750;margin:4px 0}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.commission-grid>div{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff9ed}.commission-grid strong{display:block;font-size:34px}.commission-grid span{display:block;color:var(--muted);margin-top:6px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.benefit-grid h3{font-size:1rem}.role-list li{padding:7px 0;line-height:1.55}.panel p{line-height:1.6}.public-note{line-height:1.5}input[type=file]{font-size:.8rem}#upload-progress{font-size:.85rem;line-height:1.5}@media(max-width:850px){.coo-stats{grid-template-columns:repeat(2,1fr)}.benefit-grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.commission-grid,.benefit-grid{grid-template-columns:1fr}.commission-grid>div{padding:12px}.commission-grid strong{font-size:27px}.coo-stats strong{font-size:30px}}
 
 .split{grid-template-columns:repeat(2,minmax(0,1fr))}.split>*{min-width:0}@media(max-width:700px){.split{grid-template-columns:1fr}}
+
+/* Compact operations layout and task-focused forms. */
+.intro h1{font-size:clamp(30px,3.2vw,44px)}
+.panel{padding:18px 22px;border-radius:18px}.section-top{margin-bottom:10px}.section-top h2{font-size:23px}.empty{padding:10px 0}.metric{padding:12px 14px}.metric strong{font-size:34px}.metric-caption{margin-top:6px}
+.row-actions .btn{min-height:40px}.btn.danger{background:#fff5f2;border-color:#d9a398;color:#842c23}.btn.primary.danger{background:#a3392d;color:white;border-color:#a3392d}.btn.danger:hover{background:#f6e4df}.btn.primary.danger:hover{background:#8f2f25}
+.draft-banner small{display:block;color:#4c5647;margin-top:4px}.next-action-card{background:#f5e8cd;border:1px solid #e5c58e;padding:14px;border-radius:14px;margin:14px 0}.next-action-card .eyebrow{display:block}.next-action-card p{margin:5px 0 12px;line-height:1.5}.readiness-summary{border:1px solid var(--line);border-radius:14px;padding:14px}.readiness-summary p{margin:7px 0;line-height:1.5}.candidate-tools,.readiness-details,.history-section{border-bottom:1px solid var(--line);padding:7px 0}.tool-group{padding:8px 0 14px}.tool-group h3{font-size:.9rem;margin:8px 0}.danger-zone{border-top:1px solid var(--line)}.history-date{display:block;margin-top:5px}.record-details{display:grid;grid-template-columns:minmax(100px,1fr) 2fr;gap:8px;font-size:.85rem}.record-details dt{color:var(--muted)}.record-details dd{margin:0;overflow-wrap:anywhere}
+.form-section{border:1px solid var(--line);border-radius:12px;padding:0 12px}.form-section[open]{padding-bottom:12px}.form-section summary{font-size:.85rem}.form-section>.form-grid{margin-top:6px}#next-fields{grid-column:1/-1}.form-actions{position:sticky;bottom:-22px;background:var(--paper);border-top:1px solid var(--line);padding:12px 0 4px;z-index:1}.field input,.field select{min-height:44px}.public-note{font-size:.82rem}.candidate-tools .toolbar{gap:8px;align-items:stretch}dialog summary{min-height:44px}.readiness-summary .tag{white-space:normal}
+@media(max-width:700px){.panel{padding:15px}.record-details{grid-template-columns:1fr}.record-details dd{margin-bottom:8px}.candidate-tools .btn{white-space:normal;text-align:center}.next-action-card .btn{width:100%}.form-actions{bottom:-22px}.form-actions>.btn,.form-actions>button{flex:1;white-space:normal}.metric strong{font-size:27px}}
+
+.form-grid>.wide{grid-column:1/-1}
 </style>
 </head>
 <body>
@@ -1009,6 +1019,7 @@ dialog h2{max-width:calc(100% - 85px)}
   var noticeTimer;
   var page = () => ["overview", "coo", "role", "pipeline", "activity", "interviews", "guide", "trash"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
   var btn = (label, action, id = "", primary = false) => '<button type="button" class="btn ' + (primary ? "primary" : "") + '" data-action="' + escape(action) + '" data-id="' + escape(id) + '">' + escape(label) + "</button>";
+  var dangerBtn = (label, action, id) => btn(label, action, id).replace('class="btn ', 'class="btn danger ');
   var tag = (text, type = "") => '<span class="tag ' + type + '">' + escape(text) + "</span>";
   var empty = (text) => '<p class="empty">' + escape(text) + "</p>";
   function options(values, selected = "") {
@@ -1065,7 +1076,7 @@ dialog h2{max-width:calc(100% - 85px)}
     candidateIndex = new Map(state.candidates.map((candidate) => [candidate.id, candidate]));
     return true;
   }
-  function candidateTable(candidates, action = "stage", label = "Update") {
+  function candidateTable(candidates, action = "stage", label = "Update stage") {
     if (candidates.length > 25) return candidateTable(candidates.slice(0, 25), action, label) + '<p class="hint">Showing 25 of ' + candidates.length + " candidates. Use Pipeline for all records and filters.</p>";
     if (!candidates.length) return empty("No candidates in this view. Add a candidate or adjust the filters.");
     return table(["Candidate", "Position", "Stage", "Next action", "Attention", "Actions"], candidates.map((candidate) => {
@@ -1074,9 +1085,9 @@ dialog h2{max-width:calc(100% - 85px)}
         "<strong>" + escape(candidate.alias) + "</strong><small>" + escape(candidate.source) + "</small><small>CV (last receipt/check): " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + "</small>",
         escape(jobTitle(candidate.job_id)),
         tag(candidate.stage, candidate.stage === "Hired" ? "good" : "blue"),
-        escape(candidate.action || "Set the next step") + "<small>" + escape(candidate.due || "No due date") + " \xB7 " + escape(candidate.owner || "No owner") + "</small>",
+        closed.includes(candidate.stage) ? escape(candidate.stage === "Hired" ? "Hiring completed" : "Process closed") + (candidate.start_date ? "<small>Start date \xB7 " + escape(candidate.start_date) + "</small>" : "") : escape(candidate.action || "Set the next step") + "<small>" + escape(candidate.due || "No due date") + " \xB7 " + escape(candidate.owner || "No owner") + "</small>",
         tag(flag, ["Overdue", "Needs decision", "Missing next step"].includes(flag) ? "warn" : ""),
-        '<div class="row-actions">' + btn("View record", "view", candidate.id) + btn(label, action, candidate.id, true) + btn("Delete", "delete-record", candidate.id) + "</div>"
+        '<div class="row-actions">' + btn("View record", "view", candidate.id) + (closed.includes(candidate.stage) ? "" : btn(label, action, candidate.id, true)) + dangerBtn("Move to Trash", "delete-record", candidate.id) + "</div>"
       ];
     }));
   }
@@ -1094,22 +1105,22 @@ dialog h2{max-width:calc(100% - 85px)}
       escape(job.department) + "<small>" + escape(job.location) + "</small>",
       String(candidates.filter((candidate) => candidate.job_id === job.id && candidate.stage === "Hired").length) + " / " + escape(job.headcount || "1") + " hired",
       escape(job.target_date || "To confirm"),
-      tag(job.status, job.status === "Open" ? "good" : ""),
-      '<div class="row-actions">' + btn("Manage", "job", job.id) + btn("Delete", "delete-record", job.id) + (job.profile === "client-acquisition-v1" ? btn("Full job description", "job", job.id) : "") + "</div>"
+      tag(job.status, job.status === "Open" ? "good" : "") + (Number(job.headcount || 1) <= candidates.filter((c) => c.job_id === job.id && c.stage === "Hired").length ? "<small>Hiring target reached \xB7 review position status</small>" : ""),
+      '<div class="row-actions">' + btn("Manage", "job", job.id) + dangerBtn("Move to Trash", "delete-record", job.id) + (job.profile === "client-acquisition-v1" ? btn("Full job description", "job", job.id) : "") + "</div>"
     ]);
     return heading(
       "Recruitment management",
       "Keep roles, next actions and hiring decisions moving.",
-      '<div class="toolbar">' + btn("Trash / restore", "trash-view") + btn("Export records", "export") + btn("+ Open position", "job", "", true) + "</div>"
-    ) + '<div class="metrics" aria-label="Current pipeline counts">' + metrics + "</div>" + panel("Hiring now", openJobs.length ? "<ul>" + openJobs.map((j) => "<li>" + escape(j.title) + "</li>").join("") + "</ul>" : empty("There are no open positions."), btn("View role & terms", "role-view", "", true)) + panel(
-      "Needs attention",
-      queue.length ? candidateTable(queue.slice(0, 5)) : empty(active.length ? "Every active candidate has a next step scheduled." : "Add your first candidate to build the action queue."),
+      '<div class="toolbar">' + btn("Export records", "export") + btn("+ Open position", "job") + btn("+ Add candidate", "candidate", "", true) + "</div>"
+    ) + '<div class="metrics" aria-label="Current pipeline counts">' + metrics + "</div>" + panel(
+      "Today\u2019s priorities",
+      queue.length ? candidateTable(queue.slice(0, 5)) : empty(candidates.length ? "No pending actions. All active candidates are on track or the hiring process is complete." : "No candidates added yet. Add a candidate to get started."),
       btn("View all actions", "attention")
-    ) + panel(
+    ) + panel("Upcoming interviews", bookingPreview(), btn("Open calendar", "interviews-view")) + panel(
       "Positions",
       jobRows.length ? table(["Role", "Department / market", "Headcount", "Target date", "Status", "Action"], jobRows) : empty("Open a position, define the role requirements, then add candidates."),
       tag(openJobs.length + " open \xB7 " + active.length + " active candidates")
-    ) + panel("Recent candidates", candidateTable(candidates.slice(0, 6)), btn("+ Add candidate", "candidate", "", true));
+    ) + panel("Recent candidates", candidateTable(candidates.slice(0, 6)), btn("View pipeline", "pipeline-view"));
   }
   function filteredCandidates() {
     const group = groupStages.find(([name]) => "group:" + name === stageFilter);
@@ -1171,7 +1182,7 @@ dialog h2{max-width:calc(100% - 85px)}
   }
   function interviews() {
     const bookings = scheduledInterviews();
-    return heading("Interview calendar", "Bookings in Sri Lanka time (UTC+05:30). Add, reschedule or cancel interviews here.", btn("+ Add candidate", "candidate", "", true)) + panel("Scheduled interviews", bookings.length ? table(
+    return heading("Interview calendar", "Bookings in Sri Lanka time (UTC+05:30). Add, reschedule or cancel interviews here.") + panel("Scheduled interviews", bookings.length ? table(
       ["Candidate", "Position", "Round", "Sri Lanka time", "Actions"],
       bookings.map(({ candidate, round, slot }) => [
         "<strong>" + escape(candidate.alias) + "</strong>",
@@ -1180,7 +1191,7 @@ dialog h2{max-width:calc(100% - 85px)}
         escape(slot.replace("T", " ")) + (slot.slice(0, 10) < dateSL() ? "<small>Past date \xB7 review the candidate stage</small>" : ""),
         '<div class="row-actions">' + btn("Calendar file", "calendar", candidate.id) + btn("Reschedule", "stage", candidate.id, true) + btn("Cancel interview", "cancel-interview", candidate.id) + "</div>"
       ])
-    ) : empty("No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time.")) + panel("Schedule an interview", state.candidates.some((c) => !closed.includes(c.stage)) ? table(["Candidate", "Current stage", "Actions"], state.candidates.filter((c) => !closed.includes(c.stage)).map((c) => [escape(c.alias), tag(c.stage), '<div class="row-actions">' + btn("Schedule R1", "schedule-r1", c.id) + btn("Schedule R2", "schedule-r2", c.id) + btn("View record", "view", c.id) + "</div>"])) : empty("No active candidates. Add a candidate to schedule an interview."), btn("+ Add candidate", "candidate", "", true));
+    ) : empty("No interviews are booked. Use Schedule R1 or Schedule R2 for an active candidate below.")) + panel("Schedule an interview", state.candidates.some((c) => !closed.includes(c.stage)) ? table(["Candidate", "Current stage", "Actions"], state.candidates.filter((c) => !closed.includes(c.stage)).map((c) => [escape(c.alias), tag(c.stage), '<div class="row-actions">' + btn("Schedule R1", "schedule-r1", c.id) + btn("Schedule R2", "schedule-r2", c.id) + btn("View record", "view", c.id) + "</div>"])) : empty(state.candidates.length ? "All current candidates are hired, rejected or withdrawn. Closed candidates are not shown for scheduling." : "No candidates added yet. Add a candidate to schedule the first interview."), btn("+ Add candidate", "candidate", "", true));
   }
   var relationsPrompts = [
     ["Opening", 3, "Confirm the role, commission or payment structure, client markets and the interview plan."],
@@ -1220,7 +1231,7 @@ dialog h2{max-width:calc(100% - 85px)}
     }
     const screens = { overview, coo: cooView, role: roleView, pipeline, activity, interviews, guide: guideView, trash: trashView };
     const drafts = storageDrafts();
-    const draftBanner = drafts.map((draft) => '<div class="draft-banner"><span>Unsaved ' + escape(draft.kind) + ' draft available.</span><div class="row-actions">' + btn("Resume draft", "resume", draft.kind + ":" + draft.id) + btn("Discard draft", "discard", draft.kind + ":" + draft.id) + "</div></div>").join("");
+    const draftBanner = drafts.map((draft) => '<div class="draft-banner"><span><strong>' + escape(draftTitle(draft)) + "</strong><small>" + escape(draft.saved_at ? "Draft saved " + new Date(draft.saved_at).toLocaleString("en-LK", { timeZone: "Asia/Colombo", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " SL" : "Unsaved draft \xB7 saved time unavailable") + '</small></span><div class="row-actions">' + btn("Resume draft", "resume", draft.kind + ":" + draft.id) + btn("Discard draft", "discard", draft.kind + ":" + draft.id) + "</div></div>").join("");
     const alert = failure ? '<p class="banner" role="alert">' + escape(failure) + " Existing records remain visible. Use Refresh to retry.</p>" : "";
     app.innerHTML = alert + draftBanner + (!ready && view !== "guide" ? panel("Recruitment workspace", empty(failure ? "The shared records could not be loaded." : "Loading shared records\u2026")) : screens[view]());
     const active = activeId && document.getElementById(activeId);
@@ -1262,11 +1273,15 @@ dialog h2{max-width:calc(100% - 85px)}
       candidate.checklist[key] === "Complete" ? "good" : ""
     ) + "</li>").join("");
     const history = candidate.history.slice().reverse().map((event) => {
-      const labels = { score1: "Criterion 1", score2: "Criterion 2", score3: "Criterion 3", score4: "Criterion 4" };
-      const text = Object.entries(event.payload).filter(([key, value]) => value && !["job_id", "upload_fingerprint"].includes(key)).map(([key, value]) => (labels[key] || key.replaceAll("_", " ")) + " \xB7 " + value).join("\n");
-      return "<li><strong>" + escape(eventLabel(event)) + "</strong> <time>" + escape(event.event_date) + '</time><p class="snapshot">' + escape(text) + "</p>" + eventControls(event) + "</li>";
+      const title = historyTitle(event, candidate);
+      const labels = { stage: "Hiring stage", terms: "Role and payment terms", writing: "Practical task", references: "References", offer: "Offer acceptance", agreement: "Agreement", nda: "NDA", r1: "Round 1 interview (SL)", r2: "Round 2 interview (SL)", commission_ack: "Commission acknowledgement", commission_plan: "Commission structure", terms_detail: "Agreed terms", start_date: "Start date", action: "Next action", due: "Due date", owner: "Responsible person", alias: "Candidate code", source: "Source", availability: "Availability", notice: "Notice period", market: "Client markets", round: "Interview round", reviewer: "Reviewer", recommendation: "Recommendation", score1: "Criterion 1 score", score2: "Criterion 2 score", score3: "Criterion 3 score", score4: "Criterion 4 score", cv_state: "CV availability", cover_state: "Cover letter availability" };
+      const recorded = Object.entries(event.payload).filter(([key, value]) => value && !["job_id", "upload_fingerprint", "supersedes", "event", "note"].includes(key)).map(([key, value]) => "<dt>" + escape(labels[key] || key.replaceAll("_", " ")) + "</dt><dd>" + escape(value.replace(/^(\d{4}-\d{2}-\d{2})T/, "$1 ")) + "</dd>").join("");
+      return "<li><strong>" + escape(title) + '</strong><time class="history-date">' + escape(event.event_date) + " \xB7 SL</time>" + (event.payload.note ? "<p>" + escape(event.payload.note) + "</p>" : "") + (recorded ? '<details><summary>View recorded details</summary><dl class="record-details">' + recorded + "</dl></details>" : "") + eventControls(event) + "</li>";
     }).join("");
-    show('<div class="section-top"><h2 id="dialog-title">' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + '</div><p class="muted">' + escape(jobTitle(candidate.job_id)) + " \xB7 " + escape(candidate.stage) + '</p><p class="muted">Availability \xB7 ' + escape(candidate.availability || "To confirm") + " \xB7 Notice \xB7 " + escape(candidate.notice || "To confirm") + '</p><div class="toolbar">' + btn("Update stage / schedule", "stage", candidate.id, true) + btn("Log milestone", "activity", candidate.id) + btn("Scorecard", "score", candidate.id) + btn("Hiring checklist", "checklist", candidate.id) + btn("CV & cover letter", "documents", candidate.id) + btn("Commission review", "commission", candidate.id) + btn("Correct candidate details", "correction", candidate.id) + btn("Delete candidate", "delete-record", candidate.id) + '</div><p class="public-note">Commission-only acknowledgement: ' + escape(candidate.commission_ack || "Not recorded") + " \xB7 CV (last receipt/check): " + escape(candidate.documents?.cv || "Missing") + " \xB7 Cover letter: " + escape(candidate.documents?.cover || "Missing") + '</p><h3>Hiring readiness</h3><ul class="checklist">' + checklist + '</ul><h3>Record history</h3><ul class="timeline">' + history + "</ul>");
+    const missing = ["cv", "cover"].filter((type) => candidate.documents?.[type] !== "Available");
+    const complete = checklistItems.filter(([key]) => ["Complete", "Waived"].includes(candidate.checklist[key])).length;
+    const suggested = nextCandidateAction(candidate);
+    show('<div class="section-top"><h2 id="dialog-title">' + escape(candidate.alias) + "</h2>" + btn("Close", "close") + '</div><p class="muted">' + escape(jobTitle(candidate.job_id)) + " \xB7 " + escape(candidate.stage) + '</p><div class="next-action-card"><span class="eyebrow">Recommended next action</span><p>' + escape(suggested.description) + "</p>" + btn(suggested.label, suggested.action, candidate.id, true) + '</div><section class="readiness-summary" aria-label="Candidate readiness"><strong>Hiring checklist: ' + complete + "/" + checklistItems.length + " complete or waived</strong><p>" + (missing.length ? escape(missing.length + " application document" + (missing.length > 1 ? "s" : "") + " need upload or verification.") : "Both application documents verified at the last recorded check.") + '</p><div class="statline">' + tag("CV: " + (candidate.documents?.cv || "Missing"), candidate.documents?.cv === "Available" ? "good" : "warn") + tag("Cover letter: " + (candidate.documents?.cover || "Missing"), candidate.documents?.cover === "Available" ? "good" : "warn") + tag("Commission: " + (candidate.commission_ack || "Pending"), candidate.commission_ack === "Accepted" ? "good" : "warn") + '</div></section><details class="candidate-tools"><summary>All candidate actions</summary><div class="tool-group"><h3>Progress and details</h3><div class="toolbar">' + btn("Update stage / schedule", "stage", candidate.id) + btn("Log milestone", "activity", candidate.id) + btn("Correct candidate details", "correction", candidate.id) + '</div></div><div class="tool-group"><h3>Documents and assessment</h3><div class="toolbar">' + btn("CV & cover letter", "documents", candidate.id) + btn("Scorecard", "score", candidate.id) + btn("Hiring checklist", "checklist", candidate.id) + btn("Commission review", "commission", candidate.id) + '</div></div><div class="tool-group danger-zone"><h3>Record management</h3>' + dangerBtn("Move candidate to Trash", "delete-record", candidate.id) + '</div></details><details class="readiness-details"><summary>Hiring checklist details</summary><ul class="checklist">' + checklist + '</ul></details><details class="history-section"><summary>Record history (' + candidate.history.length + ' entries)</summary><ul class="timeline">' + history + "</ul></details>");
   }
   function openForm(kind, id = "", restored = null) {
     saveDraft();
@@ -1291,14 +1306,14 @@ dialog h2{max-width:calc(100% - 85px)}
       const target = events.find((event) => event.id === id);
       if (!target) return;
       const deleted = Boolean(recordStates(events).get(id)?.deleted);
-      title = (deleted ? "Restore" : "Delete") + " \xB7 " + recordTitle(target);
+      title = (deleted ? "Restore" : "Move to Trash") + " \xB7 " + recordTitle(target);
       fields = '<input type="hidden" name="operation" value="' + (deleted ? "restore" : "delete") + '"><input type="hidden" name="target_id" value="' + escape(id) + '">' + notes("note", deleted ? "Restoration reason" : "Deletion reason", true) + '<p class="hint wide">' + (deleted ? "Restoring makes this record available again." : "This moves the record to Trash. You can restore it later. Original files and audit history are preserved.") + "</p>";
     } else if (kind === "job") {
       title = job ? "Manage position" : "Open a position";
       fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + notes("brief", "Role requirements / success criteria", true, job?.brief || "") + field("description", "Full job description (public-safe)", { kind: "textarea", wide: true, max: 12e3, value: job?.description || "" }) + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
     } else if (kind === "candidate") {
       title = "Add a candidate";
-      fields = field("alias", "Unique candidate code", { ...required, max: 40 }) + select("job_id", "Position", openJobs.map((item) => [item.id, item.title]), openJobs[0].id) + select("source", "Source", sources, sources[0]) + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { ...required, value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + notes("terms_detail", "Agreed commission boundaries / exceptions (required when accepted)", false, "") + '<p class="hint wide">Save the candidate code first, then open CV & cover letter to enter their private name and upload the application documents. Real names are kept out of the public record.</p>' + next();
+      fields = field("alias", "Candidate code", { required: true, max: 40, value: "QE-" + dateSL().replaceAll("-", "") + "-" + newId().slice(0, 6).toUpperCase() }) + select("source", "Source", sources, sources[0]) + '<div class="wide">' + select("job_id", "Position", openJobs.map((item) => [item.id, item.title]), openJobs[0].id) + '</div><p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p><details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">' + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + '</div></details><details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">' + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + notes("terms_detail", "Agreed commission boundaries / exceptions (required when accepted)", false, "") + '</div></details><details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>' + next({ action: "Review application", due: tomorrowSL(), owner: "COO" }) + "</details>";
     } else if (kind === "stage" && candidate) {
       title = "Update \xB7 " + candidate.alias;
       fields = select("stage", "Stage", stages, candidate.stage) + next(candidate) + field("r1", "R1 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r1 }) + field("r2", "R2 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r2 }) + '<div class="wide" id="start-field">' + field("start_date", "Confirmed start date", { kind: "date", value: candidate.start_date }) + "</div>" + notes("note", "Reason / decision summary", true) + '<div class="hint wide" id="schedule-help" role="status"></div>' + (candidate.commission_ack !== "Accepted" || !candidate.terms_detail ? '<div class="wide"><p class="hint">Confirm commission terms before scheduling an interview.</p>' + btn("Review commission terms", "commission", candidate.id) + "</div>" : "") + '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
@@ -1327,11 +1342,8 @@ dialog h2{max-width:calc(100% - 85px)}
       fields = notes("progress", "Progress today", true) + notes("blockers", "Blockers / leadership decisions") + notes("priorities", "Next workday priorities", true);
     } else return;
     const revision = restored?.revision ?? (kind === "recordaction" ? Math.max(recordStates(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, candidateById(id)?.revision || 0, state.jobs.find((j) => j.id === id)?.revision || 0) : candidate?.revision ?? job?.revision) ?? 0;
-    show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + field("event_date", "Event date (SL)", {
-      kind: "date",
-      required: true,
-      value: kind === "summary" ? reportDate : dateSL()
-    }) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary" type="submit">Save record</button></div></form>');
+    const submitLabel = formActionLabel(kind, id, Boolean(restored?.values?.supersedes));
+    show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + (["candidate", "recordaction"].includes(kind) ? '<input type="hidden" name="event_date" value="' + escape(dateSL()) + '">' : field("event_date", "Event date (SL)", { kind: "date", required: true, value: kind === "summary" ? reportDate : dateSL() })) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary' + (kind === "recordaction" && !recordStates(events).get(id)?.deleted ? " danger" : "") + '" type="submit">' + escape(submitLabel) + "</button></div></form>");
     pendingRecord = restored?.pending || null;
     if (kind === "score") setRoundFields(restored?.values?.round || "R1");
     if (restored?.values?.supersedes) {
@@ -1352,7 +1364,12 @@ dialog h2{max-width:calc(100% - 85px)}
     const openedForm = dialog.querySelector("#entry");
     openedForm.dataset.baseline = JSON.stringify(draftValues(openedForm));
     openedForm.dataset.restored = restored ? "1" : "";
-    dialog.querySelector("input,select,textarea")?.focus();
+    openedForm.dataset.submitLabel = submitLabel;
+    openedForm.addEventListener("invalid", (event) => {
+      const input = event.target;
+      for (let d = input.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
+    }, true);
+    dialog.querySelector(kind === "candidate" ? '[name="alias"]' : 'input:not([type="hidden"]),select,textarea')?.focus();
   }
   function setRoundFields(round) {
     const form = dialog.querySelector("#entry");
@@ -1391,6 +1408,7 @@ dialog h2{max-width:calc(100% - 85px)}
       kind: form.dataset.kind,
       id: form.dataset.id,
       request: form.dataset.request,
+      saved_at: (JSON.stringify(storageRead(form.dataset.kind, form.dataset.id)?.values) === JSON.stringify(values) ? storageRead(form.dataset.kind, form.dataset.id)?.saved_at : null) || (/* @__PURE__ */ new Date()).toISOString(),
       revision: Number(form.dataset.revision),
       values,
       pending: pendingRecord
@@ -1512,6 +1530,16 @@ dialog h2{max-width:calc(100% - 85px)}
     const control = event.target.closest("[data-action]");
     if (!control || saving) return;
     const { action, id } = control.dataset;
+    if (action === "pipeline-view") {
+      location.hash = "pipeline";
+      render();
+      return;
+    }
+    if (action === "interviews-view") {
+      location.hash = "interviews";
+      render();
+      return;
+    }
     if (action === "overview-view") {
       location.hash = "overview";
       render();
@@ -1548,6 +1576,9 @@ dialog h2{max-width:calc(100% - 85px)}
         form.elements.stage.value = round + " Scheduled";
         form.elements.action.value = round + " interview";
       }
+      const actionLabel = action === "cancel-interview" ? "Cancel interview" : action === "schedule-r1" ? "Schedule R1 interview" : "Schedule R2 interview";
+      form.dataset.submitLabel = actionLabel;
+      form.querySelector("[type=submit]").textContent = actionLabel;
       updateStageFields();
       saveDraft();
       return;
@@ -1664,6 +1695,13 @@ dialog h2{max-width:calc(100% - 85px)}
   });
   dialog.addEventListener("change", (event) => {
     if (event.target.name === "stage") updateStageFields();
+    if (event.target.name === "commission_ack") {
+      const terms = dialog.querySelector('[name="terms_detail"]');
+      if (terms) {
+        terms.required = event.target.value === "Accepted" || dialog.querySelector("#entry")?.dataset.kind === "commission";
+        if (terms.required) terms.closest("details")?.setAttribute("open", "");
+      }
+    }
     if (event.target.name === "round") setRoundFields(event.target.value);
     saveDraft();
   });
@@ -1734,7 +1772,7 @@ dialog h2{max-width:calc(100% - 85px)}
       if (kind === "summary") reportDate = record.event_date;
       dialog.close();
       render();
-      flash("Saved to the shared workspace. The original history is preserved.");
+      flash(kind === "recordaction" ? record.payload.operation === "delete" ? "Record moved to Trash. You can restore it from Trash." : "Record restored to the workspace." : kind === "candidate" ? "Candidate " + record.payload.alias + " added. The next action is ready for review." : (form.dataset.submitLabel || "Changes") + " \u2014 saved to the shared workspace.");
     } catch (error) {
       errorBox.textContent = error.message;
       if (error.status && error.status < 500) {
@@ -1756,7 +1794,7 @@ dialog h2{max-width:calc(100% - 85px)}
         }
         for (const input of controls) input.disabled = false;
         updateStageFields();
-        submit.textContent = "Save record";
+        submit.textContent = form.dataset.submitLabel || "Save changes";
         saveDraft();
       } else {
         for (const button of form.querySelectorAll("button")) button.disabled = false;
@@ -1807,7 +1845,7 @@ dialog h2{max-width:calc(100% - 85px)}
   function eventControls(event) {
     if (event.payload.operation || ["Document stored", "Document availability checked"].includes(event.payload.event)) return "";
     const editable = ["stage", "score", "summary"].includes(event.kind) || event.kind === "activity" && !["Document stored", "Document availability checked"].includes(event.payload.event);
-    return '<div class="row-actions">' + (editable ? btn("Edit entry", "edit-event", event.id) : "") + btn("Delete entry", "delete-record", event.id) + "</div>";
+    return '<div class="row-actions">' + (editable ? btn("Edit entry", "edit-event", event.id) : "") + dangerBtn("Move entry to Trash", "delete-record", event.id) + "</div>";
   }
   function trashView() {
     const states = recordStates(events), deleted = events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted);
@@ -1828,6 +1866,42 @@ dialog h2{max-width:calc(100% - 85px)}
     const parent = candidateById(target.subject_id);
     const revision = parent?.revision || recordStates(events).get(id)?.revision || target.seq;
     openForm(kind, id, { kind, id, request: newId(), revision, values: { ...target.payload, event_date: target.event_date, supersedes: id } });
+  }
+  function tomorrowSL() {
+    const date = /* @__PURE__ */ new Date(dateSL() + "T12:00:00+05:30");
+    date.setUTCDate(date.getUTCDate() + 1);
+    return dateSL(date);
+  }
+  function formActionLabel(kind, id, editing = false) {
+    if (kind === "recordaction") return recordStates(events).get(id)?.deleted ? "Restore record" : "Move to Trash";
+    if (editing) return "Save entry changes";
+    return { candidate: "Add candidate", job: id ? "Save position changes" : "Create position", stage: "Save stage and schedule", activity: "Log milestone", score: "Save scorecard", checklist: "Save checklist", commission: "Save commission review", correction: "Save candidate details", summary: "Save daily summary" }[kind] || "Save changes";
+  }
+  function draftTitle(draft) {
+    const all = project(events), target = events.find((e) => e.id === draft.id), candidate = all.candidates.find((c) => c.id === (target?.subject_id || draft.id));
+    const owner = candidate?.alias || all.jobs.find((j) => j.id === draft.id)?.title || draft.values.alias || draft.values.title || "New entry";
+    const labels = { stage: "Stage and schedule", candidate: "New candidate", commission: "Commission review", score: "Scorecard", checklist: "Hiring checklist", activity: "Milestone", correction: "Candidate details", recordaction: "Record management", summary: "Daily summary", job: "Position" };
+    return owner + " \u2014 " + (labels[draft.kind] || draft.kind);
+  }
+  function historyTitle(event, candidate) {
+    if (event.kind === "stage") {
+      const prior = candidate.history.filter((e) => e.seq < event.seq).reverse().find((e) => e.kind === "stage" || e.kind === "candidate");
+      return "Stage changed: " + (prior?.payload.stage || "Sourced") + " \u2192 " + event.payload.stage;
+    }
+    return eventLabel(event);
+  }
+  function nextCandidateAction(candidate) {
+    if (state.jobs.find((job) => job.id === candidate.job_id)?.profile === "client-acquisition-v1" && ["cv", "cover"].some((type) => candidate.documents?.[type] !== "Available")) return { label: "Upload or verify documents", action: "documents", description: "Complete the application file record. The hiring checklist and document availability are tracked separately." };
+    if (candidate.commission_ack !== "Accepted" || !candidate.terms_detail) return { label: "Review commission terms", action: "commission", description: "Record the candidate\u2019s acknowledgement and agreed boundaries before progressing." };
+    if (closed.includes(candidate.stage)) return { label: "Review candidate details", action: "correction", description: candidate.stage === "Hired" ? "Hiring completed. Review the record if any details need updating." : "This hiring process is closed. Review details or reopen it through the stage controls." };
+    if (["R1 Review", "R2 Review"].includes(candidate.stage)) return { label: "Complete interview scorecard", action: "score", description: "Record observed evidence before deciding the next stage." };
+    if (candidate.stage === "Offer / Agreement") return { label: "Review hiring checklist", action: "checklist", description: "Confirm all hiring requirements before marking the candidate hired." };
+    if (["R1 Scheduled", "R2 Scheduled"].includes(candidate.stage)) return { label: "Review interview booking", action: "stage", description: "Confirm the interview time and next action." };
+    return { label: "Review next stage", action: "stage", description: candidate.action || "Choose the next step and its owner." };
+  }
+  function bookingPreview() {
+    const bookings = scheduledInterviews().filter(({ slot }) => +/* @__PURE__ */ new Date(slot + ":00+05:30") >= Date.now()).slice(0, 3);
+    return bookings.length ? table(["Candidate", "Round", "Sri Lanka time", "Action"], bookings.map(({ candidate, round, slot }) => [escape(candidate.alias), escape(round), escape(slot.replace("T", " ")), btn("Review booking", "stage", candidate.id)])) : empty("No upcoming interviews are booked.");
   }
   function roleView() {
     const r = hiringRole, job = state.jobs.find((j) => j.id === r.id), active = Boolean(job);

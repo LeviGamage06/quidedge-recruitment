@@ -1,9 +1,9 @@
 // Meeting settings are operational metadata, outside the append-only public audit feed.
 const reminderRecipient='prasad.quidedge@gmail.com';
-function bookingSeq(c){return c.history.filter(e=>e.kind==='stage').at(-1)?.seq||0;}
+function bookingSeq(c){return c.booking_seq||0;}
 function meetingSlot(c){const round=c?.stage==='R1 Scheduled'?'R1':c?.stage==='R2 Scheduled'?'R2':'';return round&&c[round.toLowerCase()]?{round,slot:c[round.toLowerCase()]}:null;}
 function zoomProblem(value){try{const u=new URL(value);return u.protocol!=='https:'||u.username||u.password||!(u.hostname==='zoom.us'||u.hostname.endsWith('.zoom.us'))||!/^\/(j|my|s)\//.test(u.pathname)||value.length>1500;}catch{return true;}}
-async function meetingCandidates(db){const rows=await db.prepare('SELECT * FROM recruitment_events ORDER BY seq').all();return project(rows.results.map(toEvent)).candidates;}
+async function meetingCandidates(db){const rows=await db.prepare('SELECT * FROM recruitment_events ORDER BY seq').all();const history=rows.results.map(toEvent);return project(history).candidates.map(c=>({...c,booking_seq:interviewRevision(history,c)}));}
 async function interviewApi(request,env,url){
  const db=env.DB.withSession('first-primary');
  if(request.method==='GET'){
@@ -17,7 +17,7 @@ async function interviewApi(request,env,url){
  if(!booking||booking.slot!==p.slot||booking.round!==p.round)return error('The booking changed. Refresh and reopen its meeting details.',409);
  if(p.zoom&&zoomProblem(p.zoom))return error('Use a valid HTTPS Zoom meeting link (zoom.us).');
  const at=Date.parse(p.remind_at+':00+05:30'),start=Date.parse(booking.slot+':00+05:30');
- if(p.enabled&&(!p.zoom||!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(p.remind_at)||!Number.isFinite(at)||at<=Date.now()||at>=start))return error('Choose a future reminder time before the interview and add its Zoom link.');
+ if(p.enabled&&(!p.zoom||!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(p.remind_at)||!Number.isFinite(at)||new Date(at+330*60000).toISOString().slice(0,16)!==p.remind_at||at<=Date.now()||at>=start))return error('Choose a future reminder time before the interview and add its Zoom link.');
  const key='interview:'+c.id,old=await db.prepare('SELECT value FROM maintenance_state WHERE key=?').bind(key).first();
  const prior=old?JSON.parse(old.value):null;if((prior?.version||'')!==(p.version||''))return error('Meeting details changed in another window. Reopen and retry.',409);
  const same=prior&&prior.slot===p.slot&&prior.round===p.round&&prior.zoom===p.zoom&&prior.remind_at===p.remind_at&&prior.enabled===p.enabled&&prior.booking_seq===bookingSeq(c);

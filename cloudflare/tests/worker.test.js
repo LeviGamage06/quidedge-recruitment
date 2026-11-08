@@ -364,7 +364,7 @@ test('permanent Trash cleanup removes database, reminders, receipts and managed 
  const call=p=>worker.fetch(request('/api/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,...p})}),env);
  try{
   assert.equal((await call({confirm:'DELETE'})).status,400);assert.equal((await call({expected_head:head-1})).status,409);assert.equal((await call({})).status,503);assert.equal(sql("SELECT * FROM maintenance_state WHERE key='purge_active'").length,0);
-  ready=true;assert.equal((await call({})).status,202);assert.throws(()=>sql('DELETE FROM recruitment_events WHERE id=?',[cid]));
+  assert.equal((await (await worker.fetch(request('/api/trash?readiness=1'),env)).json()).permanent_delete_ready,false);ready=true;assert.equal((await (await worker.fetch(request('/api/trash?readiness=1'),env)).json()).permanent_delete_ready,true);assert.equal((await call({})).status,202);assert.throws(()=>sql('DELETE FROM recruitment_events WHERE id=?',[cid]));
   assert.equal((await worker.fetch(request('/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),env)).status,423);
   assert.equal((await (await worker.fetch(request('/api/trash'),env)).json()).state,'cleaning');
   fail=false;const work=[];await worker.scheduled({scheduledTime:Date.UTC(2026,10,8,0,1)},env,{waitUntil:p=>work.push(p)});await Promise.all(work);

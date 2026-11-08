@@ -27,7 +27,7 @@ CREATE INDEX recruitment_events_subject_seq ON recruitment_events(subject_id, se
 CREATE INDEX recruitment_events_kind_seq ON recruitment_events(kind, seq);
 
 */
-import {stages,closed,milestones,checklistItems,dateSL,project,stageProblem,validDate,privacyProblem} from './model.js';
+import {stages,closed,milestones,checklistItems,dateSL,project,stageProblem,validDate,privacyProblem,recordStates,visibleEvents} from './model.js';
 import {validateDocumentBytes} from './binary.js';
 const eventFields = {
   job: {
@@ -46,12 +46,13 @@ const eventFields = {
     required:['event','note'],
     optional:['terms','writing','references','offer','agreement','nda','commission_ack','commission_plan','alias','source','availability','notice','market','cv_state','cover_state','terms_detail']
   },
-  summary: {required:['progress','priorities'],optional:['blockers']},
+  summary: {required:['progress','priorities'],optional:['blockers','operation','target_id','note']},
   score: {
     required:['round','recommendation','note'],
     optional:['score1','score2','score3','score4','reviewer']
   }
 };
+for(const fields of Object.values(eventFields))fields.optional.push('supersedes');
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const privateText = /[\w.+%-]+@[\w.-]+\.[a-z]{2,}|https?:\/\/|www\./i;
 const apiHeaders = {'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
@@ -74,7 +75,8 @@ function validate(record) {
   }
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 'Invalid fields.';
   const {required,optional} = eventFields[kind];
-  if (required.some(key => typeof payload[key] !== 'string' || !payload[key].trim())) {
+  if (payload.operation && (kind!=='summary'||!['delete','restore'].includes(payload.operation)||!uuid.test(payload.target_id||'')||!payload.note?.trim()||payload.supersedes))return 'Choose a record and a deletion or restoration reason.';
+  if (!payload.operation && required.some(key => typeof payload[key] !== 'string' || !payload[key].trim())) {
     return 'Complete all required fields.';
   }
   for (const [key,value] of Object.entries(payload)) {
@@ -90,6 +92,7 @@ function validate(record) {
     }
     if (key.startsWith('score') && !['','1','2','3','4','5'].includes(value)) return 'Scores must be 1 to 5.';
   }
+  if(payload.supersedes && !uuid.test(payload.supersedes))return 'Choose an existing record to edit.';
   if (payload.owner && !['COO','Leadership','Candidate'].includes(payload.owner)) return 'Choose a valid action owner.';
   if (kind === 'job') {
     if (payload.job_id && (!uuid.test(payload.job_id) || !payload.note?.trim())) return 'Add a reason for the position update.';
@@ -148,10 +151,8 @@ async function readRecord(request) {
   }
 }
 async function jobHistory(db,id) {
-  const rows = await db.prepare(
-    "SELECT * FROM recruitment_events WHERE id=? OR (kind='job' AND json_extract(payload,'$.job_id')=?) ORDER BY seq"
-  ).bind(id,id).all();
-  return project(rows.results.map(toEvent)).jobs[0];
+  const rows=await db.prepare('SELECT * FROM recruitment_events ORDER BY seq').all();
+  return project(rows.results.map(toEvent)).jobs.find(j=>j.id===id);
 }
 function sameRecord(saved,record) {
   return saved.kind === record.kind && saved.subject_id === record.subject_id &&
@@ -168,7 +169,7 @@ async function api(request,env,url) {
     if (!Number.isSafeInteger(after) || after < 0) return error('Invalid event cursor.');
     const clauses=['seq > ?'];const args=[after];
     if(url.searchParams.has('date')){const date=url.searchParams.get('date');if(!validDate(date))return error('Invalid report date.');clauses.push('event_date=?');args.push(date);}
-    if(url.searchParams.has('subject')){const subject=url.searchParams.get('subject');if(!uuid.test(subject||''))return error('Invalid candidate.');clauses.push('(id=? OR subject_id=?)');args.push(subject,subject);}
+    if(url.searchParams.has('subject')){const subject=url.searchParams.get('subject');if(!uuid.test(subject||''))return error('Invalid candidate.');clauses.push("(id=? OR subject_id=? OR kind='summary' AND json_extract(payload,'$.operation') IS NOT NULL)");args.push(subject,subject);}
     const rows=await db.prepare('SELECT * FROM recruitment_events WHERE '+clauses.join(' AND ')+' ORDER BY seq LIMIT 500').bind(...args).all();
     return json(rows.results.map(toEvent));
   }
@@ -181,15 +182,42 @@ async function api(request,env,url) {
     const saved = toEvent(previous);
     return sameRecord(saved,record) ? json(saved,200) : error('This save ID already belongs to another record.',409);
   }
-  const conditions = [];
-  const parameters = [id,kind,subject_id,event_date,JSON.stringify(payload)];
+  const allRows=await db.prepare('SELECT * FROM recruitment_events ORDER BY seq').all();
+  const allEvents=allRows.results.map(toEvent), currentState=project(allEvents), states=recordStates(allEvents);
+  const head=allEvents.at(-1)?.seq||0;
+  if(payload.operation) {
+    const target=allEvents.find(e=>e.id===payload.target_id);
+    if(!target || target.payload.operation)return error('Choose an existing record.');
+    const targetRevision=Math.max(states.get(target.id)?.revision||target.seq,currentState.candidates.find(c=>c.id===target.id)?.revision||0,currentState.jobs.find(j=>j.id===target.id)?.revision||0);
+    if(record.expected_seq!==targetRevision)return error('This record changed. Reopen it before continuing.',409);
+    const deleted=Boolean(states.get(target.id)?.deleted);
+    if(deleted===(payload.operation==='delete'))return error(deleted?'Record is already in Trash.':'Record is already restored.',409);
+    if(payload.operation==='restore') {
+      const parent=currentState.candidates.find(c=>c.id===target.subject_id);
+      if(parent?.deleted)return error('Restore the candidate before restoring its history.');
+    }
+  }
+  if(payload.operation){
+    const proposed=project([...allEvents,{...record,seq:head+1}]).candidates.filter(c=>!c.deleted&&['R1 Scheduled','R2 Scheduled'].includes(c.stage));
+    for(let i=0;i<proposed.length;i++)for(let j=i+1;j<proposed.length;j++){
+      const interval=c=>{const r=c.stage==='R1 Scheduled'?'r1':'r2',start=+new Date(c[r]+':00+05:30');return [start,start+(r==='r1'?30:60)*60000];};
+      const [a,b]=interval(proposed[i]),[c,d]=interval(proposed[j]);
+      if(a<d&&c<b)return error('This change would restore an overlapping interview. Reschedule the current booking first.',409);
+    }
+  }
+  if(payload.supersedes) {
+    const original=allEvents.find(e=>e.id===payload.supersedes);
+    if(!original || original.kind!==kind || original.subject_id!==subject_id || ['candidate','job'].includes(kind) || original.payload.operation || !visibleEvents(allEvents).some(e=>e.id===original.id))return error('This entry cannot be edited. Refresh and try again.',409);
+    if(kind==='summary' && record.expected_seq!==(states.get(original.id)?.revision||original.seq))return error('Summary changed. Reopen it.',409);
+  }
+  const conditions = ['COALESCE((SELECT MAX(seq) FROM recruitment_events),0)=?'];
+  const parameters = [id,kind,subject_id,event_date,JSON.stringify(payload),head];
   if ((subject_id || kind==='job' && payload.job_id) && record.expected_seq===undefined)return error('A current record revision is required. Refresh and retry.',409);
   if (subject_id) {
-    const rows = await db.prepare(
-      'SELECT * FROM recruitment_events WHERE id=? OR subject_id=? ORDER BY seq'
-    ).bind(subject_id,subject_id).all();
-    const candidate = project(rows.results.map(toEvent)).candidates[0];
+    const candidate = currentState.candidates.find(c=>c.id===subject_id);
     if (!candidate) return error('Select an existing candidate.');
+    if(candidate.deleted)return error('Restore this candidate from Trash before updating it.');
+    if(record.expected_seq!==candidate.revision)return error('Candidate changed. Reopen it before saving.',409);
     if(kind==='activity' && payload.event==='Candidate details corrected'){
       conditions.push("NOT EXISTS (SELECT 1 FROM recruitment_events e WHERE lower(trim(json_extract(e.payload,'$.alias')))=lower(?) AND (e.kind='candidate' OR e.kind='activity' AND json_extract(e.payload,'$.event')='Candidate details corrected') AND COALESCE(e.subject_id,e.id)<>?)");
       parameters.push(payload.alias,subject_id);
@@ -200,24 +228,22 @@ async function api(request,env,url) {
       if(['R1 Scheduled','R2 Scheduled'].includes(payload.stage)){
         const slot=payload.stage==='R1 Scheduled'?payload.r1:payload.r2;
         const duration=payload.stage==='R1 Scheduled'?30:60;
-        conditions.push("NOT EXISTS (SELECT 1 FROM recruitment_events e WHERE e.kind='stage' AND e.subject_id<>? AND json_extract(e.payload,'$.stage') IN ('R1 Scheduled','R2 Scheduled') AND e.seq=(SELECT MAX(x.seq) FROM recruitment_events x WHERE x.kind='stage' AND x.subject_id=e.subject_id) AND julianday(CASE json_extract(e.payload,'$.stage') WHEN 'R1 Scheduled' THEN json_extract(e.payload,'$.r1') ELSE json_extract(e.payload,'$.r2') END)<julianday(?,?) AND julianday(CASE json_extract(e.payload,'$.stage') WHEN 'R1 Scheduled' THEN json_extract(e.payload,'$.r1') ELSE json_extract(e.payload,'$.r2') END,CASE json_extract(e.payload,'$.stage') WHEN 'R1 Scheduled' THEN '+30 minutes' ELSE '+60 minutes' END)>julianday(?))");
-        parameters.push(subject_id,slot,'+'+duration+' minutes',slot);
+        const start=+new Date(slot+':00+05:30'),end=start+duration*60000;
+        const overlap=currentState.candidates.some(c=>!c.deleted&&c.id!==subject_id&&['R1 Scheduled','R2 Scheduled'].includes(c.stage)&&(()=>{const r=c.stage==='R1 Scheduled'?'r1':'r2',t=+new Date(c[r]+':00+05:30');return t<end&&t+(r==='r1'?30:60)*60000>start;})());
+        if(overlap)return error('This interview overlaps another COO booking. Choose another time.',409);
       }
     }
-    const revision = record.expected_seq ?? candidate.revision;
-    conditions.push('COALESCE((SELECT MAX(seq) FROM recruitment_events WHERE id=? OR subject_id=?),0)=?');
-    parameters.push(subject_id,subject_id,revision);
+
   }
   if (kind === 'job' && payload.job_id) {
     const job = await jobHistory(db,payload.job_id);
     if (!job) return error('Select an existing position.');
-    const revision = record.expected_seq ?? job.revision;
-    conditions.push("COALESCE((SELECT MAX(seq) FROM recruitment_events WHERE id=? OR (kind='job' AND json_extract(payload,'$.job_id')=?)),0)=?");
-    parameters.push(job.id,job.id,revision);
+    if(job.deleted)return error('Restore the position from Trash before editing.');
+    if(record.expected_seq!==job.revision)return error('Position changed. Reopen it before saving.',409);
   }
   if (kind === 'candidate') {
     const job = await jobHistory(db,payload.job_id);
-    if (!job || job.status !== 'Open') return error('Choose an open position.');
+    if (!job || job.deleted || job.status !== 'Open') return error('Choose an open position.');
     if(job.profile==='client-acquisition-v1' && (!['Pending','Accepted','Declined'].includes(payload.commission_ack) || !payload.commission_plan || payload.commission_ack==='Accepted' && !payload.terms_detail?.trim())) return error('Record the commission structure and candidate acknowledgement.');
     conditions.push("NOT EXISTS (SELECT 1 FROM recruitment_events WHERE (kind='candidate' OR kind='activity' AND json_extract(payload,'$.event')='Candidate details corrected') AND lower(trim(json_extract(payload,'$.alias')))=lower(?))");
     parameters.push(payload.alias);
@@ -241,16 +267,7 @@ async function bootstrap(env){
  if(!env.DB)return error('Shared storage is unavailable.',503);
  const db=env.DB.withSession('first-primary');
  const head=await db.prepare('SELECT COALESCE(MAX(seq),0) AS cursor FROM recruitment_events').first();
- const query=`WITH bounded AS (SELECT * FROM recruitment_events WHERE seq<=?)
- SELECT * FROM bounded WHERE kind='candidate' OR kind='job' AND json_extract(payload,'$.job_id') IS NULL
- OR seq IN (SELECT MAX(e.seq) FROM bounded e JOIN json_each(e.payload) j WHERE e.kind='job' GROUP BY COALESCE(json_extract(e.payload,'$.job_id'),e.id),j.key)
- OR seq IN (SELECT MAX(e.seq) FROM bounded e JOIN json_each(e.payload) j WHERE e.kind='stage' GROUP BY e.subject_id,j.key)
- OR seq IN (SELECT MAX(e.seq) FROM bounded e JOIN json_each(e.payload) j WHERE e.kind='activity' AND json_extract(e.payload,'$.event') IN ('Hiring checklist updated','Commission terms reviewed','Candidate details corrected','Document availability checked') GROUP BY e.subject_id,json_extract(e.payload,'$.event'),j.key)
- OR seq IN (SELECT MAX(seq) FROM bounded WHERE kind='activity' AND json_extract(payload,'$.event') IN ('Writing task completed','References completed','Agreement / NDA signed') GROUP BY subject_id,json_extract(payload,'$.event'))
- OR seq IN (SELECT MAX(seq) FROM bounded WHERE kind='activity' AND json_extract(payload,'$.event')='Document stored' GROUP BY subject_id,json_extract(payload,'$.document_type'))
- OR seq IN (SELECT MAX(seq) FROM bounded WHERE subject_id IS NOT NULL GROUP BY subject_id)
- OR event_date=? AND kind='summary' ORDER BY seq`;
- const rows=await db.prepare(query).bind(head.cursor,dateSL()).all();
+ const rows=await db.prepare('SELECT * FROM recruitment_events WHERE seq<=? ORDER BY seq').bind(head.cursor).all();
  return json({events:rows.results.map(toEvent),cursor:head.cursor});
 }
 

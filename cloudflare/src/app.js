@@ -2,7 +2,7 @@ import {validDraft,mergeDrafts,foldCalendarLine} from './record-utils.js';
 import guide from './guide.js?v=1d9777a50d5b';
 import {
   stages,closed,milestones,checklistItems,dateSL,groupStages,project,attention,
-  escape as e,csvCell,stageProblem,newId,scorecardFor,recordStates,visibleEvents
+  escape as e,csvCell,stageProblem,newId,scorecardFor,recordStates,visibleEvents,interviewRevision
 } from './model.js?v=1d9777a50d5b';
 import {hiringRole,defaultRoleRecord} from './role.js';
 import {checkDocument,uploadDocument} from './documents.js';
@@ -795,7 +795,7 @@ async function showInterviewDetails(id){
  show('<h2>Loading meeting details…</h2>');
  try{
   const response=await fetch(apiBase+'/interviews',{cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'Could not load meeting details.');
-  const prior=data.meetings.find(m=>m.candidate_id===id),currentBooking=c.history.filter(e=>e.kind==='stage').at(-1)?.seq||0,m=prior?.round===round&&prior?.slot===slot&&prior?.booking_seq===currentBooking?prior:{};
+  const prior=data.meetings.find(m=>m.candidate_id===id),currentBooking=interviewRevision(events,c),m=prior?.round===round&&prior?.slot===slot&&prior?.booking_seq===currentBooking?prior:{};
   const status=m.enabled&&data.email_ready===false?'Email activation or quota needs attention. The reminder will wait for the email service.':m.status==='sending'?'Sending / awaiting confirmation':m.status==='sent'?'Email service accepted the reminder':m.status==='needs-review'?'Delivery could not be confirmed. Check with the recipient before scheduling another reminder.':m.status==='pending'?'Scheduled — checked every minute. Email delivery can take longer.':'Reminder off';
   show('<h2>Zoom & email reminder</h2><p>'+e(c.alias+' · '+round+' · '+slot.replace('T',' ')+' Sri Lanka time')+'</p><p role="status">'+e(status)+'</p>'+(data.email_ready===false?'<p class="hint">Zoom links can be saved now. Automatic email is waiting for Google email authorization or available daily quota.</p>':'')+ (m.zoom?'<p><a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+e(m.zoom)+'">Open Zoom meeting</a></p>':'')+'<form id="interview-entry" class="form-grid" data-id="'+e(id)+'" data-round="'+round+'" data-slot="'+e(slot)+'" data-version="'+e(prior?.version||'')+'">'+field('zoom','Zoom meeting link',{kind:'url',value:m.zoom||'',wide:true})+select('enabled','Automatic email reminder',[['false','Off'],['true','On']],String(m.enabled||false))+field('remind_at','Send reminder at (Sri Lanka time)',{kind:'datetime-local',value:m.remind_at||'',wide:true})+'<p class="hint wide">Recipient: prasad.quidedge@gmail.com. Choose a time before the interview. Rescheduling requires a new reminder; cancelling or moving the candidate to Trash stops pending reminders.</p><p class="form-error wide" role="alert"></p><div class="form-actions wide">'+btn('Close','close')+'<button class="btn primary" type="submit">Save meeting details</button></div></form>');
  }catch(err){show('<h2>Meeting details unavailable</h2><p role="alert">'+e(err.message)+'</p>'+btn('Close','close'));}

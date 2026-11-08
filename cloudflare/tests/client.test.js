@@ -61,3 +61,10 @@ test('independent form drafts survive switching, saving and discarding another t
  assert.deepEqual(mergeDrafts(drafts,null,'commission',event.id),[changed]);
  assert.deepEqual(mergeDrafts(drafts,null,'stage',event.id),[commission]);
 });
+
+test('restoring a deleted candidate or booking requires a new reminder but scorecards do not',async()=>{
+ const {interviewRevision}=await import('../src/model.js');const c={id:'candidate'},history=[{seq:1,id:'candidate',kind:'candidate',payload:{}},{seq:2,id:'booking',kind:'stage',subject_id:'candidate',payload:{stage:'R1 Scheduled'}}];
+ assert.equal(interviewRevision(history,c),2);history.push({seq:3,id:'score',kind:'score',subject_id:'candidate',payload:{}});assert.equal(interviewRevision(history,c),2);
+ history.push({seq:4,id:'delete',kind:'summary',payload:{operation:'delete',target_id:'candidate'}});history.push({seq:5,id:'restore',kind:'summary',payload:{operation:'restore',target_id:'candidate'}});assert.equal(interviewRevision(history,c),5);
+ history.push({seq:6,id:'delete-stage',kind:'summary',payload:{operation:'delete',target_id:'booking'}});assert.equal(interviewRevision(history,c),6);
+});

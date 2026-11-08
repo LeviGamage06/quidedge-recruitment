@@ -272,10 +272,10 @@ async function bootstrap(env){
 }
 
 export default {
-  async scheduled(controller,env,ctx){ctx.waitUntil(maintenance(env));},
+  async scheduled(controller,env,ctx){ctx.waitUntil(dispatchInterviewReminders(env));if(!controller.scheduledTime||new Date(controller.scheduledTime).getUTCMinutes()%10===0)ctx.waitUntil(maintenance(env));},
   async fetch(request,env) {
     const url = new URL(request.url);
-    if (['/api/events','/api/documents','/api/integrations','/api/bootstrap','/api/document-status','/api/maintenance'].includes(url.pathname)) {
+    if (['/api/interviews','/api/events','/api/documents','/api/integrations','/api/bootstrap','/api/document-status','/api/maintenance'].includes(url.pathname)) {
       const origin = request.headers.get('Origin');
       const allowed = origin === 'https://levigamage06.github.io' || origin === 'https://quidedge-hire.pages.dev' || origin === url.origin;
       if (origin && !allowed) return error('This origin is not allowed.',403);
@@ -289,7 +289,7 @@ export default {
       let response;
       try {
         if(request.method==='POST'||['/api/integrations','/api/document-status','/api/maintenance'].includes(url.pathname)){const limited=await rateLimit(request,env,url.pathname);if(limited){for(const [key,value] of Object.entries(corsHeaders))limited.headers.set(key,value);return limited;}}
-        response = url.pathname==='/api/maintenance' ? await maintenanceStatus(request,env) : url.pathname==='/api/bootstrap' ? (request.method==='GET'?await bootstrap(env):error('Use GET.',405)) : url.pathname==='/api/document-status' ? await documentStatus(request,env,url) : url.pathname === '/api/events' ? await api(request,env,url) : url.pathname === '/api/documents' ? await documentApi(request,env) : request.method === 'GET' ? await driveHealth(env,url.searchParams.get('candidate_id')) : error('Method not allowed.',405);
+        response = url.pathname==='/api/interviews' ? await interviewApi(request,env,url) : url.pathname==='/api/maintenance' ? await maintenanceStatus(request,env) : url.pathname==='/api/bootstrap' ? (request.method==='GET'?await bootstrap(env):error('Use GET.',405)) : url.pathname==='/api/document-status' ? await documentStatus(request,env,url) : url.pathname === '/api/events' ? await api(request,env,url) : url.pathname === '/api/documents' ? await documentApi(request,env) : request.method === 'GET' ? await driveHealth(env,url.searchParams.get('candidate_id')) : error('Method not allowed.',405);
       } catch {
         response = error('Shared storage is temporarily unavailable. Please retry.',503);
       }

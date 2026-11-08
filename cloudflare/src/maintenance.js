@@ -45,7 +45,7 @@ async function documentStatus(request,env,url){
  return json(response);
 }
 async function maintenance(env){
- if(!env.DB||!driveConfigured(env))return;
+ if(!env.DB||!driveConfigured(env)||await purgeActive(env.DB))return;
  const db=env.DB.withSession('first-primary');
  const scan=await db.prepare("SELECT value FROM maintenance_state WHERE key='outbox_scan_cursor'").first();
  let jobs=await db.prepare("SELECT * FROM document_outbox WHERE state='pending' AND id>? ORDER BY id LIMIT 10").bind(scan?.value||'').all();

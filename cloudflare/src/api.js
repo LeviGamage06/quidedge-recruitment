@@ -177,6 +177,7 @@ async function api(request,env,url) {
   const record = await readRecord(request);
   const problem = validate(record);
   if (problem) return error(problem);
+  if(await db.prepare('SELECT value FROM maintenance_state WHERE key=?').bind('purged-event:'+await purgeHash(record.id)).first())return error('This record was permanently deleted and cannot be replayed. Create a new record if needed.',410);
   const {id,kind,subject_id,event_date,payload} = record;
   const previous = await db.prepare('SELECT * FROM recruitment_events WHERE id=?').bind(id).first();
   if (previous) {
@@ -287,8 +288,9 @@ export default {
           'Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'
         }});
       }
-      let response;
+      let response,readEpoch;
       try {
+        if(env.DB&&request.method==='GET'&&['/api/events','/api/bootstrap'].includes(url.pathname))readEpoch=await purgeEpoch(env.DB);
         if(request.method==='POST'||['/api/integrations','/api/document-status','/api/maintenance'].includes(url.pathname)){const limited=await rateLimit(request,env,url.pathname);if(limited){for(const [key,value] of Object.entries(corsHeaders))limited.headers.set(key,value);return limited;}}
         if(request.method==='POST'&&url.pathname!=='/api/trash'&&await purgeActive(env.DB))return error('Permanent Trash cleanup is processing. Please wait before saving or restoring records.',423);
         response = url.pathname==='/api/trash' ? await trashApi(request,env,url) : url.pathname==='/api/interviews' ? await interviewApi(request,env,url) : url.pathname==='/api/maintenance' ? await maintenanceStatus(request,env) : url.pathname==='/api/bootstrap' ? (request.method==='GET'?await bootstrap(env):error('Use GET.',405)) : url.pathname==='/api/document-status' ? await documentStatus(request,env,url) : url.pathname === '/api/events' ? await api(request,env,url) : url.pathname === '/api/documents' ? await documentApi(request,env) : request.method === 'GET' ? await driveHealth(env,url.searchParams.get('candidate_id')) : error('Method not allowed.',405);
@@ -296,7 +298,7 @@ export default {
         response = error('Shared storage is temporarily unavailable. Please retry.',503);
       }
       const result = new Response(response.body,response);
-      if(env.DB&&request.method==='GET'&&['/api/events','/api/bootstrap'].includes(url.pathname)){result.headers.set('X-Purge-Epoch',await purgeEpoch(env.DB));result.headers.set('Access-Control-Expose-Headers','X-Purge-Epoch');}
+      if(response.ok&&readEpoch!==undefined){try{const epoch=await purgeEpoch(env.DB);if(epoch!==readEpoch)return error('Permanent cleanup changed the workspace. Retry sync to load the clean records.',503);result.headers.set('X-Purge-Epoch',epoch);result.headers.set('Access-Control-Expose-Headers','X-Purge-Epoch');}catch{return error('Shared storage is temporarily unavailable. Retry sync.',503);}}
       for (const [key,value] of Object.entries(corsHeaders)) result.headers.set(key,value);
       return result;
     }

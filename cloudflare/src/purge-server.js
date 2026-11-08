@@ -31,6 +31,7 @@ async function trashApi(request,env,url){
  const db=env.DB.withSession('first-primary');
  if(request.method==='GET'){
   const active=await purgeActive(db);if(active)return json({state:'cleaning',id:JSON.parse(active.value).id});
+  if(url.searchParams.get('readiness')==='1'){const health=await bridgeRequest(env,{action:'health',purge:true});return json({state:'idle',permanent_delete_ready:health.purge_ready===true});}
   const id=url.searchParams.get('request_id');if(id&&uuid.test(id)){const receipt=await db.prepare('SELECT value FROM maintenance_state WHERE key=?').bind('purge_receipt:'+id).first();if(receipt)return json(JSON.parse(receipt.value));}
   return json({state:'idle'});
  }

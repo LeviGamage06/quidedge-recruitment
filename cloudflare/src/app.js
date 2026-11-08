@@ -103,7 +103,7 @@ function ingest(incoming) {
   candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
   return true;
 }
-function candidateTable(candidates,action='stage',label='Update') {
+function candidateTable(candidates,action='stage',label='Update stage') {
   if(candidates.length>25)return candidateTable(candidates.slice(0,25),action,label)+'<p class="hint">Showing 25 of '+candidates.length+' candidates. Use Pipeline for all records and filters.</p>';
   if (!candidates.length) return empty('No candidates in this view. Add a candidate or adjust the filters.');
   return table(['Candidate','Position','Stage','Next action','Attention','Actions'],candidates.map(candidate => {
@@ -115,7 +115,7 @@ function candidateTable(candidates,action='stage',label='Update') {
       closed.includes(candidate.stage) ? e(candidate.stage==='Hired'?'Hiring completed':'Process closed')+(candidate.start_date?'<small>Start date · '+e(candidate.start_date)+'</small>':'') : e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +' · ' + e(candidate.owner || 'No owner') + '</small>',
       tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag) ? 'warn' : ''),
       '<div class="row-actions">' + btn('View record','view',candidate.id) +
-        btn(label,action,candidate.id,true) + dangerBtn('Move to Trash','delete-record',candidate.id) + '</div>'
+        (closed.includes(candidate.stage)?'':btn(label,action,candidate.id,true)) + dangerBtn('Move to Trash','delete-record',candidate.id) + '</div>'
     ];
   }));
 }
@@ -141,7 +141,7 @@ function overview() {
     '<div class="row-actions">'+btn('Manage','job',job.id)+dangerBtn('Move to Trash','delete-record',job.id)+ (job.profile==='client-acquisition-v1'?btn('Full job description','job',job.id):'')+'</div>'
   ]);
   return heading('Recruitment management','Keep roles, next actions and hiring decisions moving.',
-    '<div class="toolbar">' + btn('Trash / restore','trash-view') + btn('Export records','export') + btn('+ Open position','job','',true) + '</div>') +
+    '<div class="toolbar">' + btn('Export records','export') + btn('+ Open position','job') + btn('+ Add candidate','candidate','',true) + '</div>') +
     '<div class="metrics" aria-label="Current pipeline counts">' + metrics + '</div>' +
     panel('Today’s priorities',queue.length ? candidateTable(queue.slice(0,5)) :
       empty(candidates.length ? 'No pending actions. All active candidates are on track or the hiring process is complete.' : 'No candidates added yet. Add a candidate to get started.'),
@@ -150,7 +150,7 @@ function overview() {
     panel('Positions',jobRows.length ? table(['Role','Department / market','Headcount','Target date','Status','Action'],jobRows) :
       empty('Open a position, define the role requirements, then add candidates.'),
       tag(openJobs.length + ' open · ' + active.length + ' active candidates')) +
-    panel('Recent candidates',candidateTable(candidates.slice(0,6)),btn('+ Add candidate','candidate','',true));
+    panel('Recent candidates',candidateTable(candidates.slice(0,6)),btn('View pipeline','pipeline-view'));
 }
 function filteredCandidates() {
   const group = groupStages.find(([name]) => 'group:' + name === stageFilter);
@@ -358,7 +358,7 @@ function openForm(kind,id = '',restored = null) {
       (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
   } else if (kind === 'candidate') {
     title = 'Add a candidate';
-    fields=field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('job_id','Position',openJobs.map(item=>[item.id,item.title]),openJobs[0].id)+select('source','Source',sources,sources[0])+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
+    fields=field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('source','Source',sources,sources[0])+'<div class="wide">'+select('job_id','Position',openJobs.map(item=>[item.id,item.title]),openJobs[0].id)+'</div>'+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
   } else if (kind === 'stage' && candidate) {
     title = 'Update · ' + candidate.alias;
     fields = select('stage','Stage',stages,candidate.stage) + next(candidate) +
@@ -553,6 +553,7 @@ document.addEventListener('click',async event => {
   const control = event.target.closest('[data-action]');
   if (!control || saving) return;
   const {action,id} = control.dataset;
+  if(action==='pipeline-view'){location.hash='pipeline';render();return;}
   if(action==='interviews-view'){location.hash='interviews';render();return;}
   if(action==='overview-view'){location.hash='overview';render();return;}
   if(action==='trash-view'){if(dialog.open){saveDraft();dialog.close();}location.hash='trash';render();return;}
@@ -689,7 +690,7 @@ dialog.addEventListener('submit',async event => {
     if (kind === 'summary') reportDate = record.event_date;
     dialog.close();
     render();
-    flash('Saved to the shared workspace. The original history is preserved.');
+    flash(kind==='recordaction'?(record.payload.operation==='delete'?'Record moved to Trash. You can restore it from Trash.':'Record restored to the workspace.'):kind==='candidate'?'Candidate '+record.payload.alias+' added. The next action is ready for review.':(form.dataset.submitLabel||'Changes')+' — saved to the shared workspace.');
   } catch (error) {
     errorBox.textContent = error.message;
     if (error.status && error.status < 500) {
@@ -740,7 +741,7 @@ function recordTitle(event){
 function eventControls(event){
  if(event.payload.operation||['Document stored','Document availability checked'].includes(event.payload.event))return '';
  const editable=['stage','score','summary'].includes(event.kind)||event.kind==='activity'&&!['Document stored','Document availability checked'].includes(event.payload.event);
- return '<div class="row-actions">'+(editable?btn('Edit entry','edit-event',event.id):'')+btn('Delete entry','delete-record',event.id)+'</div>';
+ return '<div class="row-actions">'+(editable?btn('Edit entry','edit-event',event.id):'')+dangerBtn('Move entry to Trash','delete-record',event.id)+'</div>';
 }
 function trashView(){
  const states=recordStates(events),deleted=events.filter(e=>!e.payload.operation&&states.get(e.id)?.deleted);

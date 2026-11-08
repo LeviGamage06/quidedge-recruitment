@@ -231,7 +231,7 @@ function interviews() {
       bookings.map(({candidate,round,slot}) => [
         '<strong>' + e(candidate.alias) + '</strong>',e(jobTitle(candidate.job_id)),tag(round,'blue'),
         e(slot.replace('T',' ')) + (slot.slice(0,10) < dateSL() ? '<small>Past date · review the candidate stage</small>' : ''),
-        '<div class="row-actions">' + btn('Calendar file','calendar',candidate.id) +
+        '<div class="row-actions">' + btn('Zoom & reminder','interview-details',candidate.id,true)+btn('Calendar file','calendar',candidate.id) +
           btn('Reschedule','stage',candidate.id,true)+btn('Cancel interview','cancel-interview',candidate.id) + '</div>'
       ])) : empty('No interviews are booked. Use Schedule R1 or Schedule R2 for an active candidate below.')) +
     panel('Schedule an interview',state.candidates.some(c=>!closed.includes(c.stage)) ? table(['Candidate','Current stage','Actions'],state.candidates.filter(c=>!closed.includes(c.stage)).map(c=>[e(c.alias),tag(c.stage),'<div class="row-actions">'+btn('Schedule R1','schedule-r1',c.id)+btn('Schedule R2','schedule-r2',c.id)+btn('View record','view',c.id)+'</div>'])) : empty(state.candidates.length?'All current candidates are hired, rejected or withdrawn. Closed candidates are not shown for scheduling.':'No candidates added yet. Add a candidate to schedule the first interview.'),btn('+ Add candidate','candidate','',true));
@@ -553,6 +553,7 @@ document.addEventListener('click',async event => {
   const control = event.target.closest('[data-action]');
   if (!control || saving) return;
   const {action,id} = control.dataset;
+  if(action==='interview-details'){saveDraft();await showInterviewDetails(id);return;}
   if(action==='pipeline-view'){location.hash='pipeline';render();return;}
   if(action==='interviews-view'){location.hash='interviews';render();return;}
   if(action==='overview-view'){location.hash='overview';render();return;}
@@ -788,3 +789,22 @@ function nextCandidateAction(candidate){
  return {label:'Review next stage',action:'stage',description:candidate.action||'Choose the next step and its owner.'};
 }
 function bookingPreview(){const bookings=scheduledInterviews().filter(({slot})=>+new Date(slot+':00+05:30')>=Date.now()).slice(0,3);return bookings.length?table(['Candidate','Round','Sri Lanka time','Action'],bookings.map(({candidate,round,slot})=>[e(candidate.alias),e(round),e(slot.replace('T',' ')),btn('Review booking','stage',candidate.id)])):empty('No upcoming interviews are booked.');}
+
+async function showInterviewDetails(id){
+ const c=candidateById(id),round=c.stage==='R1 Scheduled'?'R1':'R2',slot=c[round.toLowerCase()];
+ show('<h2>Loading meeting details…</h2>');
+ try{
+  const response=await fetch(apiBase+'/interviews',{cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'Could not load meeting details.');
+  const prior=data.meetings.find(m=>m.candidate_id===id),currentBooking=c.history.filter(e=>e.kind==='stage').at(-1)?.seq||0,m=prior?.round===round&&prior?.slot===slot&&prior?.booking_seq===currentBooking?prior:{};
+  const status=m.enabled&&data.email_ready===false?'Email activation or quota needs attention. The reminder will wait for the email service.':m.status==='sending'?'Sending / awaiting confirmation':m.status==='sent'?'Email service accepted the reminder':m.status==='needs-review'?'Delivery could not be confirmed. Check with the recipient before scheduling another reminder.':m.status==='pending'?'Scheduled — checked every minute. Email delivery can take longer.':'Reminder off';
+  show('<h2>Zoom & email reminder</h2><p>'+e(c.alias+' · '+round+' · '+slot.replace('T',' ')+' Sri Lanka time')+'</p><p role="status">'+e(status)+'</p>'+(data.email_ready===false?'<p class="hint">Zoom links can be saved now. Automatic email is waiting for Google email authorization or available daily quota.</p>':'')+ (m.zoom?'<p><a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+e(m.zoom)+'">Open Zoom meeting</a></p>':'')+'<form id="interview-entry" class="form-grid" data-id="'+e(id)+'" data-round="'+round+'" data-slot="'+e(slot)+'" data-version="'+e(prior?.version||'')+'">'+field('zoom','Zoom meeting link',{kind:'url',value:m.zoom||'',wide:true})+select('enabled','Automatic email reminder',[['false','Off'],['true','On']],String(m.enabled||false))+field('remind_at','Send reminder at (Sri Lanka time)',{kind:'datetime-local',value:m.remind_at||'',wide:true})+'<p class="hint wide">Recipient: prasad.quidedge@gmail.com. Choose a time before the interview. Rescheduling requires a new reminder; cancelling or moving the candidate to Trash stops pending reminders.</p><p class="form-error wide" role="alert"></p><div class="form-actions wide">'+btn('Close','close')+'<button class="btn primary" type="submit">Save meeting details</button></div></form>');
+ }catch(err){show('<h2>Meeting details unavailable</h2><p role="alert">'+e(err.message)+'</p>'+btn('Close','close'));}
+}
+dialog.addEventListener('submit',async event=>{
+ if(event.target.id!=='interview-entry')return;
+ event.preventDefault();if(saving)return;const form=event.target;const button=form.querySelector('[type=submit]');saving=true;button.disabled=true;button.textContent='Saving…';
+ try{
+ const response=await fetch(apiBase+'/interviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({candidate_id:form.dataset.id,round:form.dataset.round,slot:form.dataset.slot,version:form.dataset.version,zoom:form.elements.zoom.value.trim(),enabled:form.elements.enabled.value==='true',remind_at:form.elements.remind_at.value})});
+ const result=await response.json();if(!response.ok)throw Error(result.error||'Could not save meeting details.');dialog.close();flash('Zoom link and reminder settings saved.');
+ }catch(err){form.querySelector('.form-error').textContent=err.message;}finally{saving=false;button.disabled=false;button.textContent='Save meeting details';}
+});

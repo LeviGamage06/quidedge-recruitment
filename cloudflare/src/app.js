@@ -1,3 +1,4 @@
+import {planPurge} from './purge-plan.js';
 import {validDraft,mergeDrafts,foldCalendarLine} from './record-utils.js';
 import guide from './guide.js?v=1d9777a50d5b';
 import {
@@ -92,10 +93,12 @@ function storageWrite(value,kind,id) {
   } catch {flash('Browser draft storage is unavailable. Keep this tab open until the server confirms your save.');}
 }
 function ingest(incoming) {
-  if (!incoming.length) return false;
+  const reset=incoming.reset===true;
+  if(reset){const retained=new Set(incoming.map(e=>e.id)),removed=new Set(events.filter(e=>!retained.has(e.id)).map(e=>e.id));for(const d of storageDrafts())if(removed.has(d.id)||removed.has(d.values.supersedes)||removed.has(d.values.job_id)||removed.has(d.pending?.subject_id))storageWrite(null,d.kind,d.id);if(dialog.open){pendingRecord=null;dialog.close();}events=[];}
+  if (!incoming.length&&!reset) return false;
   const known = new Set(events.map(event => event.id));
   const fresh = incoming.filter(event => !known.has(event.id));
-  if (!fresh.length) return false;
+  if (!fresh.length&&!reset) return false;
   events = events.concat(fresh).sort((a,b) => a.seq - b.seq);
   state = project(events);
   state.jobs=state.jobs.filter(j=>!j.deleted);state.candidates=state.candidates.filter(c=>!c.deleted);
@@ -280,6 +283,7 @@ function render() {
     ' Existing records remain visible. Use Refresh to retry.</p>' : '';
   app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
     panel('Recruitment workspace',empty(failure ? 'The shared records could not be loaded.' : 'Loading shared records…')) : screens[view]());
+  if(view==='trash'&&ready)loadTrashCleanup();
   const active = activeId && document.getElementById(activeId);
   if (active && app.contains(active)) {
     active.focus({preventScroll:true});
@@ -553,6 +557,7 @@ document.addEventListener('click',async event => {
   const control = event.target.closest('[data-action]');
   if (!control || saving) return;
   const {action,id} = control.dataset;
+  if(action==='purge-one'||action==='purge-all'){openPurge(action==='purge-all'?null:id);return;}
   if(action==='interview-details'){saveDraft();await showInterviewDetails(id);return;}
   if(action==='pipeline-view'){location.hash='pipeline';render();return;}
   if(action==='interviews-view'){location.hash='interviews';render();return;}
@@ -746,8 +751,8 @@ function eventControls(event){
 }
 function trashView(){
  const states=recordStates(events),deleted=events.filter(e=>!e.payload.operation&&states.get(e.id)?.deleted);
- return heading('Trash','Restore deleted candidates, positions and entries. Original records and files are preserved.',btn('Back to overview','overview-view'))+
- panel('Deleted records',deleted.length?table(['Record','Type','Actions'],deleted.map(e=>[escapeTitle(e),e.kind,btn('Restore','restore-record',e.id,true)])):empty('Trash is empty.'));
+ return '<p id="trash-cleanup-status" role="status"></p>'+heading('Trash','Restore records, or permanently remove them and their linked files and managed backups.',btn('Back to overview','overview-view')+(deleted.length?dangerBtn('Empty Trash','purge-all',''):''))+
+ panel('Deleted records',deleted.length?table(['Record','Type','Actions'],deleted.map(e=>[escapeTitle(e),e.kind,'<div class="row-actions">'+btn('Restore','restore-record',e.id,true)+dangerBtn('Delete permanently','purge-one',e.id)+'</div>'])):empty('Trash is empty.'));
 }
 function escapeTitle(event){return e(recordTitle(event));}
 function editEvent(id){
@@ -808,3 +813,31 @@ dialog.addEventListener('submit',async event=>{
  const result=await response.json();if(!response.ok)throw Error(result.error||'Could not save meeting details.');dialog.close();flash('Zoom link and reminder settings saved.');
  }catch(err){form.querySelector('.form-error').textContent=err.message;}finally{saving=false;button.disabled=false;button.textContent='Save meeting details';}
 });
+
+function openPurge(id){
+ saveDraft();const states=recordStates(events),targets=id?[id]:events.filter(e=>!e.payload.operation&&states.get(e.id)?.deleted).map(e=>e.id);
+ let plan;try{plan=planPurge(events,targets);}catch(err){show('<h2>Cannot permanently delete</h2><p role="alert">'+e(err.message)+'</p>'+btn('Close','close'));return;}
+ show('<h2>'+(id?'Delete permanently':'Empty Trash permanently')+'</h2><p><strong>This cannot be undone.</strong></p><p>'+e(plan.count+' Trash record(s), '+plan.event_ids.length+' stored history entries and '+plan.candidate_ids.length+' candidate file folder(s) will be removed.')+'</p><p>Includes associated interview reminder settings, document receipts and copies in this app’s managed Drive backups. Other active records are preserved.</p><p class="hint">Already sent emails, downloaded/exported copies and the hosting provider’s recovery retention are outside this cleanup.</p><form id="purge-entry" class="form-grid">'+field('confirm','Type DELETE PERMANENTLY',{required:true,wide:true})+'<p class="form-error wide" role="alert"></p><div class="form-actions wide">'+btn('Cancel','close')+'<button type="submit" class="btn danger">'+(id?'Delete permanently':'Empty Trash permanently')+'</button></div></form>');
+ const form=dialog.querySelector('#purge-entry');form.dataset.targets=JSON.stringify(targets);form.dataset.head=String(plan.head);form.dataset.request=newId();form.elements.confirm.pattern='DELETE PERMANENTLY';form.elements.confirm.autocomplete='off';form.elements.confirm.focus();
+}
+async function finishPurge(receipt){
+ sessionStorage.removeItem('qe-purge-request');const snapshotResponse=await fetch(apiBase+'/bootstrap',{cache:'no-store'});if(!snapshotResponse.ok)throw Error('Cleanup finished. Refresh to load the clean workspace.');const snapshot=await snapshotResponse.json();snapshot.events.reset=true;ingest(snapshot.events);dialog.close();render();flash('Permanent cleanup completed. '+receipt.records+' Trash record(s) removed.');
+}
+async function watchPurge(id){
+ show('<h2>Permanent cleanup is processing</h2><p role="status">Removing records, linked files and managed backup copies. The server continues if this browser is closed.</p>'+btn('Close','close'));
+ for(let i=0;i<15;i++){await new Promise(resolve=>setTimeout(resolve,4000));const response=await fetch(apiBase+'/trash?request_id='+encodeURIComponent(id),{cache:'no-store'});if(!response.ok)throw Error('Could not check cleanup. Use Refresh to check again.');const result=await response.json();if(result.state==='complete'){await finishPurge(result);return;}}
+ flash('Cleanup is still processing on the server. Refresh later to check completion.');
+}
+dialog.addEventListener('submit',async event=>{
+ if(event.target.id!=='purge-entry')return;event.preventDefault();if(saving)return;
+ const form=event.target;if(form.elements.confirm.value!=='DELETE PERMANENTLY')return;
+ const button=form.querySelector('[type=submit]');saving=true;button.disabled=true;button.textContent='Removing permanently…';
+ try{const response=await fetch(apiBase+'/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:form.dataset.request,targets:JSON.parse(form.dataset.targets),expected_head:Number(form.dataset.head),confirm:form.elements.confirm.value}),signal:AbortSignal.timeout(65000)});const result=await response.json();if(!response.ok)throw Error(result.error||'Permanent deletion could not be confirmed.');if(result.state==='complete')await finishPurge(result);else{sessionStorage.setItem('qe-purge-request',result.id);saving=false;await watchPurge(result.id);}}
+ catch(err){form.querySelector('.form-error').textContent=err.message+' If the connection was interrupted, refresh to check the server before retrying.';}finally{saving=false;button.disabled=false;button.textContent='Delete permanently';}
+});
+
+async function loadTrashCleanup(){
+ const box=app.querySelector('#trash-cleanup-status');if(!box)return;
+ try{const id=sessionStorage.getItem('qe-purge-request'),response=await fetch(apiBase+'/trash'+(id?'?request_id='+encodeURIComponent(id):''),{cache:'no-store'});if(!response.ok)return;const result=await response.json();if(!box.isConnected)return;if(result.state==='cleaning'){sessionStorage.setItem('qe-purge-request',result.id);box.textContent='Permanent cleanup is processing on the server. Refresh to check progress. Restoring and saving are paused until cleanup finishes.';}else if(result.state==='complete'){sessionStorage.removeItem('qe-purge-request');box.textContent='Permanent cleanup completed. Refresh to load the clean workspace.';}}
+ catch{if(box.isConnected)box.textContent='Could not check cleanup status. Refresh to retry.';}
+}

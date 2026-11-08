@@ -25,7 +25,7 @@ def restore(paths):
             rows[row['id']]=row;sequences[row['seq']]=row['id']
     quote=lambda v:'NULL' if v is None else "'"+str(v).replace("'","''")+"'"
     root=Path(__file__).resolve().parents[1]
-    output=(root/'migrations/0001_initial.sql').read_text()+(root/'migrations/0002_operations.sql').read_text()
+    output=(root/'migrations/0001_initial.sql').read_text()+(root/'migrations/0002_operations.sql').read_text()+(root/'migrations/0003_permanent_trash.sql').read_text()
     output+='\nBEGIN;\n'
     for row in sorted(rows.values(),key=lambda r:r['seq']):
         values=[row['seq'],row['id'],row['kind'],row['subject_id'],row['event_date'],json.dumps(row['payload'],ensure_ascii=False,separators=(',',':')),row['created_at']]

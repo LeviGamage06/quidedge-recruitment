@@ -46,3 +46,10 @@ test('backups are private append-only files and identical retry does not duplica
  const b=bridge();const input={action:'backup',first:1,last:1,records:[{seq:1,id:'example',kind:'job'}]};assert.equal(b.send(input).saved,true);assert.equal(b.send(input).saved,true);assert.equal(b.root.children[0].name,'_System backups');assert.equal(b.root.children[0].files.length,1);
 });
 test('synthetic owner storage verification uses both document types',()=>{const b=bridge();b.context.runStorageSelfTest();assert.equal(b.root.children[0].children[0].files.length,4);});
+test('interview email recipient is fixed and duplicate/ambiguous retries cannot send twice',()=>{
+ const b=bridge(),messages=[];b.context.MailApp={getRemainingDailyQuota:()=>10,sendEmail:message=>messages.push(message)};
+ const p={action:'interview-email',round:'R1',slot:'2026-11-20T09:00',zoom:'https://us02web.zoom.us/j/123456789',recipient:'attacker@example.com'};
+ assert.equal(b.send(p).sent,true);assert.equal(b.send(p).sent,true);assert.equal(messages.length,1);assert.equal(messages[0].to,'prasad.quidedge@gmail.com');assert.match(messages[0].body,/09:00.*Sri Lanka/);
+ const bad={...p,id:'11111111-1111-4111-8111-111111111113',zoom:'https://zoom.us.evil.example/j/123'};assert.equal(b.send(bad).ok,false);
+ b.context.MailApp.sendEmail=()=>{throw Error('ambiguous network failure')};const unknown={...p,id:'11111111-1111-4111-8111-111111111114'};assert.equal(b.send(unknown).ok,false);assert.equal(b.send(unknown).status,'sending');assert.equal(messages.length,1);
+});

@@ -27,9 +27,10 @@ function doPost(e){
   if(!secret||secret.length<32||p.secret!==secret)return reply_({ok:false,code:'UNAUTHORIZED'});
   var uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
   if(p.action!=='backup'&&p.action!=='health'&&!uuid.test(p.candidate_id||''))return reply_({ok:false,code:'INVALID'});
+  if(p.action==='interview-email')return interviewEmail_(p,props,lock);
   var root=root_(),role=role_(root,props,false),folder;
   if(p.candidate_id){if(!uuid.test(p.candidate_id))return reply_({ok:false,code:'INVALID'});folder=candidate_(role,props,p,false);}
-  if(p.action==='health')return reply_({ok:true,ready:true,protocol:3});
+  if(p.action==='health')return reply_({ok:true,ready:true,protocol:3,email_ready:p.email===true?MailApp.getRemainingDailyQuota()>0:undefined});
   if(p.action==='status'){
    var status={ok:true,cv:'Missing',cover:'Missing'};
    if(folder){var files=folder.getFiles();while(files.hasNext()){var file=files.next();notPublic_(file);var description=file.getDescription()||'';if(description.indexOf('QE-DOCUMENT:'+p.candidate_id+':cv:')===0)status.cv='Available';if(description.indexOf('QE-DOCUMENT:'+p.candidate_id+':cover:')===0)status.cover='Available';}}
@@ -72,3 +73,19 @@ function runStorageSelfTest(){
  var status=JSON.parse(doPost({postData:{contents:JSON.stringify({secret:secret,action:'status',candidate_id:base.candidate_id})}}).getContent());if(status.cv!=='Available'||status.cover!=='Available')throw Error('Files did not verify');
  console.log('Private CV and cover-letter storage verified with synthetic files.');
 }
+
+/** Fixed-recipient mail bridge. A stored claim prevents duplicate sends after ambiguous failures. */
+function interviewEmail_(p,props,lock){
+ if(!/^[0-9a-f-]{36}$/i.test(p.id||'')||!/^R[12]$/.test(p.round||'')||!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(p.slot||'')||!/^https:\/\/(?:[a-z0-9-]+\.)*zoom\.us\/(?:j|my|s)\//i.test(p.zoom||'')||p.zoom.length>1500||typeof p.alias!=='string'||p.alias.length>80)return reply_({ok:false,code:'INVALID'});
+ if(!lock.tryLock(25000))return reply_({ok:false,code:'BUSY'});
+ try{
+  var key='interview-mail:'+p.id,previous=props.getProperty(key);
+  if(previous)return reply_({ok:true,sent:previous==='sent',status:previous});
+  if(MailApp.getRemainingDailyQuota()<1)return reply_({ok:false,code:'MAIL_QUOTA'});
+  props.setProperty(key,'sending');
+  MailApp.sendEmail({to:'prasad.quidedge@gmail.com',subject:'QuidEdge interview reminder — '+p.alias+' — '+p.round,body:'Interview reminder\n\nCandidate: '+p.alias+'\nRole: Client Acquisition & Client Relations Specialist\nRound: '+p.round+'\nInterview: '+p.slot.replace('T',' ')+' (Sri Lanka time, UTC+05:30)\nZoom: '+p.zoom+'\n\nOpen recruitment calendar: https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/#interviews\nReference: '+p.id,name:'QuidEdge Recruitment'});
+  props.setProperty(key,'sent');return reply_({ok:true,sent:true});
+ }finally{lock.releaseLock();}
+}
+/** Run in the owner editor to authorize email sending without sending a message. */
+function authorizeInterviewReminders(){console.log('Email service ready. Remaining daily recipient quota: '+MailApp.getRemainingDailyQuota());}

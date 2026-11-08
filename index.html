@@ -2070,7 +2070,7 @@ dialog h2{max-width:calc(100% - 85px)}
     if (saving) return;
     const form = event.target;
     if (form.elements.confirm.value !== "DELETE PERMANENTLY") return;
-    const button = form.querySelector("[type=submit]");
+    const button = form.querySelector("[type=submit]"), label = button.textContent;
     saving = true;
     button.disabled = true;
     button.textContent = "Removing permanently\u2026";
@@ -2089,14 +2089,14 @@ dialog h2{max-width:calc(100% - 85px)}
     } finally {
       saving = false;
       button.disabled = false;
-      button.textContent = "Delete permanently";
+      button.textContent = label;
     }
   });
   async function loadTrashCleanup() {
     const box = app.querySelector("#trash-cleanup-status");
     if (!box) return;
     try {
-      const id = sessionStorage.getItem("qe-purge-request"), response = await fetch(apiBase + "/trash" + (id ? "?request_id=" + encodeURIComponent(id) : ""), { cache: "no-store" });
+      const id = sessionStorage.getItem("qe-purge-request"), response = await fetch(apiBase + "/trash" + (id ? "?request_id=" + encodeURIComponent(id) : "?readiness=1"), { cache: "no-store" });
       if (!response.ok) return;
       const result = await response.json();
       if (!box.isConnected) return;
@@ -2106,6 +2106,10 @@ dialog h2{max-width:calc(100% - 85px)}
       } else if (result.state === "complete") {
         sessionStorage.removeItem("qe-purge-request");
         box.textContent = "Permanent cleanup completed. Refresh to load the clean workspace.";
+      } else if (result.permanent_delete_ready === true) {
+        box.textContent = "Permanent deletion ready.";
+      } else if (result.permanent_delete_ready === false) {
+        box.textContent = "Permanent deletion requires owner setup. No records have been removed.";
       }
     } catch {
       if (box.isConnected) box.textContent = "Could not check cleanup status. Refresh to retry.";

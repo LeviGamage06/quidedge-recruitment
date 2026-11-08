@@ -12,7 +12,7 @@ assets['/app.js'].body=bundledApp.outputFiles[0].text;
 const version=createHash('sha256').update(JSON.stringify(assets)).digest('hex').slice(0,12);
 for(const asset of Object.values(assets))asset.body=asset.body.replace(/\?v=[a-f0-9]+/g,'?v='+version);
 let server=await readFile(root+'src/api.js','utf8');
-server=server.replace('export default {',await readFile(root+'src/drive-server.js','utf8')+'\n'+await readFile(root+'src/maintenance.js','utf8')+'\n'+await readFile(root+'src/interviews-server.js','utf8')+'\nexport default {');
+server=server.replace('export default {',await readFile(root+'src/drive-server.js','utf8')+'\n'+await readFile(root+'src/maintenance.js','utf8')+'\n'+await readFile(root+'src/interviews-server.js','utf8')+'\n'+await readFile(root+'src/purge-server.js','utf8')+'\nexport default {');
 const workerSource=server+'\nconst ASSETS='+JSON.stringify(assets)+';\n';
 const compiled=await build({stdin:{contents:workerSource,resolveDir:root+'src',sourcefile:'api.js'},bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
 const worker=compiled.outputFiles[0].text;

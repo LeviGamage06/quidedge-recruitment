@@ -47,6 +47,7 @@ const page = () => ['overview','coo','role','pipeline','activity','interviews','
 const btn = (label,action,id = '',primary = false) =>
   '<button type="button" class="btn ' + (primary ? 'primary' : '') +
   '" data-action="' + e(action) + '" data-id="' + e(id) + '">' + e(label) + '</button>';
+const dangerBtn=(label,action,id)=>btn(label,action,id).replace('class="btn ', 'class="btn danger ');
 const tag = (text,type = '') => '<span class="tag ' + type + '">' + e(text) + '</span>';
 const empty = text => '<p class="empty">' + e(text) + '</p>';
 function options(values,selected = '') {
@@ -111,11 +112,10 @@ function candidateTable(candidates,action='stage',label='Update') {
       '<strong>' + e(candidate.alias) + '</strong><small>' + e(candidate.source) + '</small><small>CV (last receipt/check): '+e(candidate.documents?.cv||'Missing')+' · Cover letter: '+e(candidate.documents?.cover||'Missing')+'</small>',
       e(jobTitle(candidate.job_id)),
       tag(candidate.stage,candidate.stage === 'Hired' ? 'good' : 'blue'),
-      e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +
-        ' · ' + e(candidate.owner || 'No owner') + '</small>',
+      closed.includes(candidate.stage) ? e(candidate.stage==='Hired'?'Hiring completed':'Process closed')+(candidate.start_date?'<small>Start date · '+e(candidate.start_date)+'</small>':'') : e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +' · ' + e(candidate.owner || 'No owner') + '</small>',
       tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag) ? 'warn' : ''),
       '<div class="row-actions">' + btn('View record','view',candidate.id) +
-        btn(label,action,candidate.id,true) + btn('Delete','delete-record',candidate.id) + '</div>'
+        btn(label,action,candidate.id,true) + dangerBtn('Move to Trash','delete-record',candidate.id) + '</div>'
     ];
   }));
 }
@@ -137,16 +137,16 @@ function overview() {
     String(candidates.filter(candidate => candidate.job_id === job.id && candidate.stage === 'Hired').length) +
       ' / ' + e(job.headcount || '1') + ' hired',
     e(job.target_date || 'To confirm'),
-    tag(job.status,job.status === 'Open' ? 'good' : ''),
-    '<div class="row-actions">'+btn('Manage','job',job.id)+btn('Delete','delete-record',job.id)+ (job.profile==='client-acquisition-v1'?btn('Full job description','job',job.id):'')+'</div>'
+    tag(job.status,job.status === 'Open' ? 'good' : '')+(Number(job.headcount||1)<=candidates.filter(c=>c.job_id===job.id&&c.stage==='Hired').length?'<small>Hiring target reached · review position status</small>':''),
+    '<div class="row-actions">'+btn('Manage','job',job.id)+dangerBtn('Move to Trash','delete-record',job.id)+ (job.profile==='client-acquisition-v1'?btn('Full job description','job',job.id):'')+'</div>'
   ]);
   return heading('Recruitment management','Keep roles, next actions and hiring decisions moving.',
     '<div class="toolbar">' + btn('Trash / restore','trash-view') + btn('Export records','export') + btn('+ Open position','job','',true) + '</div>') +
     '<div class="metrics" aria-label="Current pipeline counts">' + metrics + '</div>' +
-    panel('Hiring now',openJobs.length?'<ul>'+openJobs.map(j=>'<li>'+e(j.title)+'</li>').join('')+'</ul>':empty('There are no open positions.'),btn('View role & terms','role-view','',true)) +
-    panel('Needs attention',queue.length ? candidateTable(queue.slice(0,5)) :
-      empty(active.length ? 'Every active candidate has a next step scheduled.' : 'Add your first candidate to build the action queue.'),
+    panel('Today’s priorities',queue.length ? candidateTable(queue.slice(0,5)) :
+      empty(candidates.length ? 'No pending actions. All active candidates are on track or the hiring process is complete.' : 'No candidates added yet. Add a candidate to get started.'),
       btn('View all actions','attention')) +
+    panel('Upcoming interviews',bookingPreview(),btn('Open calendar','interviews-view')) +
     panel('Positions',jobRows.length ? table(['Role','Department / market','Headcount','Target date','Status','Action'],jobRows) :
       empty('Open a position, define the role requirements, then add candidates.'),
       tag(openJobs.length + ' open · ' + active.length + ' active candidates')) +
@@ -226,15 +226,15 @@ function scheduledInterviews() {
 }
 function interviews() {
   const bookings = scheduledInterviews();
-  return heading('Interview calendar','Bookings in Sri Lanka time (UTC+05:30). Add, reschedule or cancel interviews here.',btn('+ Add candidate','candidate','',true)) +
+  return heading('Interview calendar','Bookings in Sri Lanka time (UTC+05:30). Add, reschedule or cancel interviews here.') +
     panel('Scheduled interviews',bookings.length ? table(['Candidate','Position','Round','Sri Lanka time','Actions'],
       bookings.map(({candidate,round,slot}) => [
         '<strong>' + e(candidate.alias) + '</strong>',e(jobTitle(candidate.job_id)),tag(round,'blue'),
         e(slot.replace('T',' ')) + (slot.slice(0,10) < dateSL() ? '<small>Past date · review the candidate stage</small>' : ''),
         '<div class="row-actions">' + btn('Calendar file','calendar',candidate.id) +
           btn('Reschedule','stage',candidate.id,true)+btn('Cancel interview','cancel-interview',candidate.id) + '</div>'
-      ])) : empty('No scheduled interviews. Open a candidate, choose R1 Scheduled or R2 Scheduled and set a time.')) +
-    panel('Schedule an interview',state.candidates.some(c=>!closed.includes(c.stage)) ? table(['Candidate','Current stage','Actions'],state.candidates.filter(c=>!closed.includes(c.stage)).map(c=>[e(c.alias),tag(c.stage),'<div class="row-actions">'+btn('Schedule R1','schedule-r1',c.id)+btn('Schedule R2','schedule-r2',c.id)+btn('View record','view',c.id)+'</div>'])) : empty('No active candidates. Add a candidate to schedule an interview.'),btn('+ Add candidate','candidate','',true));
+      ])) : empty('No interviews are booked. Use Schedule R1 or Schedule R2 for an active candidate below.')) +
+    panel('Schedule an interview',state.candidates.some(c=>!closed.includes(c.stage)) ? table(['Candidate','Current stage','Actions'],state.candidates.filter(c=>!closed.includes(c.stage)).map(c=>[e(c.alias),tag(c.stage),'<div class="row-actions">'+btn('Schedule R1','schedule-r1',c.id)+btn('Schedule R2','schedule-r2',c.id)+btn('View record','view',c.id)+'</div>'])) : empty(state.candidates.length?'All current candidates are hired, rejected or withdrawn. Closed candidates are not shown for scheduling.':'No candidates added yet. Add a candidate to schedule the first interview.'),btn('+ Add candidate','candidate','',true));
 }
 const relationsPrompts = [
   ['Opening',3,'Confirm the role, commission or payment structure, client markets and the interview plan.'],
@@ -275,8 +275,7 @@ function render() {
   }
   const screens = {overview,coo:cooView,role:roleView,pipeline,activity,interviews,guide:guideView,trash:trashView};
   const drafts = storageDrafts();
-  const draftBanner = drafts.map(draft => '<div class="draft-banner"><span>Unsaved ' + e(draft.kind) + ' draft available.</span>' +
-    '<div class="row-actions">' + btn('Resume draft','resume',draft.kind+':'+draft.id) + btn('Discard draft','discard',draft.kind+':'+draft.id) + '</div></div>').join('');
+  const draftBanner = drafts.map(draft => '<div class="draft-banner"><span><strong>'+e(draftTitle(draft))+'</strong><small>'+e(draft.saved_at?'Draft saved '+new Date(draft.saved_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+' SL':'Unsaved draft · saved time unavailable')+'</small></span>'+ '<div class="row-actions">'+btn('Resume draft','resume',draft.kind+':'+draft.id)+btn('Discard draft','discard',draft.kind+':'+draft.id)+'</div></div>').join('');
   const alert = failure ? '<p class="banner" role="alert">' + e(failure) +
     ' Existing records remain visible. Use Refresh to retry.</p>' : '';
   app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
@@ -313,21 +312,16 @@ async function showRecord(candidate) {
   const checklist = checklistItems.map(([key,label]) =>
     '<li><span>' + e(label) + '</span>' + tag(candidate.checklist[key] || 'Pending',
       candidate.checklist[key] === 'Complete' ? 'good' : '') + '</li>').join('');
-  const history = candidate.history.slice().reverse().map(event => {
-    const labels = {score1:'Criterion 1',score2:'Criterion 2',score3:'Criterion 3',score4:'Criterion 4'};
-    const text = Object.entries(event.payload).filter(([key,value]) => value && !['job_id','upload_fingerprint'].includes(key))
-      .map(([key,value]) => (labels[key] || key.replaceAll('_',' ')) + ' · ' + value).join('\n');
-    return '<li><strong>' + e(eventLabel(event)) + '</strong> <time>' + e(event.event_date) +
-      '</time><p class="snapshot">' + e(text) + '</p>'+eventControls(event)+'</li>';
+  const history=candidate.history.slice().reverse().map(event=>{
+    const title=historyTitle(event,candidate);
+    const labels={stage:'Hiring stage',terms:'Role and payment terms',writing:'Practical task',references:'References',offer:'Offer acceptance',agreement:'Agreement',nda:'NDA',r1:'Round 1 interview (SL)',r2:'Round 2 interview (SL)',commission_ack:'Commission acknowledgement',commission_plan:'Commission structure',terms_detail:'Agreed terms',start_date:'Start date',action:'Next action',due:'Due date',owner:'Responsible person',alias:'Candidate code',source:'Source',availability:'Availability',notice:'Notice period',market:'Client markets',round:'Interview round',reviewer:'Reviewer',recommendation:'Recommendation',score1:'Criterion 1 score',score2:'Criterion 2 score',score3:'Criterion 3 score',score4:'Criterion 4 score',cv_state:'CV availability',cover_state:'Cover letter availability'};
+    const recorded=Object.entries(event.payload).filter(([key,value])=>value&&!['job_id','upload_fingerprint','supersedes','event','note'].includes(key)).map(([key,value])=>'<dt>'+e(labels[key]||key.replaceAll('_',' '))+'</dt><dd>'+e(value.replace(/^(\d{4}-\d{2}-\d{2})T/,'$1 '))+'</dd>').join('');
+    return '<li><strong>'+e(title)+'</strong><time class="history-date">'+e(event.event_date)+' · SL</time>'+(event.payload.note?'<p>'+e(event.payload.note)+'</p>':'')+(recorded?'<details><summary>View recorded details</summary><dl class="record-details">'+recorded+'</dl></details>':'')+eventControls(event)+'</li>';
   }).join('');
-  show('<div class="section-top"><h2 id="dialog-title">' + e(candidate.alias) + '</h2>' + btn('Close','close') +
-    '</div><p class="muted">' + e(jobTitle(candidate.job_id)) + ' · ' + e(candidate.stage) + '</p>' +
-    '<p class="muted">Availability · ' + e(candidate.availability || 'To confirm') + ' · Notice · ' +
-    e(candidate.notice || 'To confirm') + '</p><div class="toolbar">' +
-    btn('Update stage / schedule','stage',candidate.id,true) + btn('Log milestone','activity',candidate.id) +
-    btn('Scorecard','score',candidate.id) + btn('Hiring checklist','checklist',candidate.id) + btn('CV & cover letter','documents',candidate.id) + btn('Commission review','commission',candidate.id)+btn('Correct candidate details','correction',candidate.id) + btn('Delete candidate','delete-record',candidate.id) +
-    '</div><p class="public-note">Commission-only acknowledgement: '+e(candidate.commission_ack||'Not recorded')+' · CV (last receipt/check): '+e(candidate.documents?.cv||'Missing')+' · Cover letter: '+e(candidate.documents?.cover||'Missing')+'</p><h3>Hiring readiness</h3><ul class="checklist">' + checklist +
-    '</ul><h3>Record history</h3><ul class="timeline">' + history + '</ul>');
+  const missing=['cv','cover'].filter(type=>candidate.documents?.[type]!=='Available');
+  const complete=checklistItems.filter(([key])=>['Complete','Waived'].includes(candidate.checklist[key])).length;
+  const suggested=nextCandidateAction(candidate);
+  show('<div class="section-top"><h2 id="dialog-title">'+e(candidate.alias)+'</h2>'+btn('Close','close')+'</div><p class="muted">'+e(jobTitle(candidate.job_id))+' · '+e(candidate.stage)+'</p>'+ '<div class="next-action-card"><span class="eyebrow">Recommended next action</span><p>'+e(suggested.description)+'</p>'+btn(suggested.label,suggested.action,candidate.id,true)+'</div>'+ '<section class="readiness-summary" aria-label="Candidate readiness"><strong>Hiring checklist: '+complete+'/'+checklistItems.length+' complete or waived</strong><p>'+ (missing.length?e(missing.length+' application document'+(missing.length>1?'s':'')+' need upload or verification.'):'Both application documents verified at the last recorded check.')+'</p><div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'),candidate.documents?.cv==='Available'?'good':'warn')+tag('Cover letter: '+(candidate.documents?.cover||'Missing'),candidate.documents?.cover==='Available'?'good':'warn')+tag('Commission: '+(candidate.commission_ack||'Pending'),candidate.commission_ack==='Accepted'?'good':'warn')+'</div></section>'+ '<details class="candidate-tools"><summary>All candidate actions</summary><div class="tool-group"><h3>Progress and details</h3><div class="toolbar">'+btn('Update stage / schedule','stage',candidate.id)+btn('Log milestone','activity',candidate.id)+btn('Correct candidate details','correction',candidate.id)+'</div></div><div class="tool-group"><h3>Documents and assessment</h3><div class="toolbar">'+btn('CV & cover letter','documents',candidate.id)+btn('Scorecard','score',candidate.id)+btn('Hiring checklist','checklist',candidate.id)+btn('Commission review','commission',candidate.id)+'</div></div><div class="tool-group danger-zone"><h3>Record management</h3>'+dangerBtn('Move candidate to Trash','delete-record',candidate.id)+'</div></details>'+ '<details class="readiness-details"><summary>Hiring checklist details</summary><ul class="checklist">'+checklist+'</ul></details><details class="history-section"><summary>Record history ('+candidate.history.length+' entries)</summary><ul class="timeline">'+history+'</ul></details>');
 }
 function openForm(kind,id = '',restored = null) {
   saveDraft();
@@ -350,7 +344,7 @@ function openForm(kind,id = '',restored = null) {
     const target=events.find(event=>event.id===id);
     if(!target)return;
     const deleted=Boolean(recordStates(events).get(id)?.deleted);
-    title=(deleted?'Restore':'Delete')+' · '+recordTitle(target);
+    title=(deleted?'Restore':'Move to Trash')+' · '+recordTitle(target);
     fields='<input type="hidden" name="operation" value="'+(deleted?'restore':'delete')+'"><input type="hidden" name="target_id" value="'+e(id)+'">'+notes('note',deleted?'Restoration reason':'Deletion reason',true)+'<p class="hint wide">'+(deleted?'Restoring makes this record available again.':'This moves the record to Trash. You can restore it later. Original files and audit history are preserved.')+'</p>';
   } else if (kind === 'job') {
     title = job ? 'Manage position' : 'Open a position';
@@ -364,11 +358,7 @@ function openForm(kind,id = '',restored = null) {
       (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
   } else if (kind === 'candidate') {
     title = 'Add a candidate';
-    fields = field('alias','Unique candidate code',{...required,max:40}) +
-      select('job_id','Position',openJobs.map(item => [item.id,item.title]),openJobs[0].id) +
-      select('source','Source',sources,sources[0]) +
-      select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'], 'To confirm') +
-      field('notice','Notice period',{...required,value:'To confirm'}) + field('market','Target client markets',{value:'To confirm'}) + select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring') + select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending') +notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+ '<p class="hint wide">Save the candidate code first, then open CV & cover letter to enter their private name and upload the application documents. Real names are kept out of the public record.</p>' + next();
+    fields=field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('job_id','Position',openJobs.map(item=>[item.id,item.title]),openJobs[0].id)+select('source','Source',sources,sources[0])+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
   } else if (kind === 'stage' && candidate) {
     title = 'Update · ' + candidate.alias;
     fields = select('stage','Stage',stages,candidate.stage) + next(candidate) +
@@ -405,14 +395,14 @@ function openForm(kind,id = '',restored = null) {
       notes('priorities','Next workday priorities',true);
   } else return;
   const revision = restored?.revision ?? (kind==='recordaction' ? Math.max(recordStates(events).get(id)?.revision||events.find(e=>e.id===id)?.seq||0,candidateById(id)?.revision||0,state.jobs.find(j=>j.id===id)?.revision||0) : candidate?.revision ?? job?.revision) ?? 0;
+  const submitLabel=formActionLabel(kind,id,Boolean(restored?.values?.supersedes));
   show('<form id="entry" data-kind="' + e(kind) + '" data-id="' + e(id) +
     '" data-request="' + e(restored?.request || newId()) + '" data-revision="' + revision +
     '"><div class="section-top"><h2 id="dialog-title">' + e(title) + '</h2>' + btn('Close','close') +
     '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p>' +
-    '<div class="form-grid">' + field('event_date','Event date (SL)',{kind:'date',required:true,
-      value:kind === 'summary' ? reportDate : dateSL()}) + fields + '</div>' +
+    '<div class="form-grid">' + (['candidate','recordaction'].includes(kind)?'<input type="hidden" name="event_date" value="'+e(dateSL())+'">':field('event_date','Event date (SL)',{kind:'date',required:true,value:kind === 'summary' ? reportDate : dateSL()})) + fields + '</div>' +
     '<p class="form-error" role="alert"></p><div class="form-actions">' + btn('Discard draft','discard') +
-    '<button class="btn primary" type="submit">Save record</button></div></form>');
+    '<button class="btn primary'+(kind==='recordaction'&&!recordStates(events).get(id)?.deleted?' danger':'')+'" type="submit">'+e(submitLabel)+'</button></div></form>');
   pendingRecord = restored?.pending || null;
   if (kind === 'score') setRoundFields(restored?.values?.round || 'R1');
   if(restored?.values?.supersedes){const hidden=document.createElement('input');hidden.type='hidden';hidden.name='supersedes';hidden.value=restored.values.supersedes;dialog.querySelector('#entry').append(hidden);}
@@ -427,7 +417,9 @@ function openForm(kind,id = '',restored = null) {
   const openedForm=dialog.querySelector('#entry');
   openedForm.dataset.baseline=JSON.stringify(draftValues(openedForm));
   openedForm.dataset.restored=restored?'1':'';
-  dialog.querySelector('input,select,textarea')?.focus();
+  openedForm.dataset.submitLabel=submitLabel;
+  openedForm.addEventListener('invalid',event=>{const input=event.target;for(let d=input.closest('details');d;d=d.parentElement?.closest('details'))d.open=true;},true);
+  dialog.querySelector(kind==='candidate'?'[name="alias"]':'input:not([type="hidden"]),select,textarea')?.focus();
 }
 function setRoundFields(round) {
   const form=dialog.querySelector('#entry');
@@ -463,7 +455,7 @@ function saveDraft() {
   const values=draftValues(form);
   if(!pendingRecord && !form.dataset.restored && JSON.stringify(values)===form.dataset.baseline)return;
   storageWrite({
-    kind:form.dataset.kind,id:form.dataset.id,request:form.dataset.request,
+    kind:form.dataset.kind,id:form.dataset.id,request:form.dataset.request,saved_at:(JSON.stringify(storageRead(form.dataset.kind,form.dataset.id)?.values)===JSON.stringify(values)?storageRead(form.dataset.kind,form.dataset.id)?.saved_at:null)||new Date().toISOString(),
     revision:Number(form.dataset.revision),values,pending:pendingRecord
   });
 }
@@ -561,6 +553,7 @@ document.addEventListener('click',async event => {
   const control = event.target.closest('[data-action]');
   if (!control || saving) return;
   const {action,id} = control.dataset;
+  if(action==='interviews-view'){location.hash='interviews';render();return;}
   if(action==='overview-view'){location.hash='overview';render();return;}
   if(action==='trash-view'){if(dialog.open){saveDraft();dialog.close();}location.hash='trash';render();return;}
   if(action==='delete-record'||action==='restore-record'){openForm('recordaction',id);return;}
@@ -573,6 +566,7 @@ document.addEventListener('click',async event => {
       form.elements.stage.value=round==='r1'?'Replied':'R2 Prep';form.elements[round].value='';
       form.elements.note.value='Interview cancelled';
     }else {const round=action==='schedule-r1'?'R1':'R2';form.elements.stage.value=round+' Scheduled';form.elements.action.value=round+' interview';}
+    const actionLabel=action==='cancel-interview'?'Cancel interview':action==='schedule-r1'?'Schedule R1 interview':'Schedule R2 interview';form.dataset.submitLabel=actionLabel;form.querySelector('[type=submit]').textContent=actionLabel;
     updateStageFields();saveDraft();return;
   }
   if (action === 'close') { saveDraft();dialog.close();render();return }
@@ -637,6 +631,7 @@ dialog.addEventListener('input',event=>{
 });
 dialog.addEventListener('change',event => {
   if (event.target.name === 'stage') updateStageFields();
+  if(event.target.name==='commission_ack'){const terms=dialog.querySelector('[name="terms_detail"]');if(terms){terms.required=event.target.value==='Accepted'||dialog.querySelector('#entry')?.dataset.kind==='commission';if(terms.required)terms.closest('details')?.setAttribute('open','');}}
   if (event.target.name === 'round') setRoundFields(event.target.value);
   saveDraft();
 });
@@ -715,7 +710,7 @@ dialog.addEventListener('submit',async event => {
       }
       for (const input of controls) input.disabled = false;
       updateStageFields();
-      submit.textContent = 'Save record';
+      submit.textContent = form.dataset.submitLabel || 'Save changes';
       saveDraft();
     } else {
       for (const button of form.querySelectorAll('button')) button.disabled = false;
@@ -762,3 +757,33 @@ function editEvent(id){
  const revision=parent?.revision||recordStates(events).get(id)?.revision||target.seq;
  openForm(kind,id,{kind,id,request:newId(),revision,values:{...target.payload,event_date:target.event_date,supersedes:id}});
 }
+
+function tomorrowSL(){const date=new Date(dateSL()+'T12:00:00+05:30');date.setUTCDate(date.getUTCDate()+1);return dateSL(date);}
+function formActionLabel(kind,id,editing=false){
+ if(kind==='recordaction')return recordStates(events).get(id)?.deleted?'Restore record':'Move to Trash';
+ if(editing)return 'Save entry changes';
+ return {candidate:'Add candidate',job:id?'Save position changes':'Create position',stage:'Save stage and schedule',activity:'Log milestone',score:'Save scorecard',checklist:'Save checklist',commission:'Save commission review',correction:'Save candidate details',summary:'Save daily summary'}[kind]||'Save changes';
+}
+function draftTitle(draft){
+ const all=project(events),target=events.find(e=>e.id===draft.id),candidate=all.candidates.find(c=>c.id===(target?.subject_id||draft.id));
+ const owner=candidate?.alias||all.jobs.find(j=>j.id===draft.id)?.title||draft.values.alias||draft.values.title||'New entry';
+ const labels={stage:'Stage and schedule',candidate:'New candidate',commission:'Commission review',score:'Scorecard',checklist:'Hiring checklist',activity:'Milestone',correction:'Candidate details',recordaction:'Record management',summary:'Daily summary',job:'Position'};
+ return owner+' — '+(labels[draft.kind]||draft.kind);
+}
+function historyTitle(event,candidate){
+ if(event.kind==='stage'){
+  const prior=candidate.history.filter(e=>e.seq<event.seq).reverse().find(e=>e.kind==='stage'||e.kind==='candidate');
+  return 'Stage changed: '+(prior?.payload.stage||'Sourced')+' → '+event.payload.stage;
+ }
+ return eventLabel(event);
+}
+function nextCandidateAction(candidate){
+ if(state.jobs.find(job=>job.id===candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
+ if(candidate.commission_ack!=='Accepted'||!candidate.terms_detail)return {label:'Review commission terms',action:'commission',description:'Record the candidate’s acknowledgement and agreed boundaries before progressing.'};
+ if(closed.includes(candidate.stage))return {label:'Review candidate details',action:'correction',description:candidate.stage==='Hired'?'Hiring completed. Review the record if any details need updating.':'This hiring process is closed. Review details or reopen it through the stage controls.'};
+ if(['R1 Review','R2 Review'].includes(candidate.stage))return {label:'Complete interview scorecard',action:'score',description:'Record observed evidence before deciding the next stage.'};
+ if(candidate.stage==='Offer / Agreement')return {label:'Review hiring checklist',action:'checklist',description:'Confirm all hiring requirements before marking the candidate hired.'};
+ if(['R1 Scheduled','R2 Scheduled'].includes(candidate.stage))return {label:'Review interview booking',action:'stage',description:'Confirm the interview time and next action.'};
+ return {label:'Review next stage',action:'stage',description:candidate.action||'Choose the next step and its owner.'};
+}
+function bookingPreview(){const bookings=scheduledInterviews().filter(({slot})=>+new Date(slot+':00+05:30')>=Date.now()).slice(0,3);return bookings.length?table(['Candidate','Round','Sri Lanka time','Action'],bookings.map(({candidate,round,slot})=>[e(candidate.alias),e(round),e(slot.replace('T',' ')),btn('Review booking','stage',candidate.id)])):empty('No upcoming interviews are booked.');}

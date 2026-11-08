@@ -324,3 +324,26 @@ test('interview cancellation frees the slot and restore cannot introduce an over
  assert.equal((await control(cancel.id,'delete')).status,409);
  assert.equal((await control(original.id,'delete')).status,201);
 });
+test('meeting settings validate Zoom and SL time, reject stale writes, cancel/reschedule and send once',async()=>{
+ const cid='baaaaaaa-1111-4111-8111-111111111111',jid=defaultRoleRecord.id;
+ const future=new Date(Date.now()+86400000).toISOString().slice(0,16),reminder=new Date(Date.now()+3600000).toISOString().slice(0,16);
+ sql("INSERT INTO recruitment_events(id,kind,event_date,payload) VALUES (?,'candidate','2026-11-08',?)",[cid,JSON.stringify({alias:'REMINDER-TEST',job_id:jid,stage:'R1 Scheduled',r1:future})]);
+ const save=p=>worker.fetch(request('/api/interviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({candidate_id:cid,round:'R1',slot:future,zoom:'https://zoom.us/j/123456789',enabled:true,remind_at:reminder,version:'',...p})}),{DB});
+ sql("INSERT INTO recruitment_events(id,kind,subject_id,event_date,payload) VALUES (?,'stage',?,'2026-11-08',?)",['baaaaaaa-1111-4111-8111-111111111119',cid,JSON.stringify({stage:'R1 Scheduled',r1:future})]);
+ // ISO wall clock is interpreted as Sri Lanka; choose at least 7 hours ahead.
+ const sendAt=new Date(Date.now()+7*3600000).toISOString().slice(0,16);
+ assert.equal((await save({zoom:'https://zoom.us.evil.test/j/123',remind_at:sendAt})).status,400);
+ assert.equal((await save({remind_at:future})).status,400);
+ let result=await save({remind_at:sendAt});assert.equal(result.status,200);const m=await result.json();
+ assert.equal((await save({remind_at:sendAt})).status,409);
+ assert.equal((await save({remind_at:sendAt,version:m.version})).status,200);
+ const env={DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test/exec',DRIVE_WEB_APP_SECRET:'test-only-secret-with-at-least-32-characters'};
+ const originalFetch=globalThis.fetch;let mails=0;globalThis.fetch=async(url,o)=>{const p=JSON.parse(o.body);if(p.action==='health')return Response.json({ok:true,email_ready:true});assert.equal(p.action,'interview-email');mails++;return Response.json({ok:true,sent:true});};
+ async function cron(){const work=[];await worker.scheduled({scheduledTime:Date.UTC(2026,10,8,0,1)},env,{waitUntil:p=>work.push(p)});await Promise.all(work);}
+ try{
+  const key='interview:'+cid,load=()=>JSON.parse(sql('SELECT value FROM maintenance_state WHERE key=?',[key])[0].value),put=v=>sql('UPDATE maintenance_state SET value=? WHERE key=?',[JSON.stringify(v),key]);
+  put({...m,remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'sent');await cron();assert.equal(mails,1);
+  put({...m,status:'pending',slot:'2026-01-01T01:00',remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'cancelled');assert.equal(mails,1);
+  sql("INSERT INTO recruitment_events(id,kind,subject_id,event_date,payload) VALUES (?,'stage',?,'2026-11-08',?)",['baaaaaaa-1111-4111-8111-111111111112',cid,JSON.stringify({stage:'Replied'})]);put({...m,remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'cancelled');assert.equal(mails,1);
+ }finally{globalThis.fetch=originalFetch;}
+});

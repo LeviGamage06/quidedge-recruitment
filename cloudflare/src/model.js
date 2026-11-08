@@ -46,11 +46,29 @@ export function stageProblem(payload, candidate, eventDate) {
   }
   return '';
 }
+export function recordStates(events) {
+  const states=new Map();
+  for(const event of [...events].sort((a,b)=>a.seq-b.seq)) {
+    if(event.kind==='summary' && event.payload.operation && event.payload.target_id)
+      states.set(event.payload.target_id,{deleted:event.payload.operation==='delete',revision:event.seq});
+  }
+  return states;
+}
+export function visibleEvents(events) {
+  const states=recordStates(events);
+  const replaced=new Set(events.filter(e=>e.payload.supersedes).map(e=>e.payload.supersedes));
+  return events.filter(e=>!e.payload.operation && !states.get(e.id)?.deleted && !replaced.has(e.id));
+}
 export function project(events) {
+  const states=recordStates(events);
+  const visible=new Set(visibleEvents(events).map(e=>e.id));
   const jobs = new Map();
   const candidates = new Map();
   for (const event of [...events].sort((a,b) => a.seq - b.seq)) {
     const p = event.payload;
+    if(p.operation)continue;
+    if(!visible.has(event.id) && !(event.kind==='candidate'||event.kind==='job'&&!p.job_id))continue;
+    if(p.supersedes && !visible.has(event.id))continue;
     if (event.kind === 'job') {
       if (p.job_id) {
         const job = jobs.get(p.job_id);
@@ -91,6 +109,16 @@ export function project(events) {
       }[p.event] || [];
       for (const key of completed) candidate.checklist[key] = 'Complete';
     }
+  }
+  for(const job of jobs.values())job.deleted=Boolean(states.get(job.id)?.deleted);
+  for(const candidate of candidates.values())candidate.deleted=Boolean(states.get(candidate.id)?.deleted);
+  for(const event of events) {
+    const revision=states.get(event.id)?.revision;
+    if(!revision)continue;
+    const candidate=candidates.get(event.subject_id||event.id);
+    const job=jobs.get(event.payload.job_id||event.id);
+    if(candidate)candidate.revision=Math.max(candidate.revision,revision);
+    if(job)job.revision=Math.max(job.revision,revision);
   }
   return {jobs:[...jobs.values()].reverse(),candidates:[...candidates.values()].reverse()};
 }

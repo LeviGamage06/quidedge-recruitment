@@ -19,10 +19,10 @@ function bridge(){
  }
  const blob=(value,mime,name)=>{const bytes=typeof value==='string'?[...Buffer.from(value)]:value;return {name,mime,bytes,getBytes:()=>bytes,getDataAsString:()=>Buffer.from(bytes).toString()};};
  const root=new Item('root');items.set('1n2x6MZ8wqBCPe2bQcU4Z0XQDCV8121Mj',root);
- const context=vm.createContext({console,PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties.get(k),setProperty:(k,v)=>properties.set(k,v)})},DriveApp:{Access:{ANYONE:'ANYONE',ANYONE_WITH_LINK:'ANYONE_WITH_LINK'},getFolderById:id=>items.get(id),getFileById:id=>items.get(id)},ContentService:{MimeType:{JSON:'json'},createTextOutput:body=>({body,getContent(){return body;},setMimeType(){return this;}})},LockService:{getScriptLock:()=>({tryLock:()=>true,releaseLock(){}})},Utilities:{base64Decode:s=>[...Buffer.from(s,'base64')],base64Encode:s=>Buffer.from(s).toString('base64'),DigestAlgorithm:{SHA_256:'sha256'},computeDigest:(algo,bytes)=>[...createHash(algo).update(Buffer.from(bytes)).digest()],newBlob:blob}});
+ const context=vm.createContext({console,PropertiesService:{getScriptProperties:()=>({getProperty:k=>properties.get(k),setProperty:(k,v)=>properties.set(k,v),deleteProperty:k=>properties.delete(k)})},DriveApp:{Access:{ANYONE:'ANYONE',ANYONE_WITH_LINK:'ANYONE_WITH_LINK'},getFolderById:id=>items.get(id),getFileById:id=>items.get(id)},ContentService:{MimeType:{JSON:'json'},createTextOutput:body=>({body,getContent(){return body;},setMimeType(){return this;}})},LockService:{getScriptLock:()=>({tryLock:()=>true,releaseLock(){}})},Utilities:{base64Decode:s=>[...Buffer.from(s,'base64')],base64Encode:s=>Buffer.from(s).toString('base64'),DigestAlgorithm:{SHA_256:'sha256'},computeDigest:(algo,bytes)=>[...createHash(algo).update(Buffer.from(bytes)).digest()],newBlob:blob}});
  vm.runInContext(source,context);
  const send=extra=>JSON.parse(context.doPost({postData:{contents:JSON.stringify({secret:properties.get('DRIVE_WEB_APP_SECRET'),id:'11111111-1111-4111-8111-111111111111',candidate_id:'d3057f15-9b02-43de-92d0-0cb296ecf63e',alias:'QE-001',name:'Example Applicant',document_type:'cv',extension:'pdf',fingerprint:'opaque-test-fingerprint',data:Buffer.from(validPdf).toString('base64'),...extra})}}).body);
- return {send,root,properties,context};
+ return {send,root,properties,context,items};
 }
 test('private folders preserve original documents and exact retries reuse receipt',()=>{
  const b=bridge();assert.equal(b.send().ok,true);assert.equal(b.send().ok,true);const role=b.root.children[0],folder=role.children[0];assert.equal(folder.files.length,2);
@@ -52,4 +52,15 @@ test('interview email recipient is fixed and duplicate/ambiguous retries cannot 
  assert.equal(b.send(p).sent,true);assert.equal(b.send(p).sent,true);assert.equal(messages.length,1);assert.equal(messages[0].to,'prasad.quidedge@gmail.com');assert.match(messages[0].body,/09:00.*Sri Lanka/);
  const bad={...p,id:'11111111-1111-4111-8111-111111111113',zoom:'https://zoom.us.evil.example/j/123'};assert.equal(b.send(bad).ok,false);
  b.context.MailApp.sendEmail=()=>{throw Error('ambiguous network failure')};const unknown={...p,id:'11111111-1111-4111-8111-111111111114'};assert.equal(b.send(unknown).ok,false);assert.equal(b.send(unknown).status,'sending');assert.equal(messages.length,1);
+});
+
+test('permanent cleanup erases candidate files and scrubs every managed backup without removing other candidates',()=>{
+ const b=bridge(),removed=[];
+ b.context.Drive={Files:{get:id=>{if(!b.items.has(id))throw Error('404 File not found');return {ownedByMe:true};},list:p=>{const id=p.q.split("'")[1],item=b.items.get(id);return {files:[...item.children,...item.files].map(f=>({id:f.id,mimeType:f.blob?'application/pdf':'application/vnd.google-apps.folder',ownedByMe:true}))};},remove:id=>{const item=b.items.get(id);function erase(i){[...i.children,...i.files].forEach(erase);b.items.delete(i.id);removed.push(i.id);}erase(item);if(item.parent){item.parent.children=item.parent.children.filter(f=>f!==item);item.parent.files=item.parent.files.filter(f=>f!==item);}}}};
+ b.send();const cid='d3057f15-9b02-43de-92d0-0cb296ecf63e',file=b.root.children[0].children[0].files[0],keep='11111111-1111-4111-8111-111111111119';
+ b.send({action:'backup',first:1,last:2,records:[{seq:1,id:cid,payload:{alias:'ERASE-ME'}},{seq:2,id:keep,payload:{alias:'KEEP-ME'}}]});
+ const p={action:'purge',request_id:'11111111-1111-4111-8111-111111111118',event_ids:[cid],candidate_ids:[cid],reminder_ids:[],head:2};
+ assert.equal(b.send(p).cleaned,true);assert.ok(removed.includes(file.id));assert.equal(b.properties.has('candidate:'+cid),false);assert.equal(b.root.children[0].children.length,0);
+ const backup=b.root.children.find(f=>f.name==='_System backups');assert.equal(backup.files.length,1);assert.doesNotMatch(backup.files[0].blob.getDataAsString(),/ERASE-ME/);assert.match(backup.files[0].blob.getDataAsString(),/KEEP-ME/);
+ assert.equal(b.send(p).cleaned,true);assert.equal(b.send({action:'backup',first:1,last:1,records:[{seq:1,id:cid}]}).code,'STALE_BACKUP');assert.equal(b.send().code,'PURGED');
 });

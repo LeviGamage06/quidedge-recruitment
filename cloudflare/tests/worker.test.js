@@ -16,9 +16,14 @@ const directory = mkdtempSync(join(tmpdir(), 'quidedge-test-'));
 const database = join(directory, 'records.sqlite');
 const python = `import sqlite3,json,sys
 c=sqlite3.connect(sys.argv[1]); c.row_factory=sqlite3.Row
+c.execute('PRAGMA foreign_keys=ON')
 q=json.loads(sys.stdin.read())
 if q.get('schema'):
  c.executescript(q['schema']); out=None
+elif q.get('batch'):
+ out=[]
+ for item in q['batch']:
+  r=c.execute(item['sql'],item['parameters']);out.append([dict(x) for x in r.fetchall()])
 else:
  r=c.execute(q['sql'], q['parameters']); out=[dict(x) for x in r.fetchall()]
 c.commit(); print(json.dumps(out))`;
@@ -27,12 +32,14 @@ function sql(sql, parameters=[], schema) {
     input:JSON.stringify({sql,parameters,schema}),encoding:'utf8',stdio:['pipe','pipe','pipe']
   }));
 }
-sql('', [], readFileSync(new URL('../migrations/0001_initial.sql', import.meta.url),'utf8')+readFileSync(new URL('../migrations/0002_operations.sql', import.meta.url),'utf8'));
+sql('', [], readFileSync(new URL('../migrations/0001_initial.sql', import.meta.url),'utf8')+readFileSync(new URL('../migrations/0002_operations.sql', import.meta.url),'utf8')+readFileSync(new URL('../migrations/0003_permanent_trash.sql', import.meta.url),'utf8'));
 const DB = {
   withSession() { return this; },
+  async batch(statements){return JSON.parse(execFileSync('python3',['-c',python,database],{input:JSON.stringify({batch:statements.map(s=>s.query())}),encoding:'utf8'}));},
   prepare(statement) {
     let parameters=[];
     return {
+      query(){return {sql:statement,parameters};},
       bind(...values) { parameters=values; return this; },
       async all() { return {results:sql(statement,parameters)}; },
       async first() { return sql(statement,parameters)[0] || null; },
@@ -345,5 +352,27 @@ test('meeting settings validate Zoom and SL time, reject stale writes, cancel/re
   put({...m,remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'sent');await cron();assert.equal(mails,1);
   put({...m,status:'pending',slot:'2026-01-01T01:00',remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'cancelled');assert.equal(mails,1);
   sql("INSERT INTO recruitment_events(id,kind,subject_id,event_date,payload) VALUES (?,'stage',?,'2026-11-08',?)",['baaaaaaa-1111-4111-8111-111111111112',cid,JSON.stringify({stage:'Replied'})]);put({...m,remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'cancelled');assert.equal(mails,1);
+ }finally{globalThis.fetch=originalFetch;}
+});
+test('permanent Trash cleanup removes database, reminders, receipts and managed copies with safe resumable failure',async()=>{
+ const cid='de1e7e00-1111-4111-8111-111111111111',sid='de1e7e00-1111-4111-8111-111111111112',tid='de1e7e00-1111-4111-8111-111111111113',note='de1e7e00-1111-4111-8111-111111111114',nt='de1e7e00-1111-4111-8111-111111111115',rid='de1e7e00-1111-4111-8111-111111111116';
+ for(const [id,kind,subject,payload] of [[cid,'candidate',null,{alias:'PURGE-TEST',job_id:defaultRoleRecord.id}],[sid,'stage',cid,{stage:'Replied'}],[tid,'summary',null,{operation:'delete',target_id:cid}],[note,'summary',null,{progress:'Disposable summary'}],[nt,'summary',null,{operation:'delete',target_id:note}]])sql('INSERT INTO recruitment_events(id,kind,subject_id,event_date,payload) VALUES (?,?,?,?,?)',[id,kind,subject,'2026-11-08',JSON.stringify(payload)]);
+ sql('INSERT INTO document_outbox(id,candidate_id,fingerprint,document_type,event_date,payload) VALUES (?,?,?,?,?,?)',[sid,cid,'test','cv','2026-11-08','{}']);sql('INSERT INTO maintenance_state(key,value) VALUES (?,?)',['interview:'+cid,JSON.stringify({candidate_id:cid,version:rid})]);
+ const originalFetch=globalThis.fetch,env={DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test/exec',DRIVE_WEB_APP_SECRET:'test-only-secret-with-at-least-32-characters'};let ready=false,fail=true,purges=0;
+ globalThis.fetch=async(url,options)=>{const p=JSON.parse(options.body);if(p.action==='health')return Response.json({ok:true,purge_ready:ready});assert.equal(p.action,'purge');assert.ok(p.event_ids.includes(cid)&&p.event_ids.includes(tid)&&p.event_ids.includes(nt));assert.deepEqual(p.candidate_ids,[cid]);assert.deepEqual(p.reminder_ids,[rid]);purges++;return Response.json(fail?{ok:false}:{ok:true,cleaned:true});};
+ const head=sql('SELECT MAX(seq) AS seq FROM recruitment_events')[0].seq,body={id:rid,confirm:'DELETE PERMANENTLY',targets:[cid,note],expected_head:head};
+ const call=p=>worker.fetch(request('/api/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,...p})}),env);
+ try{
+  assert.equal((await call({confirm:'DELETE'})).status,400);assert.equal((await call({expected_head:head-1})).status,409);assert.equal((await call({})).status,503);assert.equal(sql("SELECT * FROM maintenance_state WHERE key='purge_active'").length,0);
+  ready=true;assert.equal((await call({})).status,202);assert.throws(()=>sql('DELETE FROM recruitment_events WHERE id=?',[cid]));
+  assert.equal((await worker.fetch(request('/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),env)).status,423);
+  assert.equal((await (await worker.fetch(request('/api/trash'),env)).json()).state,'cleaning');
+  fail=false;const work=[];await worker.scheduled({scheduledTime:Date.UTC(2026,10,8,0,1)},env,{waitUntil:p=>work.push(p)});await Promise.all(work);
+  for(const id of [cid,sid,tid,note,nt])assert.equal(sql('SELECT * FROM recruitment_events WHERE id=?',[id]).length,0);
+  assert.equal(sql('SELECT * FROM document_outbox WHERE candidate_id=?',[cid]).length,0);assert.equal(sql('SELECT * FROM maintenance_state WHERE key=?',['interview:'+cid]).length,0);
+  assert.equal(sql("SELECT * FROM maintenance_state WHERE key IN ('purge_active','purge_runner')").length,0);
+  const result=await (await call({})).json();assert.equal(result.state,'complete');assert.equal(result.records,2);assert.equal(purges,2);
+  const replay=await worker.fetch(request('/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:note,kind:'summary',subject_id:null,event_date:'2026-11-08',payload:{progress:'Disposable summary',priorities:'Next step'}})}),env);assert.equal(replay.status,410);assert.doesNotMatch(JSON.stringify(result),/PURGE-TEST|de1e7e00-1111-4111-8111-111111111111/);
+  const bootstrap=await worker.fetch(request('/api/bootstrap'),env);assert.equal(bootstrap.headers.get('X-Purge-Epoch'),rid);assert.ok((await bootstrap.json()).events.every(e=>![cid,sid,tid,note,nt].includes(e.id)));assert.throws(()=>sql('DELETE FROM recruitment_events'));
  }finally{globalThis.fetch=originalFetch;}
 });

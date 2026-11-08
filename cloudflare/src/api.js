@@ -27,7 +27,7 @@ CREATE INDEX recruitment_events_subject_seq ON recruitment_events(subject_id, se
 CREATE INDEX recruitment_events_kind_seq ON recruitment_events(kind, seq);
 
 */
-import {stages,closed,milestones,checklistItems,dateSL,project,stageProblem,validDate,privacyProblem,recordStates,visibleEvents} from './model.js';
+import {stages,closed,milestones,checklistItems,dateSL,project,stageProblem,validDate,privacyProblem,recordStates,visibleEvents,interviewRevision} from './model.js';
 import {validateDocumentBytes} from './binary.js';
 const eventFields = {
   job: {

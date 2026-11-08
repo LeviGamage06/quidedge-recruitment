@@ -63,7 +63,7 @@ async function maintenance(env){
   const records=rows.results.map(toEvent),last=records.at(-1).seq;
   const receipt=await bridgeRequest(env,{action:'backup',first:records[0].seq,last,records},60000);
   if(receipt.saved!==true||receipt.last!==last)throw Error('Backup receipt mismatch; cursor was not advanced.');
-  await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('backup_cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(String(last)).run();
+  await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('backup_cursor',?) ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(CAST(maintenance_state.value AS INTEGER),CAST(excluded.value AS INTEGER)) AS TEXT)").bind(String(last)).run();
  }
  await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('last_success',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(new Date().toISOString()).run();
 }

@@ -141,6 +141,43 @@ function interviewRevision(events, candidate) {
   return events.reduce((seq, e) => stages2.has(e.id) || e.kind === "summary" && ["delete", "restore"].includes(e.payload.operation) && (e.payload.target_id === candidate.id || stages2.has(e.payload.target_id)) ? Math.max(seq, e.seq) : seq, 0);
 }
 
+// src/purge-plan.js
+function planPurge(events, targets) {
+  const byId = new Map(events.map((e) => [e.id, e])), states = recordStates(events);
+  if (!targets.length || new Set(targets).size !== targets.length) throw Error("Choose records in Trash.");
+  for (const id of targets) if (!byId.has(id) || byId.get(id).payload.operation || !states.get(id)?.deleted) throw Error("Only records currently in Trash can be permanently deleted.");
+  const selected = new Set(targets);
+  for (const id of targets) {
+    const item = byId.get(id);
+    if (item.kind === "job" && !item.payload.job_id) {
+      for (const c of events.filter((e) => e.kind === "candidate" && e.payload.job_id === id)) {
+        if (!states.get(c.id)?.deleted) throw Error("Move every candidate linked to this position to Trash before permanently deleting the position.");
+        selected.add(c.id);
+      }
+    }
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const e of events) {
+      if (selected.has(e.id)) continue;
+      if (selected.has(e.subject_id) || selected.has(e.payload.target_id) || selected.has(e.payload.supersedes) || e.kind === "job" && selected.has(e.payload.job_id)) {
+        selected.add(e.id);
+        changed = true;
+      }
+      if (e.payload.supersedes && selected.has(e.id) && !selected.has(e.payload.supersedes)) {
+        selected.add(e.payload.supersedes);
+        changed = true;
+      }
+    }
+    for (const e of events) if (selected.has(e.id) && e.payload.supersedes && !selected.has(e.payload.supersedes)) {
+      selected.add(e.payload.supersedes);
+      changed = true;
+    }
+  }
+  return { event_ids: [...selected], candidate_ids: events.filter((e) => selected.has(e.id) && e.kind === "candidate").map((e) => e.id), count: targets.length, head: events.at(-1)?.seq || 0 };
+}
+
 // node_modules/fflate/esm/browser.js
 var u8 = Uint8Array;
 var u16 = Uint16Array;
@@ -784,6 +821,7 @@ async function api(request, env, url) {
   const record = await readRecord(request);
   const problem = validate(record);
   if (problem) return error(problem);
+  if (await db.prepare("SELECT value FROM maintenance_state WHERE key=?").bind("purged-event:" + await purgeHash(record.id)).first()) return error("This record was permanently deleted and cannot be replayed. Create a new record if needed.", 410);
   const { id, kind, subject_id, event_date, payload } = record;
   const previous = await db.prepare("SELECT * FROM recruitment_events WHERE id=?").bind(id).first();
   if (previous) {
@@ -1033,7 +1071,7 @@ async function documentStatus(request, env, url) {
   return json(response);
 }
 async function maintenance(env) {
-  if (!env.DB || !driveConfigured(env)) return;
+  if (!env.DB || !driveConfigured(env) || await purgeActive(env.DB)) return;
   const db = env.DB.withSession("first-primary");
   const scan = await db.prepare("SELECT value FROM maintenance_state WHERE key='outbox_scan_cursor'").first();
   let jobs = await db.prepare("SELECT * FROM document_outbox WHERE state='pending' AND id>? ORDER BY id LIMIT 10").bind(scan?.value || "").all();
@@ -1054,7 +1092,7 @@ async function maintenance(env) {
     const records = rows.results.map(toEvent), last = records.at(-1).seq;
     const receipt = await bridgeRequest(env, { action: "backup", first: records[0].seq, last, records }, 6e4);
     if (receipt.saved !== true || receipt.last !== last) throw Error("Backup receipt mismatch; cursor was not advanced.");
-    await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('backup_cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(String(last)).run();
+    await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('backup_cursor',?) ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(CAST(maintenance_state.value AS INTEGER),CAST(excluded.value AS INTEGER)) AS TEXT)").bind(String(last)).run();
   }
   await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('last_success',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind((/* @__PURE__ */ new Date()).toISOString()).run();
 }
@@ -1153,14 +1191,101 @@ async function dispatchInterviewReminders(env) {
     await db.prepare("UPDATE maintenance_state SET value=? WHERE key=? AND value=?").bind(JSON.stringify({ ...claimed, status, processed_at: (/* @__PURE__ */ new Date()).toISOString() }), row.key, JSON.stringify(claimed)).run();
   }
 }
+async function purgeHash(id) {
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(id)))].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function purgeActive(db) {
+  return db.prepare("SELECT value FROM maintenance_state WHERE key='purge_active'").first();
+}
+async function purgeEpoch(db) {
+  return (await db.prepare("SELECT value FROM maintenance_state WHERE key='purge_epoch'").first())?.value || "";
+}
+async function runPurge(env) {
+  const db = env.DB.withSession("first-primary"), row = await purgeActive(db);
+  if (!row) return null;
+  let job = JSON.parse(row.value);
+  const lease = JSON.stringify({ id: crypto.randomUUID(), until: Date.now() + 12e4 });
+  const runner = await db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('purge_runner',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value WHERE json_extract(maintenance_state.value,'$.until')<? RETURNING value").bind(lease, Date.now()).first();
+  if (!runner) return { state: "cleaning", id: job.id };
+  try {
+    const result = await bridgeRequest(env, { action: "purge", request_id: job.id, event_ids: job.event_ids, candidate_ids: job.candidate_ids, reminder_ids: job.reminder_ids || [], head: job.head }, 6e4);
+    if (result.cleaned !== true) throw Error("Private files and backups have not confirmed deletion. Cleanup will retry.");
+    job = { ...job, phase: "database" };
+    await db.prepare("UPDATE maintenance_state SET value=? WHERE key='purge_active'").bind(JSON.stringify(job)).run();
+    const revoked = JSON.stringify(await Promise.all(job.event_ids.map(async (id) => "purged-event:" + await purgeHash(id))));
+    const ids = JSON.stringify(job.event_ids), candidates = JSON.stringify(job.candidate_ids), receipt = { id: job.id, state: "complete", records: job.count, events: job.event_ids.length, completed_at: (/* @__PURE__ */ new Date()).toISOString() };
+    await db.batch([
+      db.prepare("INSERT INTO maintenance_state(key,value) SELECT value,'1' FROM json_each(?) WHERE true ON CONFLICT(key) DO NOTHING").bind(revoked),
+      db.prepare("DELETE FROM document_outbox WHERE candidate_id IN (SELECT value FROM json_each(?)) OR id IN (SELECT value FROM json_each(?))").bind(candidates, ids),
+      db.prepare("DELETE FROM maintenance_state WHERE key LIKE 'interview:%' AND substr(key,11) IN (SELECT value FROM json_each(?))").bind(candidates),
+      db.prepare("DELETE FROM recruitment_events WHERE id IN (SELECT value FROM json_each(?))").bind(ids),
+      db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('backup_cursor',?) ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(CAST(maintenance_state.value AS INTEGER),CAST(excluded.value AS INTEGER)) AS TEXT)").bind(String(job.head)),
+      db.prepare("INSERT INTO maintenance_state(key,value) VALUES ('purge_epoch',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(job.id),
+      db.prepare("INSERT INTO maintenance_state(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind("purge_receipt:" + job.id, JSON.stringify(receipt)),
+      db.prepare("DELETE FROM maintenance_state WHERE key IN ('purge_active','purge_runner')")
+    ]);
+    return receipt;
+  } catch (err2) {
+    await db.prepare("DELETE FROM maintenance_state WHERE key='purge_runner' AND value=?").bind(lease).run();
+    throw err2;
+  }
+}
+async function trashApi(request, env, url) {
+  const db = env.DB.withSession("first-primary");
+  if (request.method === "GET") {
+    const active2 = await purgeActive(db);
+    if (active2) return json({ state: "cleaning", id: JSON.parse(active2.value).id });
+    const id = url.searchParams.get("request_id");
+    if (id && uuid.test(id)) {
+      const receipt = await db.prepare("SELECT value FROM maintenance_state WHERE key=?").bind("purge_receipt:" + id).first();
+      if (receipt) return json(JSON.parse(receipt.value));
+    }
+    return json({ state: "idle" });
+  }
+  if (request.method !== "POST") return error("Use GET or POST.", 405);
+  const p = await boundedJson(request, 32e3);
+  if (!p || !uuid.test(p.id || "") || p.confirm !== "DELETE PERMANENTLY" || !Array.isArray(p.targets) || p.targets.length > 500 && p.all !== true || p.targets.some((id) => !uuid.test(id || "")) || !Number.isSafeInteger(p.expected_head)) return error("Type DELETE PERMANENTLY to confirm the records currently in Trash.");
+  const prior = await db.prepare("SELECT value FROM maintenance_state WHERE key=?").bind("purge_receipt:" + p.id).first();
+  if (prior) return json(JSON.parse(prior.value));
+  const active = await purgeActive(db);
+  if (active) return json({ state: "cleaning", id: JSON.parse(active.value).id }, 202);
+  const rows = await db.prepare("SELECT * FROM recruitment_events ORDER BY seq").all(), events = rows.results.map(toEvent);
+  let plan;
+  try {
+    plan = planPurge(events, p.all === true ? events.filter((e) => !e.payload.operation && recordStates(events).get(e.id)?.deleted).map((e) => e.id) : p.targets);
+  } catch (err2) {
+    return error(err2.message);
+  }
+  if (plan.event_ids.length > 1e4) return error("This cleanup contains too much history for one operation. Permanently delete smaller groups first.");
+  if (plan.head !== p.expected_head) return error("The workspace changed. Refresh Trash and review the selection again.", 409);
+  if (!driveConfigured(env)) return error("Private storage must be connected before permanent cleanup.", 503);
+  const schema = await db.prepare("SELECT name FROM sqlite_master WHERE type='trigger' AND name='recruitment_events_purge_freeze'").first();
+  if (!schema) return error("Permanent cleanup needs the database upgrade. No records have been removed.", 503);
+  const health = await bridgeRequest(env, { action: "health", purge: true });
+  if (health.purge_ready !== true) return error("Permanent private-file deletion needs owner setup. No records have been removed.", 503);
+  const meetings = await db.prepare("SELECT key,value FROM maintenance_state WHERE key LIKE 'interview:%'").all();
+  const reminder_ids = meetings.results.map((r) => JSON.parse(r.value)).filter((m) => plan.candidate_ids.includes(m.candidate_id)).map((m) => m.version);
+  const job = { ...plan, reminder_ids, id: p.id, phase: "drive" };
+  const lock = await db.prepare("INSERT INTO maintenance_state(key,value) SELECT 'purge_active',? WHERE COALESCE((SELECT MAX(seq) FROM recruitment_events),0)=? ON CONFLICT(key) DO NOTHING RETURNING key").bind(JSON.stringify(job), plan.head).first();
+  if (!lock) return error("The workspace changed. Refresh Trash and review again.", 409);
+  try {
+    return json(await runPurge(env));
+  } catch {
+    return json({ state: "cleaning", id: p.id, message: "Cleanup is still processing. Records cannot be restored while cleanup finishes. The server will retry automatically." }, 202);
+  }
+}
 var api_default = {
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(dispatchInterviewReminders(env));
+    ctx.waitUntil((async () => {
+      if (!env.DB) return;
+      if (await purgeActive(env.DB)) return runPurge(env);
+      return dispatchInterviewReminders(env);
+    })());
     if (!controller.scheduledTime || new Date(controller.scheduledTime).getUTCMinutes() % 10 === 0) ctx.waitUntil(maintenance(env));
   },
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (["/api/interviews", "/api/events", "/api/documents", "/api/integrations", "/api/bootstrap", "/api/document-status", "/api/maintenance"].includes(url.pathname)) {
+    if (["/api/trash", "/api/interviews", "/api/events", "/api/documents", "/api/integrations", "/api/bootstrap", "/api/document-status", "/api/maintenance"].includes(url.pathname)) {
       const origin = request.headers.get("Origin");
       const allowed = origin === "https://levigamage06.github.io" || origin === "https://quidedge-hire.pages.dev" || origin === url.origin;
       if (origin && !allowed) return error("This origin is not allowed.", 403);
@@ -1174,8 +1299,9 @@ var api_default = {
           "Access-Control-Max-Age": "600"
         } });
       }
-      let response;
+      let response, readEpoch;
       try {
+        if (env.DB && request.method === "GET" && ["/api/events", "/api/bootstrap"].includes(url.pathname)) readEpoch = await purgeEpoch(env.DB);
         if (request.method === "POST" || ["/api/integrations", "/api/document-status", "/api/maintenance"].includes(url.pathname)) {
           const limited = await rateLimit(request, env, url.pathname);
           if (limited) {
@@ -1183,11 +1309,22 @@ var api_default = {
             return limited;
           }
         }
-        response = url.pathname === "/api/interviews" ? await interviewApi(request, env, url) : url.pathname === "/api/maintenance" ? await maintenanceStatus(request, env) : url.pathname === "/api/bootstrap" ? request.method === "GET" ? await bootstrap(env) : error("Use GET.", 405) : url.pathname === "/api/document-status" ? await documentStatus(request, env, url) : url.pathname === "/api/events" ? await api(request, env, url) : url.pathname === "/api/documents" ? await documentApi(request, env) : request.method === "GET" ? await driveHealth(env, url.searchParams.get("candidate_id")) : error("Method not allowed.", 405);
+        if (request.method === "POST" && url.pathname !== "/api/trash" && await purgeActive(env.DB)) response = error("Permanent Trash cleanup is processing. Please wait before saving or restoring records.", 423);
+        else response = url.pathname === "/api/trash" ? await trashApi(request, env, url) : url.pathname === "/api/interviews" ? await interviewApi(request, env, url) : url.pathname === "/api/maintenance" ? await maintenanceStatus(request, env) : url.pathname === "/api/bootstrap" ? request.method === "GET" ? await bootstrap(env) : error("Use GET.", 405) : url.pathname === "/api/document-status" ? await documentStatus(request, env, url) : url.pathname === "/api/events" ? await api(request, env, url) : url.pathname === "/api/documents" ? await documentApi(request, env) : request.method === "GET" ? await driveHealth(env, url.searchParams.get("candidate_id")) : error("Method not allowed.", 405);
       } catch {
         response = error("Shared storage is temporarily unavailable. Please retry.", 503);
       }
       const result = new Response(response.body, response);
+      if (response.ok && readEpoch !== void 0) {
+        try {
+          const epoch = await purgeEpoch(env.DB);
+          if (epoch !== readEpoch) return error("Permanent cleanup changed the workspace. Retry sync to load the clean records.", 503);
+          result.headers.set("X-Purge-Epoch", epoch);
+          result.headers.set("Access-Control-Expose-Headers", "X-Purge-Epoch");
+        } catch {
+          return error("Shared storage is temporarily unavailable. Retry sync.", 503);
+        }
+      }
       for (const [key, value] of Object.entries(corsHeaders)) result.headers.set(key, value);
       return result;
     }
@@ -1201,7 +1338,54 @@ var api_default = {
     });
   }
 };
-var ASSETS = { "/index.html": { "body": '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta name="theme-color" content="#efefe2">\n<title>QuidEdge \xB7 Recruitment</title>\n<link rel="stylesheet" href="./styles.css?v=5ea8864332e1">\n</head>\n<body>\n<a class="skip" href="#app">Skip to recruitment workspace</a>\n<header class="top">\n  <a href="#overview" class="brand"><span class="mark" aria-hidden="true">\u273A</span>quidedge<span class="brand-dot">.</span></a>\n  <nav aria-label="Recruitment navigation" id="nav">\n    <a href="#overview">Overview</a><a href="#coo">COO workspace</a><a href="#role">Hiring role</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#interviews">Interviews</a><a href="#guide">Interview guide</a><a href="#trash">Trash</a>\n  </nav>\n  <button id="sync" class="pill" type="button" title="Refresh data"><span class="indicator"></span><span id="mode">Connecting</span></button>\n</header>\n<main>\n  <div id="app" tabindex="-1"></div>\n</main>\n<dialog id="dialog" aria-labelledby="dialog-title"></dialog>\n<div id="notice" role="status" aria-live="polite"></div>\n<script type="module" src="./app.js?v=5ea8864332e1"><\/script>\n</body>\n</html>\n', "type": "text/html; charset=utf-8" }, "/styles.css": { "body": ":root{color-scheme:light;--ink:#191b17;--muted:#64675c;--paper:#fafaf3;--line:#dedfd3;--gold:#f8c87c;--amber:#d99c44;--blue:#6587e7;--coral:#e68d72;--purple:#ae6bd9;--green:#72b580;font-family:Inter,Aptos,system-ui,sans-serif;color:var(--ink);background:#eeeee1}\n*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 8% 0,#e8ede5,transparent 62%),radial-gradient(ellipse at 100% 27%,#f7efdc,transparent 65%);min-height:100vh}a{color:inherit}button,input,select,textarea{font:inherit}button,a,input,select,textarea{outline-offset:4px}button{cursor:pointer}button:disabled{cursor:wait;opacity:.55}.top{min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px clamp(16px,3vw,46px);flex-wrap:wrap}.brand{text-decoration:none;font-size:clamp(24px,3vw,36px);font-weight:800;letter-spacing:-.075em;display:flex;align-items:center;gap:8px}.brand-dot{color:#bb651f;margin-left:-6px}.mark{color:#be651f;font-size:1.2em;line-height:1}.top nav{display:flex;gap:5px;flex-wrap:wrap}.top nav a,.pill,.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:10px 16px;border:1px solid var(--line);text-decoration:none;background:var(--paper);color:var(--ink);font-size:.86rem;white-space:nowrap}.top nav a.active{background:var(--ink);color:white;border-color:var(--ink)}.indicator{width:8px;height:8px;border-radius:100%;background:#aa6b23}.live .indicator{background:#398449}.error .indicator{background:#a5332b}.btn.primary{background:var(--gold);border-color:transparent;font-weight:650}.btn:hover,.pill:hover{filter:brightness(.96)}main{max-width:1600px;margin:auto;padding:18px clamp(16px,3vw,46px) 52px}.intro,.section-top,.form-actions,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.intro{margin-bottom:20px}.intro h1{font-size:clamp(31px,4vw,52px);line-height:1.02;letter-spacing:-.06em;margin:0 0 10px}.eyebrow{text-transform:uppercase;font-weight:750;letter-spacing:.13em;font-size:.69rem;color:#696b5f;margin:0 0 10px}.sub,.muted,small{color:var(--muted)}.sub{margin:0}.banner{border:1px solid #e9d8b5;background:#fff5df;border-radius:13px;padding:10px 14px;margin:0 0 14px;color:#624619;font-size:.84rem}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 12px}.metric,.panel{background:rgba(250,250,243,.86);border:1px solid rgba(255,255,255,.56);border-radius:24px}.metric{padding:16px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;text-align:left}.metric strong{display:block;font-size:clamp(26px,3.4vw,48px);line-height:1;letter-spacing:-.06em;margin-top:8px}.metric-label{font-size:.85rem;font-weight:600}.dots{display:grid;grid-template-columns:repeat(7,6px);gap:4px}.dots i{width:6px;height:6px;border-radius:50%;background:#e9ebe4}.dots i.on{background:var(--tone)}.panel{padding:clamp(14px,2vw,25px);margin-bottom:12px}.section-top{margin-bottom:14px}.section-top h2{margin:0;font-size:clamp(19px,2.6vw,29px);letter-spacing:-.045em}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;min-width:650px}th,td{border-bottom:1px solid var(--line);padding:13px 10px 13px 0;vertical-align:middle}tr:last-child td{border-bottom:0}th{text-transform:uppercase;font-size:.69rem;letter-spacing:.07em;color:#555a50}td{font-size:.89rem}td small{display:block;margin-top:3px}.tag{display:inline-block;max-width:100%;background:#ecece1;border-radius:999px;padding:5px 9px;font-size:.73rem;white-space:nowrap}.tag.good{background:#dcefdc;color:#295a36}.tag.warn{background:#ffe4da;color:#8a352b}.tag.blue{background:#e0e8fb;color:#2f5098}.row-actions{display:flex;gap:6px;align-items:center}.row-actions .btn{padding:6px 10px;font-size:.75rem}.avatar{display:inline-grid;place-items:center;background:#f5e0b9;border-radius:50%;width:31px;height:31px;margin-right:7px;font-size:.72rem;font-weight:800;color:#715320}.empty{padding:22px 0;color:var(--muted);margin:0}.toolbar{justify-content:flex-start}.toolbar input,.toolbar select{width:auto}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.statline{display:flex;gap:8px;flex-wrap:wrap}.timeline{list-style:none;padding:0;margin:0}.timeline li{padding:12px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.timeline li:last-child{border:0}.timeline p{margin:5px 0;white-space:pre-wrap}.timeline time{font-size:.75rem;color:var(--muted)}dialog{border:1px solid var(--line);border-radius:22px;width:min(680px,calc(100% - 24px));max-height:90vh;background:var(--paper);color:var(--ink);padding:22px;box-shadow:0 16px 80px #2426172b}dialog::backdrop{background:#22251e6c}dialog h2{margin:0;letter-spacing:-.04em}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:5px;font-size:.83rem;font-weight:650}.field.wide{grid-column:1/-1}input,textarea,select{min-width:0;width:100%;border:1px solid #cdcec1;background:#fffef8;border-radius:11px;padding:9px;color:var(--ink)}textarea{resize:vertical;min-height:65px}.form-actions{margin-top:14px;justify-content:flex-end}.form-error{color:#96352c;font-size:.85rem}.guide-item{padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}.guide-item p{margin:4px 0}.guide-item small{display:block}details summary{cursor:pointer;font-weight:700;padding:10px 0}#notice{position:fixed;bottom:14px;right:14px;z-index:2;background:var(--ink);color:white;padding:10px 14px;border-radius:14px;max-width:calc(100% - 28px);font-size:.85rem}#notice:empty{display:none}.danger-text{color:#903425}.snapshot{line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}\n@media(max-width:1050px){.dots{display:none}}@media(max-width:700px){.top nav{order:3;width:100%;overflow:auto;flex-wrap:nowrap}.metrics{grid-template-columns:repeat(3,1fr)}.metric{padding:12px}.split{grid-template-columns:1fr}.panel{border-radius:18px}.form-grid{grid-template-columns:1fr}.top nav a{padding:8px 11px}}@media(max-width:360px){.metrics{grid-template-columns:repeat(2,1fr)}}\n\n/* Workflow controls use the existing QuidEdge palette. */\n:focus-visible{outline:3px solid #8f4b0c;outline-offset:3px}\n.skip{position:fixed;top:-100px;left:16px;z-index:10;background:#fff;padding:12px;border-radius:8px}\n.skip:focus{top:12px}\n.btn,.pill{min-height:42px}\n.top nav a{min-height:42px}\n.metric{display:block}\n.metric .metric-label{display:block}\n.metric-caption{display:block;font-size:.72rem;color:var(--muted);margin-top:10px}\n.filters{display:grid;grid-template-columns:2fr repeat(5,minmax(110px,1fr));gap:10px;margin-bottom:12px}\n.filters .field{font-size:.76rem}\n.result-count,.hint,.public-note{font-size:.8rem;color:var(--muted);line-height:1.5}\n.public-note{background:#f1f0e4;padding:10px 12px;border-radius:10px}\n.required{color:#8c3e15}\nfieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;min-width:0}\nlegend{padding:0 6px;color:var(--muted);font-size:.8rem}\nfieldset:disabled{opacity:.5}\n[hidden]{display:none!important}\n.draft-banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;background:#e6eddf;border-radius:14px;margin-bottom:14px;font-size:.85rem}\n.pagination{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}\n.checklist{list-style:none;padding:0}\n.checklist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0;font-size:.85rem}\ndialog{overscroll-behavior:contain}\ndialog h2{max-width:calc(100% - 85px)}\n#app:focus{outline:none}\n@media(max-width:1100px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}}\n@media(max-width:700px){\n  .filters{grid-template-columns:repeat(2,minmax(0,1fr))}\n  .metrics{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}\n  .metric{border-radius:14px;padding:12px 7px}\n  .metric-label{font-size:.68rem}\n  .metric strong{font-size:27px}\n  .metric-caption{display:none}\n  .scroll{overflow:visible}\n  table,thead,tbody,tr,td{display:block;min-width:0;width:100%}\n  thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}\n  tbody tr{padding:10px 0;border-bottom:1px solid var(--line)}\n  tbody tr:last-child{border:0}\n  td{display:flex;justify-content:space-between;gap:14px;align-items:center;border:0;padding:7px 0;flex-wrap:wrap;overflow-wrap:anywhere}\n  td::before{content:attr(data-label);color:var(--muted);font-size:.74rem;flex:0 0 95px}\n  td small{flex-basis:100%;text-align:right}\n  .row-actions{flex-wrap:wrap}\n  .form-grid .wide{grid-column:1/-1}\n  .top{gap:8px}\n  .top .pill{font-size:.72rem;padding:7px 10px}\n  .intro h1{font-size:34px}\n}\n@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}\n\n.coo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.coo-stats .panel span{display:block;color:var(--muted);font-size:.84rem}.coo-stats strong{display:block;font-size:38px;margin-top:8px}.commission-lead{font-size:28px;font-weight:750;margin:4px 0}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.commission-grid>div{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff9ed}.commission-grid strong{display:block;font-size:34px}.commission-grid span{display:block;color:var(--muted);margin-top:6px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.benefit-grid h3{font-size:1rem}.role-list li{padding:7px 0;line-height:1.55}.panel p{line-height:1.6}.public-note{line-height:1.5}input[type=file]{font-size:.8rem}#upload-progress{font-size:.85rem;line-height:1.5}@media(max-width:850px){.coo-stats{grid-template-columns:repeat(2,1fr)}.benefit-grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.commission-grid,.benefit-grid{grid-template-columns:1fr}.commission-grid>div{padding:12px}.commission-grid strong{font-size:27px}.coo-stats strong{font-size:30px}}\n\n.split{grid-template-columns:repeat(2,minmax(0,1fr))}.split>*{min-width:0}@media(max-width:700px){.split{grid-template-columns:1fr}}\n\n/* Compact operations layout and task-focused forms. */\n.intro h1{font-size:clamp(30px,3.2vw,44px)}\n.panel{padding:18px 22px;border-radius:18px}.section-top{margin-bottom:10px}.section-top h2{font-size:23px}.empty{padding:10px 0}.metric{padding:12px 14px}.metric strong{font-size:34px}.metric-caption{margin-top:6px}\n.row-actions .btn{min-height:40px}.btn.danger{background:#fff5f2;border-color:#d9a398;color:#842c23}.btn.primary.danger{background:#a3392d;color:white;border-color:#a3392d}.btn.danger:hover{background:#f6e4df}.btn.primary.danger:hover{background:#8f2f25}\n.draft-banner small{display:block;color:#4c5647;margin-top:4px}.next-action-card{background:#f5e8cd;border:1px solid #e5c58e;padding:14px;border-radius:14px;margin:14px 0}.next-action-card .eyebrow{display:block}.next-action-card p{margin:5px 0 12px;line-height:1.5}.readiness-summary{border:1px solid var(--line);border-radius:14px;padding:14px}.readiness-summary p{margin:7px 0;line-height:1.5}.candidate-tools,.readiness-details,.history-section{border-bottom:1px solid var(--line);padding:7px 0}.tool-group{padding:8px 0 14px}.tool-group h3{font-size:.9rem;margin:8px 0}.danger-zone{border-top:1px solid var(--line)}.history-date{display:block;margin-top:5px}.record-details{display:grid;grid-template-columns:minmax(100px,1fr) 2fr;gap:8px;font-size:.85rem}.record-details dt{color:var(--muted)}.record-details dd{margin:0;overflow-wrap:anywhere}\n.form-section{border:1px solid var(--line);border-radius:12px;padding:0 12px}.form-section[open]{padding-bottom:12px}.form-section summary{font-size:.85rem}.form-section>.form-grid{margin-top:6px}#next-fields{grid-column:1/-1}.form-actions{position:sticky;bottom:-22px;background:var(--paper);border-top:1px solid var(--line);padding:12px 0 4px;z-index:1}.field input,.field select{min-height:44px}.public-note{font-size:.82rem}.candidate-tools .toolbar{gap:8px;align-items:stretch}dialog summary{min-height:44px}.readiness-summary .tag{white-space:normal}\n@media(max-width:700px){.panel{padding:15px}.record-details{grid-template-columns:1fr}.record-details dd{margin-bottom:8px}.candidate-tools .btn{white-space:normal;text-align:center}.next-action-card .btn{width:100%}.form-actions{bottom:-22px}.form-actions>.btn,.form-actions>button{flex:1;white-space:normal}.metric strong{font-size:27px}}\n\n.form-grid>.wide{grid-column:1/-1}\n", "type": "text/css; charset=utf-8" }, "/app.js": { "body": `// src/record-utils.js
+var ASSETS = { "/index.html": { "body": '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta name="theme-color" content="#efefe2">\n<title>QuidEdge \xB7 Recruitment</title>\n<link rel="stylesheet" href="./styles.css?v=ea62769149b7">\n</head>\n<body>\n<a class="skip" href="#app">Skip to recruitment workspace</a>\n<header class="top">\n  <a href="#overview" class="brand"><span class="mark" aria-hidden="true">\u273A</span>quidedge<span class="brand-dot">.</span></a>\n  <nav aria-label="Recruitment navigation" id="nav">\n    <a href="#overview">Overview</a><a href="#coo">COO workspace</a><a href="#role">Hiring role</a><a href="#pipeline">Pipeline</a><a href="#activity">Daily activity</a><a href="#interviews">Interviews</a><a href="#guide">Interview guide</a><a href="#trash">Trash</a>\n  </nav>\n  <button id="sync" class="pill" type="button" title="Refresh data"><span class="indicator"></span><span id="mode">Connecting</span></button>\n</header>\n<main>\n  <div id="app" tabindex="-1"></div>\n</main>\n<dialog id="dialog" aria-labelledby="dialog-title"></dialog>\n<div id="notice" role="status" aria-live="polite"></div>\n<script type="module" src="./app.js?v=ea62769149b7"><\/script>\n</body>\n</html>\n', "type": "text/html; charset=utf-8" }, "/styles.css": { "body": ":root{color-scheme:light;--ink:#191b17;--muted:#64675c;--paper:#fafaf3;--line:#dedfd3;--gold:#f8c87c;--amber:#d99c44;--blue:#6587e7;--coral:#e68d72;--purple:#ae6bd9;--green:#72b580;font-family:Inter,Aptos,system-ui,sans-serif;color:var(--ink);background:#eeeee1}\n*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 8% 0,#e8ede5,transparent 62%),radial-gradient(ellipse at 100% 27%,#f7efdc,transparent 65%);min-height:100vh}a{color:inherit}button,input,select,textarea{font:inherit}button,a,input,select,textarea{outline-offset:4px}button{cursor:pointer}button:disabled{cursor:wait;opacity:.55}.top{min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px clamp(16px,3vw,46px);flex-wrap:wrap}.brand{text-decoration:none;font-size:clamp(24px,3vw,36px);font-weight:800;letter-spacing:-.075em;display:flex;align-items:center;gap:8px}.brand-dot{color:#bb651f;margin-left:-6px}.mark{color:#be651f;font-size:1.2em;line-height:1}.top nav{display:flex;gap:5px;flex-wrap:wrap}.top nav a,.pill,.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:10px 16px;border:1px solid var(--line);text-decoration:none;background:var(--paper);color:var(--ink);font-size:.86rem;white-space:nowrap}.top nav a.active{background:var(--ink);color:white;border-color:var(--ink)}.indicator{width:8px;height:8px;border-radius:100%;background:#aa6b23}.live .indicator{background:#398449}.error .indicator{background:#a5332b}.btn.primary{background:var(--gold);border-color:transparent;font-weight:650}.btn:hover,.pill:hover{filter:brightness(.96)}main{max-width:1600px;margin:auto;padding:18px clamp(16px,3vw,46px) 52px}.intro,.section-top,.form-actions,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.intro{margin-bottom:20px}.intro h1{font-size:clamp(31px,4vw,52px);line-height:1.02;letter-spacing:-.06em;margin:0 0 10px}.eyebrow{text-transform:uppercase;font-weight:750;letter-spacing:.13em;font-size:.69rem;color:#696b5f;margin:0 0 10px}.sub,.muted,small{color:var(--muted)}.sub{margin:0}.banner{border:1px solid #e9d8b5;background:#fff5df;border-radius:13px;padding:10px 14px;margin:0 0 14px;color:#624619;font-size:.84rem}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 12px}.metric,.panel{background:rgba(250,250,243,.86);border:1px solid rgba(255,255,255,.56);border-radius:24px}.metric{padding:16px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;text-align:left}.metric strong{display:block;font-size:clamp(26px,3.4vw,48px);line-height:1;letter-spacing:-.06em;margin-top:8px}.metric-label{font-size:.85rem;font-weight:600}.dots{display:grid;grid-template-columns:repeat(7,6px);gap:4px}.dots i{width:6px;height:6px;border-radius:50%;background:#e9ebe4}.dots i.on{background:var(--tone)}.panel{padding:clamp(14px,2vw,25px);margin-bottom:12px}.section-top{margin-bottom:14px}.section-top h2{margin:0;font-size:clamp(19px,2.6vw,29px);letter-spacing:-.045em}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;min-width:650px}th,td{border-bottom:1px solid var(--line);padding:13px 10px 13px 0;vertical-align:middle}tr:last-child td{border-bottom:0}th{text-transform:uppercase;font-size:.69rem;letter-spacing:.07em;color:#555a50}td{font-size:.89rem}td small{display:block;margin-top:3px}.tag{display:inline-block;max-width:100%;background:#ecece1;border-radius:999px;padding:5px 9px;font-size:.73rem;white-space:nowrap}.tag.good{background:#dcefdc;color:#295a36}.tag.warn{background:#ffe4da;color:#8a352b}.tag.blue{background:#e0e8fb;color:#2f5098}.row-actions{display:flex;gap:6px;align-items:center}.row-actions .btn{padding:6px 10px;font-size:.75rem}.avatar{display:inline-grid;place-items:center;background:#f5e0b9;border-radius:50%;width:31px;height:31px;margin-right:7px;font-size:.72rem;font-weight:800;color:#715320}.empty{padding:22px 0;color:var(--muted);margin:0}.toolbar{justify-content:flex-start}.toolbar input,.toolbar select{width:auto}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.statline{display:flex;gap:8px;flex-wrap:wrap}.timeline{list-style:none;padding:0;margin:0}.timeline li{padding:12px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.timeline li:last-child{border:0}.timeline p{margin:5px 0;white-space:pre-wrap}.timeline time{font-size:.75rem;color:var(--muted)}dialog{border:1px solid var(--line);border-radius:22px;width:min(680px,calc(100% - 24px));max-height:90vh;background:var(--paper);color:var(--ink);padding:22px;box-shadow:0 16px 80px #2426172b}dialog::backdrop{background:#22251e6c}dialog h2{margin:0;letter-spacing:-.04em}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:5px;font-size:.83rem;font-weight:650}.field.wide{grid-column:1/-1}input,textarea,select{min-width:0;width:100%;border:1px solid #cdcec1;background:#fffef8;border-radius:11px;padding:9px;color:var(--ink)}textarea{resize:vertical;min-height:65px}.form-actions{margin-top:14px;justify-content:flex-end}.form-error{color:#96352c;font-size:.85rem}.guide-item{padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}.guide-item p{margin:4px 0}.guide-item small{display:block}details summary{cursor:pointer;font-weight:700;padding:10px 0}#notice{position:fixed;bottom:14px;right:14px;z-index:2;background:var(--ink);color:white;padding:10px 14px;border-radius:14px;max-width:calc(100% - 28px);font-size:.85rem}#notice:empty{display:none}.danger-text{color:#903425}.snapshot{line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}\n@media(max-width:1050px){.dots{display:none}}@media(max-width:700px){.top nav{order:3;width:100%;overflow:auto;flex-wrap:nowrap}.metrics{grid-template-columns:repeat(3,1fr)}.metric{padding:12px}.split{grid-template-columns:1fr}.panel{border-radius:18px}.form-grid{grid-template-columns:1fr}.top nav a{padding:8px 11px}}@media(max-width:360px){.metrics{grid-template-columns:repeat(2,1fr)}}\n\n/* Workflow controls use the existing QuidEdge palette. */\n:focus-visible{outline:3px solid #8f4b0c;outline-offset:3px}\n.skip{position:fixed;top:-100px;left:16px;z-index:10;background:#fff;padding:12px;border-radius:8px}\n.skip:focus{top:12px}\n.btn,.pill{min-height:42px}\n.top nav a{min-height:42px}\n.metric{display:block}\n.metric .metric-label{display:block}\n.metric-caption{display:block;font-size:.72rem;color:var(--muted);margin-top:10px}\n.filters{display:grid;grid-template-columns:2fr repeat(5,minmax(110px,1fr));gap:10px;margin-bottom:12px}\n.filters .field{font-size:.76rem}\n.result-count,.hint,.public-note{font-size:.8rem;color:var(--muted);line-height:1.5}\n.public-note{background:#f1f0e4;padding:10px 12px;border-radius:10px}\n.required{color:#8c3e15}\nfieldset{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0;min-width:0}\nlegend{padding:0 6px;color:var(--muted);font-size:.8rem}\nfieldset:disabled{opacity:.5}\n[hidden]{display:none!important}\n.draft-banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;background:#e6eddf;border-radius:14px;margin-bottom:14px;font-size:.85rem}\n.pagination{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}\n.checklist{list-style:none;padding:0}\n.checklist li{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0;font-size:.85rem}\ndialog{overscroll-behavior:contain}\ndialog h2{max-width:calc(100% - 85px)}\n#app:focus{outline:none}\n@media(max-width:1100px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}}\n@media(max-width:700px){\n  .filters{grid-template-columns:repeat(2,minmax(0,1fr))}\n  .metrics{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}\n  .metric{border-radius:14px;padding:12px 7px}\n  .metric-label{font-size:.68rem}\n  .metric strong{font-size:27px}\n  .metric-caption{display:none}\n  .scroll{overflow:visible}\n  table,thead,tbody,tr,td{display:block;min-width:0;width:100%}\n  thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}\n  tbody tr{padding:10px 0;border-bottom:1px solid var(--line)}\n  tbody tr:last-child{border:0}\n  td{display:flex;justify-content:space-between;gap:14px;align-items:center;border:0;padding:7px 0;flex-wrap:wrap;overflow-wrap:anywhere}\n  td::before{content:attr(data-label);color:var(--muted);font-size:.74rem;flex:0 0 95px}\n  td small{flex-basis:100%;text-align:right}\n  .row-actions{flex-wrap:wrap}\n  .form-grid .wide{grid-column:1/-1}\n  .top{gap:8px}\n  .top .pill{font-size:.72rem;padding:7px 10px}\n  .intro h1{font-size:34px}\n}\n@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}\n\n.coo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.coo-stats .panel span{display:block;color:var(--muted);font-size:.84rem}.coo-stats strong{display:block;font-size:38px;margin-top:8px}.commission-lead{font-size:28px;font-weight:750;margin:4px 0}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.commission-grid>div{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff9ed}.commission-grid strong{display:block;font-size:34px}.commission-grid span{display:block;color:var(--muted);margin-top:6px}.benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.benefit-grid h3{font-size:1rem}.role-list li{padding:7px 0;line-height:1.55}.panel p{line-height:1.6}.public-note{line-height:1.5}input[type=file]{font-size:.8rem}#upload-progress{font-size:.85rem;line-height:1.5}@media(max-width:850px){.coo-stats{grid-template-columns:repeat(2,1fr)}.benefit-grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.commission-grid,.benefit-grid{grid-template-columns:1fr}.commission-grid>div{padding:12px}.commission-grid strong{font-size:27px}.coo-stats strong{font-size:30px}}\n\n.split{grid-template-columns:repeat(2,minmax(0,1fr))}.split>*{min-width:0}@media(max-width:700px){.split{grid-template-columns:1fr}}\n\n/* Compact operations layout and task-focused forms. */\n.intro h1{font-size:clamp(30px,3.2vw,44px)}\n.panel{padding:18px 22px;border-radius:18px}.section-top{margin-bottom:10px}.section-top h2{font-size:23px}.empty{padding:10px 0}.metric{padding:12px 14px}.metric strong{font-size:34px}.metric-caption{margin-top:6px}\n.row-actions .btn{min-height:40px}.btn.danger{background:#fff5f2;border-color:#d9a398;color:#842c23}.btn.primary.danger{background:#a3392d;color:white;border-color:#a3392d}.btn.danger:hover{background:#f6e4df}.btn.primary.danger:hover{background:#8f2f25}\n.draft-banner small{display:block;color:#4c5647;margin-top:4px}.next-action-card{background:#f5e8cd;border:1px solid #e5c58e;padding:14px;border-radius:14px;margin:14px 0}.next-action-card .eyebrow{display:block}.next-action-card p{margin:5px 0 12px;line-height:1.5}.readiness-summary{border:1px solid var(--line);border-radius:14px;padding:14px}.readiness-summary p{margin:7px 0;line-height:1.5}.candidate-tools,.readiness-details,.history-section{border-bottom:1px solid var(--line);padding:7px 0}.tool-group{padding:8px 0 14px}.tool-group h3{font-size:.9rem;margin:8px 0}.danger-zone{border-top:1px solid var(--line)}.history-date{display:block;margin-top:5px}.record-details{display:grid;grid-template-columns:minmax(100px,1fr) 2fr;gap:8px;font-size:.85rem}.record-details dt{color:var(--muted)}.record-details dd{margin:0;overflow-wrap:anywhere}\n.form-section{border:1px solid var(--line);border-radius:12px;padding:0 12px}.form-section[open]{padding-bottom:12px}.form-section summary{font-size:.85rem}.form-section>.form-grid{margin-top:6px}#next-fields{grid-column:1/-1}.form-actions{position:sticky;bottom:-22px;background:var(--paper);border-top:1px solid var(--line);padding:12px 0 4px;z-index:1}.field input,.field select{min-height:44px}.public-note{font-size:.82rem}.candidate-tools .toolbar{gap:8px;align-items:stretch}dialog summary{min-height:44px}.readiness-summary .tag{white-space:normal}\n@media(max-width:700px){.panel{padding:15px}.record-details{grid-template-columns:1fr}.record-details dd{margin-bottom:8px}.candidate-tools .btn{white-space:normal;text-align:center}.next-action-card .btn{width:100%}.form-actions{bottom:-22px}.form-actions>.btn,.form-actions>button{flex:1;white-space:normal}.metric strong{font-size:27px}}\n\n.form-grid>.wide{grid-column:1/-1}\n", "type": "text/css; charset=utf-8" }, "/app.js": { "body": `// src/model.js
+function recordStates(events2) {
+  const states = /* @__PURE__ */ new Map();
+  for (const event of [...events2].sort((a, b) => a.seq - b.seq)) {
+    if (event.kind === "summary" && event.payload.operation && event.payload.target_id)
+      states.set(event.payload.target_id, { deleted: event.payload.operation === "delete", revision: event.seq });
+  }
+  return states;
+}
+
+// src/purge-plan.js
+function planPurge(events2, targets) {
+  const byId = new Map(events2.map((e) => [e.id, e])), states = recordStates(events2);
+  if (!targets.length || new Set(targets).size !== targets.length) throw Error("Choose records in Trash.");
+  for (const id of targets) if (!byId.has(id) || byId.get(id).payload.operation || !states.get(id)?.deleted) throw Error("Only records currently in Trash can be permanently deleted.");
+  const selected = new Set(targets);
+  for (const id of targets) {
+    const item = byId.get(id);
+    if (item.kind === "job" && !item.payload.job_id) {
+      for (const c of events2.filter((e) => e.kind === "candidate" && e.payload.job_id === id)) {
+        if (!states.get(c.id)?.deleted) throw Error("Move every candidate linked to this position to Trash before permanently deleting the position.");
+        selected.add(c.id);
+      }
+    }
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const e of events2) {
+      if (selected.has(e.id)) continue;
+      if (selected.has(e.subject_id) || selected.has(e.payload.target_id) || selected.has(e.payload.supersedes) || e.kind === "job" && selected.has(e.payload.job_id)) {
+        selected.add(e.id);
+        changed = true;
+      }
+      if (e.payload.supersedes && selected.has(e.id) && !selected.has(e.payload.supersedes)) {
+        selected.add(e.payload.supersedes);
+        changed = true;
+      }
+    }
+    for (const e of events2) if (selected.has(e.id) && e.payload.supersedes && !selected.has(e.payload.supersedes)) {
+      selected.add(e.payload.supersedes);
+      changed = true;
+    }
+  }
+  return { event_ids: [...selected], candidate_ids: events2.filter((e) => selected.has(e.id) && e.kind === "candidate").map((e) => e.id), count: targets.length, head: events2.at(-1)?.seq || 0 };
+}
+
+// src/record-utils.js
 var kinds = /* @__PURE__ */ new Set(["job", "candidate", "stage", "activity", "summary", "score"]);
 var idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 function validEvent(event) {
@@ -1232,10 +1416,10 @@ function mergeDrafts(drafts, value, kind = value?.kind, id = value?.id) {
   return value ? [...remaining, value] : remaining;
 }
 
-// src/guide.js?v=5ea8864332e1
+// src/guide.js?v=ea62769149b7
 var guide_default = [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. \\u201CThis is Sarah from Bloom Skincare in the UK. Honestly, I\\u2019m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend\\u2019s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.\\u201D", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, \\u201CWhich other brands do you work with? Can you show me what you did for them?\\u201D What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they\\u2019ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "\\u201CWe sell handmade candles in Australia. We need to go viral. Can you guarantee that?\\u201D", null], ["R2", "Client role-play", 2, "\\u201COur sales have been flat, so we just want more followers.\\u201D", null], ["R2", "Client role-play", 2, "\\u201CWe want it to feel more premium, but not too serious.\\u201D", null], ["R2", "Client role-play", 2, "\\u201CI heard you work with [a competitor]. What is their ad budget?\\u201D", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "\\u201CHonestly, what do you think is wrong with our brand right now?\\u201D", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does \\u201Cbeing responsible for your work\\u201D mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate\\u2019s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];
 
-// src/model.js?v=5ea8864332e1
+// src/model.js?v=ea62769149b7
 var stages = ["Sourced", "Contacted", "Replied", "R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "On Hold", "Hired", "Rejected", "Withdrawn"];
 var closed = ["Hired", "Rejected", "Withdrawn"];
 var milestones = ["First outreach", "Reply received", "Follow-up sent", "R1 completed", "R2 brief sent", "R2 completed", "Writing task completed", "References completed", "Offer sent", "Agreement / NDA signed", "Interview no-show", "Interview cancelled", "Offer declined", "Blocker update", "Commission terms reviewed", "Candidate details corrected", "Document availability checked"];
@@ -1291,7 +1475,7 @@ function stageProblem(payload, candidate, eventDate) {
   }
   return "";
 }
-function recordStates(events2) {
+function recordStates2(events2) {
   const states = /* @__PURE__ */ new Map();
   for (const event of [...events2].sort((a, b) => a.seq - b.seq)) {
     if (event.kind === "summary" && event.payload.operation && event.payload.target_id)
@@ -1300,12 +1484,12 @@ function recordStates(events2) {
   return states;
 }
 function visibleEvents(events2) {
-  const states = recordStates(events2);
+  const states = recordStates2(events2);
   const replaced = new Set(events2.filter((e) => e.payload.supersedes).map((e) => e.payload.supersedes));
   return events2.filter((e) => !e.payload.operation && !states.get(e.id)?.deleted && !replaced.has(e.id));
 }
 function project(events2) {
-  const states = recordStates(events2);
+  const states = recordStates2(events2);
   const visible = new Set(visibleEvents(events2).map((e) => e.id));
   const jobs = /* @__PURE__ */ new Map();
   const candidates = /* @__PURE__ */ new Map();
@@ -2014,10 +2198,10 @@ async function uploadDocument(apiBase2, candidate, fullName, file, type, request
   return result;
 }
 
-// src/config.js?v=5ea8864332e1
+// src/config.js?v=ea62769149b7
 var config = { eventsUrl: "/api/events" };
 
-// src/store.js?v=5ea8864332e1
+// src/store.js?v=ea62769149b7
 var apiBase = config.eventsUrl.replace(/\\/events$/, "");
 var connected = Boolean(config.eventsUrl);
 async function request(path = "", options2 = {}) {
@@ -2042,6 +2226,7 @@ async function request(path = "", options2 = {}) {
     error.status = response.status;
     throw error;
   }
+  if (body && typeof body === "object") body.purgeEpoch = response.headers.get("X-Purge-Epoch") || "";
   return body;
 }
 async function loadEvents(after = 0, filters = {}) {
@@ -2050,6 +2235,7 @@ async function loadEvents(after = 0, filters = {}) {
   for (; ; ) {
     const batch = await request("?" + new URLSearchParams({ ...filters, after: String(cursor) }));
     if (!Array.isArray(batch)) throw new Error("The server returned an invalid event list.");
+    events2.purgeEpoch = batch.purgeEpoch || "";
     if (!batch.length) return events2;
     let previous = cursor;
     const ids = /* @__PURE__ */ new Set();
@@ -2078,8 +2264,8 @@ async function append(event) {
   return saved;
 }
 function createEventReader() {
-  let cursor = 0, started = false;
-  return async () => {
+  let cursor = 0, started = false, epoch = "";
+  return async function read() {
     if (!started) {
       const response = await fetch(apiBase + "/bootstrap", { cache: "no-store", signal: AbortSignal.timeout(2e4) });
       if (!response.ok) {
@@ -2090,11 +2276,18 @@ function createEventReader() {
       }
       const snapshot = await response.json();
       if (!Number.isSafeInteger(snapshot.cursor) || snapshot.cursor < 0 || !Array.isArray(snapshot.events) || snapshot.events.some((e) => !validEvent(e) || e.seq > snapshot.cursor)) throw Error("Invalid recruitment snapshot. Retry sync.");
+      epoch = response.headers.get("X-Purge-Epoch") || "";
       cursor = snapshot.cursor;
       started = true;
       return snapshot.events;
     }
     const incoming = await loadEvents(cursor);
+    if ((incoming.purgeEpoch || "") !== epoch) {
+      started = false;
+      const all = await read();
+      all.reset = true;
+      return all;
+    }
     if (incoming.length) cursor = incoming.at(-1).seq;
     return incoming;
   };
@@ -2181,10 +2374,20 @@ function storageWrite(value, kind, id) {
   }
 }
 function ingest(incoming) {
-  if (!incoming.length) return false;
+  const reset = incoming.reset === true;
+  if (reset) {
+    const retained = new Set(incoming.map((e) => e.id)), removed = new Set(events.filter((e) => !retained.has(e.id)).map((e) => e.id));
+    for (const d of storageDrafts()) if (removed.has(d.id) || removed.has(d.values.supersedes) || removed.has(d.values.job_id) || removed.has(d.pending?.subject_id)) storageWrite(null, d.kind, d.id);
+    if (dialog.open) {
+      pendingRecord = null;
+      dialog.close();
+    }
+    events = [];
+  }
+  if (!incoming.length && !reset) return false;
   const known = new Set(events.map((event) => event.id));
   const fresh = incoming.filter((event) => !known.has(event.id));
-  if (!fresh.length) return false;
+  if (!fresh.length && !reset) return false;
   events = events.concat(fresh).sort((a, b) => a.seq - b.seq);
   state = project(events);
   state.jobs = state.jobs.filter((j) => !j.deleted);
@@ -2351,6 +2554,7 @@ function render() {
   const draftBanner = drafts.map((draft) => '<div class="draft-banner"><span><strong>' + escape(draftTitle(draft)) + "</strong><small>" + escape(draft.saved_at ? "Draft saved " + new Date(draft.saved_at).toLocaleString("en-LK", { timeZone: "Asia/Colombo", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " SL" : "Unsaved draft \\xB7 saved time unavailable") + '</small></span><div class="row-actions">' + btn("Resume draft", "resume", draft.kind + ":" + draft.id) + btn("Discard draft", "discard", draft.kind + ":" + draft.id) + "</div></div>").join("");
   const alert = failure ? '<p class="banner" role="alert">' + escape(failure) + " Existing records remain visible. Use Refresh to retry.</p>" : "";
   app.innerHTML = alert + draftBanner + (!ready && view !== "guide" ? panel("Recruitment workspace", empty(failure ? "The shared records could not be loaded." : "Loading shared records\\u2026")) : screens[view]());
+  if (view === "trash" && ready) loadTrashCleanup();
   const active = activeId && document.getElementById(activeId);
   if (active && app.contains(active)) {
     active.focus({ preventScroll: true });
@@ -2422,7 +2626,7 @@ function openForm(kind, id = "", restored = null) {
   if (kind === "recordaction") {
     const target = events.find((event) => event.id === id);
     if (!target) return;
-    const deleted = Boolean(recordStates(events).get(id)?.deleted);
+    const deleted = Boolean(recordStates2(events).get(id)?.deleted);
     title = (deleted ? "Restore" : "Move to Trash") + " \\xB7 " + recordTitle(target);
     fields = '<input type="hidden" name="operation" value="' + (deleted ? "restore" : "delete") + '"><input type="hidden" name="target_id" value="' + escape(id) + '">' + notes("note", deleted ? "Restoration reason" : "Deletion reason", true) + '<p class="hint wide">' + (deleted ? "Restoring makes this record available again." : "This moves the record to Trash. You can restore it later. Original files and audit history are preserved.") + "</p>";
   } else if (kind === "job") {
@@ -2458,9 +2662,9 @@ function openForm(kind, id = "", restored = null) {
     title = "Daily COO summary";
     fields = notes("progress", "Progress today", true) + notes("blockers", "Blockers / leadership decisions") + notes("priorities", "Next workday priorities", true);
   } else return;
-  const revision = restored?.revision ?? (kind === "recordaction" ? Math.max(recordStates(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, candidateById(id)?.revision || 0, state.jobs.find((j) => j.id === id)?.revision || 0) : candidate?.revision ?? job?.revision) ?? 0;
+  const revision = restored?.revision ?? (kind === "recordaction" ? Math.max(recordStates2(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, candidateById(id)?.revision || 0, state.jobs.find((j) => j.id === id)?.revision || 0) : candidate?.revision ?? job?.revision) ?? 0;
   const submitLabel = formActionLabel(kind, id, Boolean(restored?.values?.supersedes));
-  show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + (["candidate", "recordaction"].includes(kind) ? '<input type="hidden" name="event_date" value="' + escape(dateSL()) + '">' : field("event_date", "Event date (SL)", { kind: "date", required: true, value: kind === "summary" ? reportDate : dateSL() })) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary' + (kind === "recordaction" && !recordStates(events).get(id)?.deleted ? " danger" : "") + '" type="submit">' + escape(submitLabel) + "</button></div></form>");
+  show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + (["candidate", "recordaction"].includes(kind) ? '<input type="hidden" name="event_date" value="' + escape(dateSL()) + '">' : field("event_date", "Event date (SL)", { kind: "date", required: true, value: kind === "summary" ? reportDate : dateSL() })) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary' + (kind === "recordaction" && !recordStates2(events).get(id)?.deleted ? " danger" : "") + '" type="submit">' + escape(submitLabel) + "</button></div></form>");
   pendingRecord = restored?.pending || null;
   if (kind === "score") setRoundFields(restored?.values?.round || "R1");
   if (restored?.values?.supersedes) {
@@ -2647,6 +2851,10 @@ document.addEventListener("click", async (event) => {
   const control = event.target.closest("[data-action]");
   if (!control || saving) return;
   const { action, id } = control.dataset;
+  if (action === "purge-one" || action === "purge-all") {
+    openPurge(action === "purge-all" ? null : id);
+    return;
+  }
   if (action === "interview-details") {
     saveDraft();
     await showInterviewDetails(id);
@@ -2904,7 +3112,7 @@ dialog.addEventListener("submit", async (event) => {
         saving = false;
         await refresh();
         if (kind === "recordaction") {
-          form.dataset.revision = Math.max(recordStates(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, project(events).candidates.find((c) => c.id === id)?.revision || 0, project(events).jobs.find((j) => j.id === id)?.revision || 0);
+          form.dataset.revision = Math.max(recordStates2(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, project(events).candidates.find((c) => c.id === id)?.revision || 0, project(events).jobs.find((j) => j.id === id)?.revision || 0);
         }
         const current = candidateById(id) || candidateById(events.find((e) => e.id === id)?.subject_id) || state.jobs.find((job) => job.id === id);
         if (current) {
@@ -2970,8 +3178,8 @@ function eventControls(event) {
   return '<div class="row-actions">' + (editable ? btn("Edit entry", "edit-event", event.id) : "") + dangerBtn("Move entry to Trash", "delete-record", event.id) + "</div>";
 }
 function trashView() {
-  const states = recordStates(events), deleted = events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted);
-  return heading("Trash", "Restore deleted candidates, positions and entries. Original records and files are preserved.", btn("Back to overview", "overview-view")) + panel("Deleted records", deleted.length ? table(["Record", "Type", "Actions"], deleted.map((e) => [escapeTitle(e), e.kind, btn("Restore", "restore-record", e.id, true)])) : empty("Trash is empty."));
+  const states = recordStates2(events), deleted = events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted);
+  return '<p id="trash-cleanup-status" role="status"></p>' + heading("Trash", "Restore records, or permanently remove them and their linked files and managed backups.", btn("Back to overview", "overview-view") + (deleted.length ? dangerBtn("Empty Trash", "purge-all", "") : "")) + panel("Deleted records", deleted.length ? table(["Record", "Type", "Actions"], deleted.map((e) => [escapeTitle(e), e.kind, '<div class="row-actions">' + btn("Restore", "restore-record", e.id, true) + dangerBtn("Delete permanently", "purge-one", e.id) + "</div>"])) : empty("Trash is empty."));
 }
 function escapeTitle(event) {
   return escape(recordTitle(event));
@@ -2986,7 +3194,7 @@ function editEvent(id) {
     return;
   }
   const parent = candidateById(target.subject_id);
-  const revision = parent?.revision || recordStates(events).get(id)?.revision || target.seq;
+  const revision = parent?.revision || recordStates2(events).get(id)?.revision || target.seq;
   openForm(kind, id, { kind, id, request: newId(), revision, values: { ...target.payload, event_date: target.event_date, supersedes: id } });
 }
 function tomorrowSL() {
@@ -2995,7 +3203,7 @@ function tomorrowSL() {
   return dateSL(date);
 }
 function formActionLabel(kind, id, editing = false) {
-  if (kind === "recordaction") return recordStates(events).get(id)?.deleted ? "Restore record" : "Move to Trash";
+  if (kind === "recordaction") return recordStates2(events).get(id)?.deleted ? "Restore record" : "Move to Trash";
   if (editing) return "Save entry changes";
   return { candidate: "Add candidate", job: id ? "Save position changes" : "Create position", stage: "Save stage and schedule", activity: "Log milestone", score: "Save scorecard", checklist: "Save checklist", commission: "Save commission review", correction: "Save candidate details", summary: "Save daily summary" }[kind] || "Save changes";
 }
@@ -3061,6 +3269,98 @@ dialog.addEventListener("submit", async (event) => {
     button.textContent = "Save meeting details";
   }
 });
+function openPurge(id) {
+  saveDraft();
+  const states = recordStates2(events), targets = id ? [id] : events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted).map((e) => e.id);
+  let plan;
+  try {
+    plan = planPurge(events, targets);
+  } catch (err2) {
+    show('<h2>Cannot permanently delete</h2><p role="alert">' + escape(err2.message) + "</p>" + btn("Close", "close"));
+    return;
+  }
+  show("<h2>" + (id ? "Delete permanently" : "Empty Trash permanently") + "</h2><p><strong>This cannot be undone.</strong></p><p>" + escape(plan.count + " Trash record(s), " + plan.event_ids.length + " stored history entries and " + plan.candidate_ids.length + " candidate file folder(s) will be removed.") + '</p><p>Includes associated interview reminder settings, document receipts and copies in this app\\u2019s managed Drive backups. Other active records are preserved.</p><p class="hint">Already sent emails, downloaded/exported copies and the hosting provider\\u2019s recovery retention are outside this cleanup.</p><form id="purge-entry" class="form-grid">' + field("confirm", "Type DELETE PERMANENTLY", { required: true, wide: true }) + '<p class="form-error wide" role="alert"></p><div class="form-actions wide">' + btn("Cancel", "close") + '<button type="submit" class="btn danger">' + (id ? "Delete permanently" : "Empty Trash permanently") + "</button></div></form>");
+  const form = dialog.querySelector("#purge-entry");
+  form.dataset.targets = JSON.stringify(targets);
+  form.dataset.all = String(!id);
+  form.dataset.head = String(plan.head);
+  form.dataset.request = newId();
+  form.elements.confirm.pattern = "DELETE PERMANENTLY";
+  form.elements.confirm.autocomplete = "off";
+  form.elements.confirm.focus();
+}
+async function finishPurge(receipt) {
+  sessionStorage.removeItem("qe-purge-request");
+  const snapshotResponse = await fetch(apiBase + "/bootstrap", { cache: "no-store" });
+  if (!snapshotResponse.ok) throw Error("Cleanup finished. Refresh to load the clean workspace.");
+  const snapshot = await snapshotResponse.json();
+  snapshot.events.reset = true;
+  ingest(snapshot.events);
+  dialog.close();
+  render();
+  flash("Permanent cleanup completed. " + receipt.records + " Trash record(s) removed.");
+}
+async function watchPurge(id) {
+  show('<h2>Permanent cleanup is processing</h2><p role="status">Removing records, linked files and managed backup copies. The server continues if this browser is closed.</p>' + btn("Close", "close"));
+  for (let i2 = 0; i2 < 15; i2++) {
+    await new Promise((resolve) => setTimeout(resolve, 4e3));
+    const response = await fetch(apiBase + "/trash?request_id=" + encodeURIComponent(id), { cache: "no-store" });
+    if (!response.ok) throw Error("Could not check cleanup. Use Refresh to check again.");
+    const result = await response.json();
+    if (result.state === "complete") {
+      await finishPurge(result);
+      return;
+    }
+  }
+  flash("Cleanup is still processing on the server. Refresh later to check completion.");
+}
+dialog.addEventListener("submit", async (event) => {
+  if (event.target.id !== "purge-entry") return;
+  event.preventDefault();
+  if (saving) return;
+  const form = event.target;
+  if (form.elements.confirm.value !== "DELETE PERMANENTLY") return;
+  const button = form.querySelector("[type=submit]");
+  saving = true;
+  button.disabled = true;
+  button.textContent = "Removing permanently\\u2026";
+  try {
+    const response = await fetch(apiBase + "/trash", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: form.dataset.request, all: form.dataset.all === "true", targets: form.dataset.all === "true" ? [] : JSON.parse(form.dataset.targets), expected_head: Number(form.dataset.head), confirm: form.elements.confirm.value }), signal: AbortSignal.timeout(65e3) });
+    const result = await response.json();
+    if (!response.ok) throw Error(result.error || "Permanent deletion could not be confirmed.");
+    if (result.state === "complete") await finishPurge(result);
+    else {
+      sessionStorage.setItem("qe-purge-request", result.id);
+      saving = false;
+      await watchPurge(result.id);
+    }
+  } catch (err2) {
+    form.querySelector(".form-error").textContent = err2.message + " If the connection was interrupted, refresh to check the server before retrying.";
+  } finally {
+    saving = false;
+    button.disabled = false;
+    button.textContent = "Delete permanently";
+  }
+});
+async function loadTrashCleanup() {
+  const box = app.querySelector("#trash-cleanup-status");
+  if (!box) return;
+  try {
+    const id = sessionStorage.getItem("qe-purge-request"), response = await fetch(apiBase + "/trash" + (id ? "?request_id=" + encodeURIComponent(id) : ""), { cache: "no-store" });
+    if (!response.ok) return;
+    const result = await response.json();
+    if (!box.isConnected) return;
+    if (result.state === "cleaning") {
+      sessionStorage.setItem("qe-purge-request", result.id);
+      box.textContent = "Permanent cleanup is processing on the server. Refresh to check progress. Restoring and saving are paused until cleanup finishes.";
+    } else if (result.state === "complete") {
+      sessionStorage.removeItem("qe-purge-request");
+      box.textContent = "Permanent cleanup completed. Refresh to load the clean workspace.";
+    }
+  } catch {
+    if (box.isConnected) box.textContent = "Could not check cleanup status. Refresh to retry.";
+  }
+}
 function roleView() {
   const r = hiringRole, job = state.jobs.find((j) => j.id === r.id), active = Boolean(job);
   if (job?.description) return heading(job.title, job.status, tag(job.status, job.status === "Open" ? "good" : "")) + panel("Full job description", '<div class="snapshot">' + escape(job.description) + "</div>") + panel("Approved compensation reference", "<p>" + escape(r.compensation) + "</p><p>" + escape(r.boundary) + "</p>");
@@ -3359,7 +3659,7 @@ export function interviewRevision(events,candidate){
  const stages=new Set(events.filter(e=>e.kind==='stage'&&e.subject_id===candidate.id).map(e=>e.id));
  return events.reduce((seq,e)=>stages.has(e.id)||e.kind==='summary'&&['delete','restore'].includes(e.payload.operation)&&(e.payload.target_id===candidate.id||stages.has(e.payload.target_id))?Math.max(seq,e.seq):seq,0);
 }
-`, "type": "application/javascript; charset=utf-8" }, "/store.js": { "body": "import {config} from './config.js?v=5ea8864332e1';\nimport {validEvent} from './record-utils.js';\n\nexport const apiBase = config.eventsUrl.replace(/\\/events$/,'');\nexport const connected = Boolean(config.eventsUrl);\nasync function request(path = '', options = {}) {\n  let response;\n  try {\n    response = await fetch(config.eventsUrl + path, {\n      cache:'no-store',signal:AbortSignal.timeout(20000),...options\n    });\n  } catch {\n    throw new Error('Connection interrupted. Your draft is kept. Retry to confirm the same save.');\n  }\n  let body;\n  try {body=await response.json();} catch {\n    throw new Error('The server response could not be confirmed. Your draft is kept; retry the same save.');\n  }\n  if (!response.ok) {\n    const error = new Error(body?.error || 'Storage request failed. Try again.');\n    error.status = response.status;\n    throw error;\n  }\n  return body;\n}\nexport async function loadEvents(after = 0,filters = {}) {\n  const events = [];\n  let cursor = after;\n  for (;;) {\n    const batch = await request('?'+new URLSearchParams({...filters,after:String(cursor)}));\n    if (!Array.isArray(batch)) throw new Error('The server returned an invalid event list.');\n    if (!batch.length) return events;\n    let previous=cursor;const ids=new Set();\n    if (batch.some(event => {\n      if(!validEvent(event)||event.seq<=previous||ids.has(event.id))return true;\n      previous=event.seq;ids.add(event.id);return false;\n    })) {\n      throw new Error('The event cursor is invalid. Refresh to retry.');\n    }\n    events.push(...batch);\n    cursor = batch.at(-1).seq;\n    if (batch.length < 500) return events;\n  }\n}\nexport async function append(event) {\n  const saved=await request('',{\n    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(event)\n  });\n  if(!validEvent(saved)||saved.id!==event.id||saved.kind!==event.kind||saved.subject_id!==event.subject_id) {\n    throw new Error('The saved record was not confirmed. Your draft is kept; retry the same save.');\n  }\n  return saved;\n}\n\n// Advance only after reading the ordered server feed, never from a local save receipt.\nexport function createEventReader() {\n let cursor=0,started=false;\n return async()=>{\n  if(!started){\n   const response=await fetch(apiBase+'/bootstrap',{cache:'no-store',signal:AbortSignal.timeout(20000)});\n   if(!response.ok){const events=await loadEvents(0);cursor=events.at(-1)?.seq||0;started=true;return events;}\n   const snapshot=await response.json();\n   if(!Number.isSafeInteger(snapshot.cursor)||snapshot.cursor<0||!Array.isArray(snapshot.events)||snapshot.events.some(e=>!validEvent(e)||e.seq>snapshot.cursor))throw Error('Invalid recruitment snapshot. Retry sync.');\n   cursor=snapshot.cursor;started=true;return snapshot.events;\n  }\n  const incoming=await loadEvents(cursor);if(incoming.length)cursor=incoming.at(-1).seq;return incoming;\n };\n}\n", "type": "application/javascript; charset=utf-8" }, "/config.js": { "body": "export const config = { eventsUrl: '/api/events' };\n", "type": "application/javascript; charset=utf-8" }, "/guide.js": { "body": 'export default [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. \u201CThis is Sarah from Bloom Skincare in the UK. Honestly, I\u2019m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend\u2019s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.\u201D", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, \u201CWhich other brands do you work with? Can you show me what you did for them?\u201D What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they\u2019ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "\u201CWe sell handmade candles in Australia. We need to go viral. Can you guarantee that?\u201D", null], ["R2", "Client role-play", 2, "\u201COur sales have been flat, so we just want more followers.\u201D", null], ["R2", "Client role-play", 2, "\u201CWe want it to feel more premium, but not too serious.\u201D", null], ["R2", "Client role-play", 2, "\u201CI heard you work with [a competitor]. What is their ad budget?\u201D", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "\u201CHonestly, what do you think is wrong with our brand right now?\u201D", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does \u201Cbeing responsible for your work\u201D mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate\u2019s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];\n', "type": "application/javascript; charset=utf-8" }, "/role.js": { "body": "export const hiringRole = {\n  id:'e2173dde-bc77-409a-96a1-86dcb23841f0',\n  title:'Client Acquisition & Client Relations Specialist',\n  company:'QuidEdge',\n  location:'Remote | Work From Anywhere',\n  employment:'Independent Contractor | Commission-Based only',\n  industry:'Personal Branding | Business Branding | Content Creation',\n  compensation:'100% commission-based. No fixed salary. 10%, 20% or 30% recurring monthly commission on eligible acquired client contracts, subject to the agreed terms.',\n  important:'Only candidates genuinely comfortable with a commission-only compensation structure should apply. Candidates must understand and accept the agreed terms before progressing.',\n  about:[\n    'At QuidEdge, we believe great brands are built through meaningful relationships, creative thinking, and strategies that deliver real business value.',\n    'We are a dedicated team of professionals specialising in personal branding, business branding, content creation, social media management, and business development consulting.',\n    'We work with founders, entrepreneurs, creators, and businesses to help them strengthen their market presence, communicate their value, and build brands that people genuinely connect with.',\n    'We are not interested in simply selling services. We believe in understanding businesses, solving real problems, and building long-term partnerships.',\n    'As we continue expanding internationally, we are looking for passionate and ambitious individuals to join our team as Client Acquisition & Client Relations Specialists.'\n  ],\n  overview:[\n    'This is not a traditional sales position. Successful client acquisition starts with trust, genuine conversations, and understanding what a business actually needs.',\n    'Identify potential clients, build professional relationships, introduce QuidEdge\u2019s solutions, and guide prospects through the acquisition process.',\n    'Maintain strong client relationships and ensure a positive experience throughout their journey with us.'\n  ],\n  responsibilities:[\n    'Identify and research potential clients, including founders, entrepreneurs, creators, and business decision-makers.',\n    'Connect with qualified prospects through LinkedIn, email, professional networks, and other appropriate outreach channels.',\n    'Build genuine relationships instead of relying on generic or aggressive sales pitches.',\n    'Understand prospective clients\u2019 business challenges, branding needs, goals, and growth opportunities.',\n    'Present QuidEdge\u2019s services professionally and communicate how our team can deliver value.',\n    'Conduct discovery conversations, handle enquiries, and coordinate proposals with our internal team.',\n    'Manage the client acquisition journey from initial outreach to successful agreement.',\n    'Maintain accurate records of prospect communications, follow-ups, and client interactions.',\n    'Build and maintain positive, long-term relationships with acquired clients.',\n    'Collaborate with our leadership, creative, and operations teams to ensure smooth client onboarding and communication.',\n    'Represent QuidEdge with professionalism, integrity, and confidentiality.'\n  ],\n  benefits:[\n    ['Work From Anywhere','Enjoy the flexibility of working remotely while connecting with businesses and professionals internationally.'],\n    ['Build Long-Term Income Opportunities','Develop a portfolio of clients that can generate recurring commissions rather than relying solely on one-time sales.'],\n    ['A Supportive Team Culture','People should feel valued, respected, and supported. Collaboration, open communication, and continuous development are central to how we work.'],\n    ['Professional Growth','Gain practical exposure to international business development, client negotiations, brand strategy, and relationship management.'],\n    ['Your Ideas Matter','We encourage initiative and fresh perspectives. Contribute to improving our client acquisition strategies and growing as a team.']\n  ],\n  tiers:[['10%','AUD 300\u20131,000 / month'],['20%','AUD 1,000\u20134,999 / month'],['30%','AUD 5,000+ / month']],\n  payment:'Commission is uncapped and continues monthly while the client stays active and paying. Paid monthly in AUD after QuidEdge receives the client\u2019s payment, subject to the agreed contract.',\n  boundary:'The supplied tier ranges overlap at AUD 1,000. Confirm the applicable rate in the candidate\u2019s agreement; this dashboard does not calculate or promise a rate at that boundary.',\n  screening:[\n    ['Experience','Walk through your last two roles. What outreach, discovery, closing and ongoing client relationship work did you personally own?'],\n    ['Evidence','Describe a client you acquired. How did you identify them, qualify the need, build trust and reach an agreement? What was the commercial result?'],\n    ['International communication','Which client markets have you worked with? Respond live to a prospect who asks for a guarantee of sales or viral results.'],\n    ['Commission understanding','Explain the commission-only arrangement in your own words. Is there a fixed salary? When are commissions paid? What terms must you confirm?'],\n    ['Client relations','Tell us about an unhappy client. What did you say first, how did you handle it and what changed?'],\n    ['Confidentiality','A prospect asks for a competitor\u2019s budget and private results. How would you respond?'],\n    ['AI judgment','Which tools support your research and outreach? Give an example you rejected or verified before using.'],\n    ['Remote readiness','Confirm working hours, market time zones, notice period, internet, backup power, call space and other commitments.']\n  ]\n};\n\nexport function defaultRoleRecord(date) {\n  return {id:hiringRole.id,kind:'job',subject_id:null,event_date:date,payload:{\n    title:hiringRole.title,department:'Client Services',location:'Remote \xB7 International',\n    employment:'Commission-based',headcount:'1',status:'Open',profile:'client-acquisition-v1',\n    brief:'Independent contractor. No fixed salary. 10% / 20% / 30% recurring commission on eligible acquired contracts under agreed terms. Own prospect research, outreach, discovery, proposals, closing, onboarding and ongoing client relations. Confirm terms and international communication readiness.'\n  }};\n}\n", "type": "application/javascript; charset=utf-8" }, "/documents.js": { "body": "import {validateDocumentBytes} from './binary.js';\nimport {validEvent} from './record-utils.js';\nexport const maxDocumentBytes = 5 * 1024 * 1024;\nexport async function checkDocument(file) {\n  if (!file || !file.size) throw new Error('Choose a non-empty document.');\n  if (file.size > maxDocumentBytes) throw new Error('Each document must be 5 MB or smaller.');\n  const ext = file.name.split('.').at(-1).toLowerCase();\n  const bytes = new Uint8Array(await file.arrayBuffer());\n  validateDocumentBytes(bytes,ext);\n  const pdf=ext==='pdf',doc=ext==='doc';\n  return {extension:ext,mime:pdf?'application/pdf':doc?'application/msword':'application/vnd.openxmlformats-officedocument.wordprocessingml.document'};\n}\nexport async function uploadDocument(apiBase,candidate,fullName,file,type,requestId) {\n  const metadata = await checkDocument(file);\n  const buffer = new Uint8Array(await file.arrayBuffer());\n  let binary='';\n  for (let i=0;i<buffer.length;i+=32768) binary+=String.fromCharCode(...buffer.subarray(i,i+32768));\n  let response;\n  try {\n    response=await fetch(apiBase+'/documents',{method:'POST',headers:{'Content-Type':'application/json'},\n      body:JSON.stringify({id:requestId,candidate_id:candidate.id,name:fullName,document_type:type,\n        extension:metadata.extension,data:btoa(binary)}),signal:AbortSignal.timeout(90000)});\n  } catch {throw new Error('Upload interrupted. Retry with the same file. The candidate record is already saved.');}\n  const result=await response.json().catch(()=>({}));\n  if (!response.ok) throw new Error(result?.error || 'Document upload failed. Retry with the same file.');\n  if(result?.uploaded!==true || !validEvent(result.event) || result.event.id!==requestId ||\n    result.event.subject_id!==candidate.id || result.event.kind!=='activity' ||\n    result.event.payload.event!=='Document stored' || result.event.payload.document_type!==type) {\n    throw new Error('Drive did not confirm the saved document. Keep the file selected and retry.');\n  }\n  return result;\n}\n", "type": "application/javascript; charset=utf-8" }, "/record-utils.js": { "body": "const kinds = new Set(['job','candidate','stage','activity','summary','score']);\nconst idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;\nexport function validEvent(event) {\n  return Boolean(event && typeof event==='object' && Number.isSafeInteger(event.seq) && event.seq>0 &&\n    typeof event.id==='string' && idPattern.test(event.id) && kinds.has(event.kind) &&\n    (event.subject_id===null || typeof event.subject_id==='string' && idPattern.test(event.subject_id)) &&\n    typeof event.event_date==='string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(event.event_date) &&\n    event.payload && typeof event.payload==='object' && !Array.isArray(event.payload));\n}\nexport function validDraft(value) {\n  return Boolean(value && typeof value==='object' && !Array.isArray(value) &&\n    ['job','candidate','stage','activity','score','checklist','commission','summary','correction','recordaction'].includes(value.kind) &&\n    typeof value.id==='string' && (!value.id || idPattern.test(value.id)) &&\n    typeof value.request==='string' && idPattern.test(value.request) &&\n    Number.isSafeInteger(value.revision) && value.revision>=0 && value.values &&\n    typeof value.values==='object' && !Array.isArray(value.values) &&\n    Object.values(value.values).every(v=>typeof v==='string') &&\n    (value.kind!=='score' || ['R1','R2'].includes(value.values.round)) &&\n    (!value.pending || typeof value.pending==='object' && value.pending.id===value.request && kinds.has(value.pending.kind)));\n}\nexport function foldCalendarLine(line) {\n  const encoder=new TextEncoder();const lines=[];let current='',size=0;\n  for(const char of line){const bytes=encoder.encode(char).length;\n    if(size+bytes>75){lines.push(current);current=' ';size=1;}\n    current+=char;size+=bytes;\n  }\n  lines.push(current);return lines.join('\\r\\n');\n}\n\n// One draft per form and candidate; switching tools must not block or erase work.\nexport function mergeDrafts(drafts,value,kind=value?.kind,id=value?.id) {\n  const remaining=drafts.filter(d=>d.kind!==kind || d.id!==id);\n  return value ? [...remaining,value] : remaining;\n}\n", "type": "application/javascript; charset=utf-8" } };
+`, "type": "application/javascript; charset=utf-8" }, "/store.js": { "body": "import {config} from './config.js?v=ea62769149b7';\nimport {validEvent} from './record-utils.js';\n\nexport const apiBase = config.eventsUrl.replace(/\\/events$/,'');\nexport const connected = Boolean(config.eventsUrl);\nasync function request(path = '', options = {}) {\n  let response;\n  try {\n    response = await fetch(config.eventsUrl + path, {\n      cache:'no-store',signal:AbortSignal.timeout(20000),...options\n    });\n  } catch {\n    throw new Error('Connection interrupted. Your draft is kept. Retry to confirm the same save.');\n  }\n  let body;\n  try {body=await response.json();} catch {\n    throw new Error('The server response could not be confirmed. Your draft is kept; retry the same save.');\n  }\n  if (!response.ok) {\n    const error = new Error(body?.error || 'Storage request failed. Try again.');\n    error.status = response.status;\n    throw error;\n  }\n  if(body&&typeof body==='object')body.purgeEpoch=response.headers.get('X-Purge-Epoch')||'';\n  return body;\n}\nexport async function loadEvents(after = 0,filters = {}) {\n  const events = [];\n  let cursor = after;\n  for (;;) {\n    const batch = await request('?'+new URLSearchParams({...filters,after:String(cursor)}));\n    if (!Array.isArray(batch)) throw new Error('The server returned an invalid event list.');\n    events.purgeEpoch=batch.purgeEpoch||'';\n    if (!batch.length) return events;\n    let previous=cursor;const ids=new Set();\n    if (batch.some(event => {\n      if(!validEvent(event)||event.seq<=previous||ids.has(event.id))return true;\n      previous=event.seq;ids.add(event.id);return false;\n    })) {\n      throw new Error('The event cursor is invalid. Refresh to retry.');\n    }\n    events.push(...batch);\n    cursor = batch.at(-1).seq;\n    if (batch.length < 500) return events;\n  }\n}\nexport async function append(event) {\n  const saved=await request('',{\n    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(event)\n  });\n  if(!validEvent(saved)||saved.id!==event.id||saved.kind!==event.kind||saved.subject_id!==event.subject_id) {\n    throw new Error('The saved record was not confirmed. Your draft is kept; retry the same save.');\n  }\n  return saved;\n}\n\n// Advance only after reading the ordered server feed, never from a local save receipt.\nexport function createEventReader() {\n let cursor=0,started=false,epoch='';\n return async function read(){\n  if(!started){\n   const response=await fetch(apiBase+'/bootstrap',{cache:'no-store',signal:AbortSignal.timeout(20000)});\n   if(!response.ok){const events=await loadEvents(0);cursor=events.at(-1)?.seq||0;started=true;return events;}\n   const snapshot=await response.json();\n   if(!Number.isSafeInteger(snapshot.cursor)||snapshot.cursor<0||!Array.isArray(snapshot.events)||snapshot.events.some(e=>!validEvent(e)||e.seq>snapshot.cursor))throw Error('Invalid recruitment snapshot. Retry sync.');\n   epoch=response.headers.get('X-Purge-Epoch')||'';cursor=snapshot.cursor;started=true;return snapshot.events;\n  }\n  const incoming=await loadEvents(cursor);if((incoming.purgeEpoch||'')!==epoch){started=false;const all=await read();all.reset=true;return all;}if(incoming.length)cursor=incoming.at(-1).seq;return incoming;\n };\n}\n", "type": "application/javascript; charset=utf-8" }, "/config.js": { "body": "export const config = { eventsUrl: '/api/events' };\n", "type": "application/javascript; charset=utf-8" }, "/guide.js": { "body": 'export default [["R1", "Open", 2, "Explain the role, call structure and next round.", null], ["R1", "Experience", 2, "Walk me through your last two roles. For each, what did you personally own on social media, and who else was on the team?", null], ["R1", "Experience", 3, "Pick the campaign you are most proud of. What was the goal, what did you personally do, and what was the result?", null], ["R1", "Experience", 1, "How many of your clients or audiences were outside Sri Lanka, and in which countries?", null], ["R1", "English and client communication", 4, "Live reply. \u201CThis is Sarah from Bloom Skincare in the UK. Honestly, I\u2019m disappointed. We have paid for 2 months and our Instagram engagement has dropped. My friend\u2019s brand posts every day and gets far more likes. I want us posting daily starting tomorrow.\u201D", "Listen for acknowledgement, clarifying questions and a concrete next step."], ["R1", "English and client communication", 3, "Tell me about a client who was genuinely unhappy with your work. What were the first words you said to them, and how did it end?", null], ["R1", "AI use", 2, "Which AI tools do you use in your work, and what exactly do you use each one for?", null], ["R1", "AI use", 2, "Tell me about the last time AI gave you something you could not use. What was wrong with it, and what did you do?", null], ["R1", "AI use", 1, "If a post created with AI help causes a problem for the client, whose responsibility is it?", null], ["R1", "Confidentiality and NDA", 2, "In your own words, what does an NDA actually cover, and when does it stop applying?", "Listen for checking the specific agreement and its terms."], ["R1", "Confidentiality and NDA", 2, "A prospect asks, \u201CWhich other brands do you work with? Can you show me what you did for them?\u201D What do you say?", null], ["R1", "Logistics", 4, "Confirm notice period, earliest start, salary expectation range, hours and time zone flexibility, internet, backup power, quiet call space and ongoing commitments.", "For commission-based openings, confirm the approved terms and candidate understanding."], ["R1", "Questions and close", 2, "Take candidate questions and confirm when they\u2019ll hear back.", "R1 total is 30 minutes."], ["R2", "Open", 3, "Explain the hour and confirm the later writing task is without AI.", "Writing task is tracked separately."], ["R2", "Brand audit presentation", 10, "Candidate presents six slides without interruption.", null], ["R2", "Audit defence", 2, "Why did you choose these three weaknesses over everything else you saw?", null], ["R2", "Audit defence", 2, "What did AI suggest that you rejected, and why did you reject it?", null], ["R2", "Audit defence", 2, "The client says there is no budget for your creative idea. What is your plan B?", null], ["R2", "Audit defence", 2, "If you could do only one of your three improvements first, which one, and what would you measure?", null], ["R2", "Audit defence", 2, "Follow-up and note-taking buffer.", "Fills the 10-minute block."], ["R2", "Client role-play", 2, "\u201CWe sell handmade candles in Australia. We need to go viral. Can you guarantee that?\u201D", null], ["R2", "Client role-play", 2, "\u201COur sales have been flat, so we just want more followers.\u201D", null], ["R2", "Client role-play", 2, "\u201CWe want it to feel more premium, but not too serious.\u201D", null], ["R2", "Client role-play", 2, "\u201CI heard you work with [a competitor]. What is their ad budget?\u201D", "Confidentiality check."], ["R2", "Client role-play", 2, "Interrupt mid-sentence with a new concern.", null], ["R2", "Client role-play", 3, "\u201CHonestly, what do you think is wrong with our brand right now?\u201D", null], ["R2", "Client role-play", 7, "Role-play buffer and follow-up.", "Includes the original 2-minute buffer and 5 unallocated minutes."], ["R2", "Team behaviours", 10, "Pick four from the question bank below.", null], ["R2", "Their questions", 5, "Take candidate questions.", null], ["R2", "Close and next steps", 2, "Confirm reference contacts and decision timeline.", "R2 total is 60 minutes."], ["Bank", "Team behaviours", null, "Describe the best manager you have worked with. What made it work?", null], ["Bank", "Team behaviours", null, "Tell me about the harshest feedback you have received, and what you did with it.", null], ["Bank", "Team behaviours", null, "You finish your tasks early on a quiet day. What do you do?", null], ["Bank", "Team behaviours", null, "A teammate is struggling with a client and it is not your account. What do you do?", null], ["Bank", "Team behaviours", null, "Why a small, growing company rather than a large agency?", null], ["Bank", "Team behaviours", null, "What does \u201Cbeing responsible for your work\u201D mean to you?", null], ["Scoring", "Evidence", null, "1 = clear gap. 2 = partial. 3 = meets the requirement. 4 = strong. 5 = consistently strong evidence. Leave untested criteria blank.", "Use the same core prompts and criteria for everyone in the same role."], ["Setup", "Before outreach", null, "Confirm the open role, approved terms and interview criteria with leadership. Explain approved commission terms early when applicable.", "If hiring Client Acquisition & Client Relations, adapt the social media audit to a role-relevant exercise before using it."], ["Workflow", "Stage updates", null, "After each round, save the scorecard and recommendation. Set the candidate\u2019s stage, next action, owner and due date. Log the event.", "Keep candidate contact details and scorecards in the shared hiring file with restricted access."], ["Workflow", "Final decision", null, "Record the decision and reason. Track references, candidate communication and agreement/NDA milestones as applicable.", "Record who approved any exception in the candidate note."]];\n', "type": "application/javascript; charset=utf-8" }, "/role.js": { "body": "export const hiringRole = {\n  id:'e2173dde-bc77-409a-96a1-86dcb23841f0',\n  title:'Client Acquisition & Client Relations Specialist',\n  company:'QuidEdge',\n  location:'Remote | Work From Anywhere',\n  employment:'Independent Contractor | Commission-Based only',\n  industry:'Personal Branding | Business Branding | Content Creation',\n  compensation:'100% commission-based. No fixed salary. 10%, 20% or 30% recurring monthly commission on eligible acquired client contracts, subject to the agreed terms.',\n  important:'Only candidates genuinely comfortable with a commission-only compensation structure should apply. Candidates must understand and accept the agreed terms before progressing.',\n  about:[\n    'At QuidEdge, we believe great brands are built through meaningful relationships, creative thinking, and strategies that deliver real business value.',\n    'We are a dedicated team of professionals specialising in personal branding, business branding, content creation, social media management, and business development consulting.',\n    'We work with founders, entrepreneurs, creators, and businesses to help them strengthen their market presence, communicate their value, and build brands that people genuinely connect with.',\n    'We are not interested in simply selling services. We believe in understanding businesses, solving real problems, and building long-term partnerships.',\n    'As we continue expanding internationally, we are looking for passionate and ambitious individuals to join our team as Client Acquisition & Client Relations Specialists.'\n  ],\n  overview:[\n    'This is not a traditional sales position. Successful client acquisition starts with trust, genuine conversations, and understanding what a business actually needs.',\n    'Identify potential clients, build professional relationships, introduce QuidEdge\u2019s solutions, and guide prospects through the acquisition process.',\n    'Maintain strong client relationships and ensure a positive experience throughout their journey with us.'\n  ],\n  responsibilities:[\n    'Identify and research potential clients, including founders, entrepreneurs, creators, and business decision-makers.',\n    'Connect with qualified prospects through LinkedIn, email, professional networks, and other appropriate outreach channels.',\n    'Build genuine relationships instead of relying on generic or aggressive sales pitches.',\n    'Understand prospective clients\u2019 business challenges, branding needs, goals, and growth opportunities.',\n    'Present QuidEdge\u2019s services professionally and communicate how our team can deliver value.',\n    'Conduct discovery conversations, handle enquiries, and coordinate proposals with our internal team.',\n    'Manage the client acquisition journey from initial outreach to successful agreement.',\n    'Maintain accurate records of prospect communications, follow-ups, and client interactions.',\n    'Build and maintain positive, long-term relationships with acquired clients.',\n    'Collaborate with our leadership, creative, and operations teams to ensure smooth client onboarding and communication.',\n    'Represent QuidEdge with professionalism, integrity, and confidentiality.'\n  ],\n  benefits:[\n    ['Work From Anywhere','Enjoy the flexibility of working remotely while connecting with businesses and professionals internationally.'],\n    ['Build Long-Term Income Opportunities','Develop a portfolio of clients that can generate recurring commissions rather than relying solely on one-time sales.'],\n    ['A Supportive Team Culture','People should feel valued, respected, and supported. Collaboration, open communication, and continuous development are central to how we work.'],\n    ['Professional Growth','Gain practical exposure to international business development, client negotiations, brand strategy, and relationship management.'],\n    ['Your Ideas Matter','We encourage initiative and fresh perspectives. Contribute to improving our client acquisition strategies and growing as a team.']\n  ],\n  tiers:[['10%','AUD 300\u20131,000 / month'],['20%','AUD 1,000\u20134,999 / month'],['30%','AUD 5,000+ / month']],\n  payment:'Commission is uncapped and continues monthly while the client stays active and paying. Paid monthly in AUD after QuidEdge receives the client\u2019s payment, subject to the agreed contract.',\n  boundary:'The supplied tier ranges overlap at AUD 1,000. Confirm the applicable rate in the candidate\u2019s agreement; this dashboard does not calculate or promise a rate at that boundary.',\n  screening:[\n    ['Experience','Walk through your last two roles. What outreach, discovery, closing and ongoing client relationship work did you personally own?'],\n    ['Evidence','Describe a client you acquired. How did you identify them, qualify the need, build trust and reach an agreement? What was the commercial result?'],\n    ['International communication','Which client markets have you worked with? Respond live to a prospect who asks for a guarantee of sales or viral results.'],\n    ['Commission understanding','Explain the commission-only arrangement in your own words. Is there a fixed salary? When are commissions paid? What terms must you confirm?'],\n    ['Client relations','Tell us about an unhappy client. What did you say first, how did you handle it and what changed?'],\n    ['Confidentiality','A prospect asks for a competitor\u2019s budget and private results. How would you respond?'],\n    ['AI judgment','Which tools support your research and outreach? Give an example you rejected or verified before using.'],\n    ['Remote readiness','Confirm working hours, market time zones, notice period, internet, backup power, call space and other commitments.']\n  ]\n};\n\nexport function defaultRoleRecord(date) {\n  return {id:hiringRole.id,kind:'job',subject_id:null,event_date:date,payload:{\n    title:hiringRole.title,department:'Client Services',location:'Remote \xB7 International',\n    employment:'Commission-based',headcount:'1',status:'Open',profile:'client-acquisition-v1',\n    brief:'Independent contractor. No fixed salary. 10% / 20% / 30% recurring commission on eligible acquired contracts under agreed terms. Own prospect research, outreach, discovery, proposals, closing, onboarding and ongoing client relations. Confirm terms and international communication readiness.'\n  }};\n}\n", "type": "application/javascript; charset=utf-8" }, "/documents.js": { "body": "import {validateDocumentBytes} from './binary.js';\nimport {validEvent} from './record-utils.js';\nexport const maxDocumentBytes = 5 * 1024 * 1024;\nexport async function checkDocument(file) {\n  if (!file || !file.size) throw new Error('Choose a non-empty document.');\n  if (file.size > maxDocumentBytes) throw new Error('Each document must be 5 MB or smaller.');\n  const ext = file.name.split('.').at(-1).toLowerCase();\n  const bytes = new Uint8Array(await file.arrayBuffer());\n  validateDocumentBytes(bytes,ext);\n  const pdf=ext==='pdf',doc=ext==='doc';\n  return {extension:ext,mime:pdf?'application/pdf':doc?'application/msword':'application/vnd.openxmlformats-officedocument.wordprocessingml.document'};\n}\nexport async function uploadDocument(apiBase,candidate,fullName,file,type,requestId) {\n  const metadata = await checkDocument(file);\n  const buffer = new Uint8Array(await file.arrayBuffer());\n  let binary='';\n  for (let i=0;i<buffer.length;i+=32768) binary+=String.fromCharCode(...buffer.subarray(i,i+32768));\n  let response;\n  try {\n    response=await fetch(apiBase+'/documents',{method:'POST',headers:{'Content-Type':'application/json'},\n      body:JSON.stringify({id:requestId,candidate_id:candidate.id,name:fullName,document_type:type,\n        extension:metadata.extension,data:btoa(binary)}),signal:AbortSignal.timeout(90000)});\n  } catch {throw new Error('Upload interrupted. Retry with the same file. The candidate record is already saved.');}\n  const result=await response.json().catch(()=>({}));\n  if (!response.ok) throw new Error(result?.error || 'Document upload failed. Retry with the same file.');\n  if(result?.uploaded!==true || !validEvent(result.event) || result.event.id!==requestId ||\n    result.event.subject_id!==candidate.id || result.event.kind!=='activity' ||\n    result.event.payload.event!=='Document stored' || result.event.payload.document_type!==type) {\n    throw new Error('Drive did not confirm the saved document. Keep the file selected and retry.');\n  }\n  return result;\n}\n", "type": "application/javascript; charset=utf-8" }, "/record-utils.js": { "body": "const kinds = new Set(['job','candidate','stage','activity','summary','score']);\nconst idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;\nexport function validEvent(event) {\n  return Boolean(event && typeof event==='object' && Number.isSafeInteger(event.seq) && event.seq>0 &&\n    typeof event.id==='string' && idPattern.test(event.id) && kinds.has(event.kind) &&\n    (event.subject_id===null || typeof event.subject_id==='string' && idPattern.test(event.subject_id)) &&\n    typeof event.event_date==='string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(event.event_date) &&\n    event.payload && typeof event.payload==='object' && !Array.isArray(event.payload));\n}\nexport function validDraft(value) {\n  return Boolean(value && typeof value==='object' && !Array.isArray(value) &&\n    ['job','candidate','stage','activity','score','checklist','commission','summary','correction','recordaction'].includes(value.kind) &&\n    typeof value.id==='string' && (!value.id || idPattern.test(value.id)) &&\n    typeof value.request==='string' && idPattern.test(value.request) &&\n    Number.isSafeInteger(value.revision) && value.revision>=0 && value.values &&\n    typeof value.values==='object' && !Array.isArray(value.values) &&\n    Object.values(value.values).every(v=>typeof v==='string') &&\n    (value.kind!=='score' || ['R1','R2'].includes(value.values.round)) &&\n    (!value.pending || typeof value.pending==='object' && value.pending.id===value.request && kinds.has(value.pending.kind)));\n}\nexport function foldCalendarLine(line) {\n  const encoder=new TextEncoder();const lines=[];let current='',size=0;\n  for(const char of line){const bytes=encoder.encode(char).length;\n    if(size+bytes>75){lines.push(current);current=' ';size=1;}\n    current+=char;size+=bytes;\n  }\n  lines.push(current);return lines.join('\\r\\n');\n}\n\n// One draft per form and candidate; switching tools must not block or erase work.\nexport function mergeDrafts(drafts,value,kind=value?.kind,id=value?.id) {\n  const remaining=drafts.filter(d=>d.kind!==kind || d.id!==id);\n  return value ? [...remaining,value] : remaining;\n}\n", "type": "application/javascript; charset=utf-8" } };
 export {
   api_default as default
 };

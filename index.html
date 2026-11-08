@@ -88,6 +88,53 @@ dialog h2{max-width:calc(100% - 85px)}
 <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
 <div id="notice" role="status" aria-live="polite"></div>
 <script>(() => {
+  // src/model.js
+  function recordStates(events2) {
+    const states = /* @__PURE__ */ new Map();
+    for (const event of [...events2].sort((a, b) => a.seq - b.seq)) {
+      if (event.kind === "summary" && event.payload.operation && event.payload.target_id)
+        states.set(event.payload.target_id, { deleted: event.payload.operation === "delete", revision: event.seq });
+    }
+    return states;
+  }
+
+  // src/purge-plan.js
+  function planPurge(events2, targets) {
+    const byId = new Map(events2.map((e) => [e.id, e])), states = recordStates(events2);
+    if (!targets.length || new Set(targets).size !== targets.length) throw Error("Choose records in Trash.");
+    for (const id of targets) if (!byId.has(id) || byId.get(id).payload.operation || !states.get(id)?.deleted) throw Error("Only records currently in Trash can be permanently deleted.");
+    const selected = new Set(targets);
+    for (const id of targets) {
+      const item = byId.get(id);
+      if (item.kind === "job" && !item.payload.job_id) {
+        for (const c of events2.filter((e) => e.kind === "candidate" && e.payload.job_id === id)) {
+          if (!states.get(c.id)?.deleted) throw Error("Move every candidate linked to this position to Trash before permanently deleting the position.");
+          selected.add(c.id);
+        }
+      }
+    }
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const e of events2) {
+        if (selected.has(e.id)) continue;
+        if (selected.has(e.subject_id) || selected.has(e.payload.target_id) || selected.has(e.payload.supersedes) || e.kind === "job" && selected.has(e.payload.job_id)) {
+          selected.add(e.id);
+          changed = true;
+        }
+        if (e.payload.supersedes && selected.has(e.id) && !selected.has(e.payload.supersedes)) {
+          selected.add(e.payload.supersedes);
+          changed = true;
+        }
+      }
+      for (const e of events2) if (selected.has(e.id) && e.payload.supersedes && !selected.has(e.payload.supersedes)) {
+        selected.add(e.payload.supersedes);
+        changed = true;
+      }
+    }
+    return { event_ids: [...selected], candidate_ids: events2.filter((e) => selected.has(e.id) && e.kind === "candidate").map((e) => e.id), count: targets.length, head: events2.at(-1)?.seq || 0 };
+  }
+
   // src/record-utils.js
   var kinds = /* @__PURE__ */ new Set(["job", "candidate", "stage", "activity", "summary", "score"]);
   var idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -178,7 +225,7 @@ dialog h2{max-width:calc(100% - 85px)}
     }
     return "";
   }
-  function recordStates(events2) {
+  function recordStates2(events2) {
     const states = /* @__PURE__ */ new Map();
     for (const event of [...events2].sort((a, b) => a.seq - b.seq)) {
       if (event.kind === "summary" && event.payload.operation && event.payload.target_id)
@@ -187,12 +234,12 @@ dialog h2{max-width:calc(100% - 85px)}
     return states;
   }
   function visibleEvents(events2) {
-    const states = recordStates(events2);
+    const states = recordStates2(events2);
     const replaced = new Set(events2.filter((e) => e.payload.supersedes).map((e) => e.payload.supersedes));
     return events2.filter((e) => !e.payload.operation && !states.get(e.id)?.deleted && !replaced.has(e.id));
   }
   function project(events2) {
-    const states = recordStates(events2);
+    const states = recordStates2(events2);
     const visible = new Set(visibleEvents(events2).map((e) => e.id));
     const jobs = /* @__PURE__ */ new Map();
     const candidates = /* @__PURE__ */ new Map();
@@ -929,6 +976,7 @@ dialog h2{max-width:calc(100% - 85px)}
       error.status = response.status;
       throw error;
     }
+    if (body && typeof body === "object") body.purgeEpoch = response.headers.get("X-Purge-Epoch") || "";
     return body;
   }
   async function loadEvents(after = 0, filters = {}) {
@@ -937,6 +985,7 @@ dialog h2{max-width:calc(100% - 85px)}
     for (; ; ) {
       const batch = await request("?" + new URLSearchParams({ ...filters, after: String(cursor) }));
       if (!Array.isArray(batch)) throw new Error("The server returned an invalid event list.");
+      events2.purgeEpoch = batch.purgeEpoch || "";
       if (!batch.length) return events2;
       let previous = cursor;
       const ids = /* @__PURE__ */ new Set();
@@ -965,8 +1014,8 @@ dialog h2{max-width:calc(100% - 85px)}
     return saved;
   }
   function createEventReader() {
-    let cursor = 0, started = false;
-    return async () => {
+    let cursor = 0, started = false, epoch = "";
+    return async function read() {
       if (!started) {
         const response = await fetch(apiBase + "/bootstrap", { cache: "no-store", signal: AbortSignal.timeout(2e4) });
         if (!response.ok) {
@@ -977,11 +1026,18 @@ dialog h2{max-width:calc(100% - 85px)}
         }
         const snapshot = await response.json();
         if (!Number.isSafeInteger(snapshot.cursor) || snapshot.cursor < 0 || !Array.isArray(snapshot.events) || snapshot.events.some((e) => !validEvent(e) || e.seq > snapshot.cursor)) throw Error("Invalid recruitment snapshot. Retry sync.");
+        epoch = response.headers.get("X-Purge-Epoch") || "";
         cursor = snapshot.cursor;
         started = true;
         return snapshot.events;
       }
       const incoming = await loadEvents(cursor);
+      if ((incoming.purgeEpoch || "") !== epoch) {
+        started = false;
+        const all = await read();
+        all.reset = true;
+        return all;
+      }
       if (incoming.length) cursor = incoming.at(-1).seq;
       return incoming;
     };
@@ -1068,10 +1124,20 @@ dialog h2{max-width:calc(100% - 85px)}
     }
   }
   function ingest(incoming) {
-    if (!incoming.length) return false;
+    const reset = incoming.reset === true;
+    if (reset) {
+      const retained = new Set(incoming.map((e) => e.id)), removed = new Set(events.filter((e) => !retained.has(e.id)).map((e) => e.id));
+      for (const d of storageDrafts()) if (removed.has(d.id) || removed.has(d.values.supersedes) || removed.has(d.values.job_id) || removed.has(d.pending?.subject_id)) storageWrite(null, d.kind, d.id);
+      if (dialog.open) {
+        pendingRecord = null;
+        dialog.close();
+      }
+      events = [];
+    }
+    if (!incoming.length && !reset) return false;
     const known = new Set(events.map((event) => event.id));
     const fresh = incoming.filter((event) => !known.has(event.id));
-    if (!fresh.length) return false;
+    if (!fresh.length && !reset) return false;
     events = events.concat(fresh).sort((a, b) => a.seq - b.seq);
     state = project(events);
     state.jobs = state.jobs.filter((j) => !j.deleted);
@@ -1238,6 +1304,7 @@ dialog h2{max-width:calc(100% - 85px)}
     const draftBanner = drafts.map((draft) => '<div class="draft-banner"><span><strong>' + escape(draftTitle(draft)) + "</strong><small>" + escape(draft.saved_at ? "Draft saved " + new Date(draft.saved_at).toLocaleString("en-LK", { timeZone: "Asia/Colombo", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " SL" : "Unsaved draft \xB7 saved time unavailable") + '</small></span><div class="row-actions">' + btn("Resume draft", "resume", draft.kind + ":" + draft.id) + btn("Discard draft", "discard", draft.kind + ":" + draft.id) + "</div></div>").join("");
     const alert = failure ? '<p class="banner" role="alert">' + escape(failure) + " Existing records remain visible. Use Refresh to retry.</p>" : "";
     app.innerHTML = alert + draftBanner + (!ready && view !== "guide" ? panel("Recruitment workspace", empty(failure ? "The shared records could not be loaded." : "Loading shared records\u2026")) : screens[view]());
+    if (view === "trash" && ready) loadTrashCleanup();
     const active = activeId && document.getElementById(activeId);
     if (active && app.contains(active)) {
       active.focus({ preventScroll: true });
@@ -1309,7 +1376,7 @@ dialog h2{max-width:calc(100% - 85px)}
     if (kind === "recordaction") {
       const target = events.find((event) => event.id === id);
       if (!target) return;
-      const deleted = Boolean(recordStates(events).get(id)?.deleted);
+      const deleted = Boolean(recordStates2(events).get(id)?.deleted);
       title = (deleted ? "Restore" : "Move to Trash") + " \xB7 " + recordTitle(target);
       fields = '<input type="hidden" name="operation" value="' + (deleted ? "restore" : "delete") + '"><input type="hidden" name="target_id" value="' + escape(id) + '">' + notes("note", deleted ? "Restoration reason" : "Deletion reason", true) + '<p class="hint wide">' + (deleted ? "Restoring makes this record available again." : "This moves the record to Trash. You can restore it later. Original files and audit history are preserved.") + "</p>";
     } else if (kind === "job") {
@@ -1345,9 +1412,9 @@ dialog h2{max-width:calc(100% - 85px)}
       title = "Daily COO summary";
       fields = notes("progress", "Progress today", true) + notes("blockers", "Blockers / leadership decisions") + notes("priorities", "Next workday priorities", true);
     } else return;
-    const revision = restored?.revision ?? (kind === "recordaction" ? Math.max(recordStates(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, candidateById(id)?.revision || 0, state.jobs.find((j) => j.id === id)?.revision || 0) : candidate?.revision ?? job?.revision) ?? 0;
+    const revision = restored?.revision ?? (kind === "recordaction" ? Math.max(recordStates2(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, candidateById(id)?.revision || 0, state.jobs.find((j) => j.id === id)?.revision || 0) : candidate?.revision ?? job?.revision) ?? 0;
     const submitLabel = formActionLabel(kind, id, Boolean(restored?.values?.supersedes));
-    show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + (["candidate", "recordaction"].includes(kind) ? '<input type="hidden" name="event_date" value="' + escape(dateSL()) + '">' : field("event_date", "Event date (SL)", { kind: "date", required: true, value: kind === "summary" ? reportDate : dateSL() })) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary' + (kind === "recordaction" && !recordStates(events).get(id)?.deleted ? " danger" : "") + '" type="submit">' + escape(submitLabel) + "</button></div></form>");
+    show('<form id="entry" data-kind="' + escape(kind) + '" data-id="' + escape(id) + '" data-request="' + escape(restored?.request || newId()) + '" data-revision="' + revision + '"><div class="section-top"><h2 id="dialog-title">' + escape(title) + "</h2>" + btn("Close", "close") + '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p><div class="form-grid">' + (["candidate", "recordaction"].includes(kind) ? '<input type="hidden" name="event_date" value="' + escape(dateSL()) + '">' : field("event_date", "Event date (SL)", { kind: "date", required: true, value: kind === "summary" ? reportDate : dateSL() })) + fields + '</div><p class="form-error" role="alert"></p><div class="form-actions">' + btn("Discard draft", "discard") + '<button class="btn primary' + (kind === "recordaction" && !recordStates2(events).get(id)?.deleted ? " danger" : "") + '" type="submit">' + escape(submitLabel) + "</button></div></form>");
     pendingRecord = restored?.pending || null;
     if (kind === "score") setRoundFields(restored?.values?.round || "R1");
     if (restored?.values?.supersedes) {
@@ -1534,6 +1601,10 @@ dialog h2{max-width:calc(100% - 85px)}
     const control = event.target.closest("[data-action]");
     if (!control || saving) return;
     const { action, id } = control.dataset;
+    if (action === "purge-one" || action === "purge-all") {
+      openPurge(action === "purge-all" ? null : id);
+      return;
+    }
     if (action === "interview-details") {
       saveDraft();
       await showInterviewDetails(id);
@@ -1791,7 +1862,7 @@ dialog h2{max-width:calc(100% - 85px)}
           saving = false;
           await refresh();
           if (kind === "recordaction") {
-            form.dataset.revision = Math.max(recordStates(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, project(events).candidates.find((c) => c.id === id)?.revision || 0, project(events).jobs.find((j) => j.id === id)?.revision || 0);
+            form.dataset.revision = Math.max(recordStates2(events).get(id)?.revision || events.find((e) => e.id === id)?.seq || 0, project(events).candidates.find((c) => c.id === id)?.revision || 0, project(events).jobs.find((j) => j.id === id)?.revision || 0);
           }
           const current = candidateById(id) || candidateById(events.find((e) => e.id === id)?.subject_id) || state.jobs.find((job) => job.id === id);
           if (current) {
@@ -1857,8 +1928,8 @@ dialog h2{max-width:calc(100% - 85px)}
     return '<div class="row-actions">' + (editable ? btn("Edit entry", "edit-event", event.id) : "") + dangerBtn("Move entry to Trash", "delete-record", event.id) + "</div>";
   }
   function trashView() {
-    const states = recordStates(events), deleted = events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted);
-    return heading("Trash", "Restore deleted candidates, positions and entries. Original records and files are preserved.", btn("Back to overview", "overview-view")) + panel("Deleted records", deleted.length ? table(["Record", "Type", "Actions"], deleted.map((e) => [escapeTitle(e), e.kind, btn("Restore", "restore-record", e.id, true)])) : empty("Trash is empty."));
+    const states = recordStates2(events), deleted = events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted);
+    return '<p id="trash-cleanup-status" role="status"></p>' + heading("Trash", "Restore records, or permanently remove them and their linked files and managed backups.", btn("Back to overview", "overview-view") + (deleted.length ? dangerBtn("Empty Trash", "purge-all", "") : "")) + panel("Deleted records", deleted.length ? table(["Record", "Type", "Actions"], deleted.map((e) => [escapeTitle(e), e.kind, '<div class="row-actions">' + btn("Restore", "restore-record", e.id, true) + dangerBtn("Delete permanently", "purge-one", e.id) + "</div>"])) : empty("Trash is empty."));
   }
   function escapeTitle(event) {
     return escape(recordTitle(event));
@@ -1873,7 +1944,7 @@ dialog h2{max-width:calc(100% - 85px)}
       return;
     }
     const parent = candidateById(target.subject_id);
-    const revision = parent?.revision || recordStates(events).get(id)?.revision || target.seq;
+    const revision = parent?.revision || recordStates2(events).get(id)?.revision || target.seq;
     openForm(kind, id, { kind, id, request: newId(), revision, values: { ...target.payload, event_date: target.event_date, supersedes: id } });
   }
   function tomorrowSL() {
@@ -1882,7 +1953,7 @@ dialog h2{max-width:calc(100% - 85px)}
     return dateSL(date);
   }
   function formActionLabel(kind, id, editing = false) {
-    if (kind === "recordaction") return recordStates(events).get(id)?.deleted ? "Restore record" : "Move to Trash";
+    if (kind === "recordaction") return recordStates2(events).get(id)?.deleted ? "Restore record" : "Move to Trash";
     if (editing) return "Save entry changes";
     return { candidate: "Add candidate", job: id ? "Save position changes" : "Create position", stage: "Save stage and schedule", activity: "Log milestone", score: "Save scorecard", checklist: "Save checklist", commission: "Save commission review", correction: "Save candidate details", summary: "Save daily summary" }[kind] || "Save changes";
   }
@@ -1948,6 +2019,98 @@ dialog h2{max-width:calc(100% - 85px)}
       button.textContent = "Save meeting details";
     }
   });
+  function openPurge(id) {
+    saveDraft();
+    const states = recordStates2(events), targets = id ? [id] : events.filter((e) => !e.payload.operation && states.get(e.id)?.deleted).map((e) => e.id);
+    let plan;
+    try {
+      plan = planPurge(events, targets);
+    } catch (err2) {
+      show('<h2>Cannot permanently delete</h2><p role="alert">' + escape(err2.message) + "</p>" + btn("Close", "close"));
+      return;
+    }
+    show("<h2>" + (id ? "Delete permanently" : "Empty Trash permanently") + "</h2><p><strong>This cannot be undone.</strong></p><p>" + escape(plan.count + " Trash record(s), " + plan.event_ids.length + " stored history entries and " + plan.candidate_ids.length + " candidate file folder(s) will be removed.") + '</p><p>Includes associated interview reminder settings, document receipts and copies in this app\u2019s managed Drive backups. Other active records are preserved.</p><p class="hint">Already sent emails, downloaded/exported copies and the hosting provider\u2019s recovery retention are outside this cleanup.</p><form id="purge-entry" class="form-grid">' + field("confirm", "Type DELETE PERMANENTLY", { required: true, wide: true }) + '<p class="form-error wide" role="alert"></p><div class="form-actions wide">' + btn("Cancel", "close") + '<button type="submit" class="btn danger">' + (id ? "Delete permanently" : "Empty Trash permanently") + "</button></div></form>");
+    const form = dialog.querySelector("#purge-entry");
+    form.dataset.targets = JSON.stringify(targets);
+    form.dataset.all = String(!id);
+    form.dataset.head = String(plan.head);
+    form.dataset.request = newId();
+    form.elements.confirm.pattern = "DELETE PERMANENTLY";
+    form.elements.confirm.autocomplete = "off";
+    form.elements.confirm.focus();
+  }
+  async function finishPurge(receipt) {
+    sessionStorage.removeItem("qe-purge-request");
+    const snapshotResponse = await fetch(apiBase + "/bootstrap", { cache: "no-store" });
+    if (!snapshotResponse.ok) throw Error("Cleanup finished. Refresh to load the clean workspace.");
+    const snapshot = await snapshotResponse.json();
+    snapshot.events.reset = true;
+    ingest(snapshot.events);
+    dialog.close();
+    render();
+    flash("Permanent cleanup completed. " + receipt.records + " Trash record(s) removed.");
+  }
+  async function watchPurge(id) {
+    show('<h2>Permanent cleanup is processing</h2><p role="status">Removing records, linked files and managed backup copies. The server continues if this browser is closed.</p>' + btn("Close", "close"));
+    for (let i2 = 0; i2 < 15; i2++) {
+      await new Promise((resolve) => setTimeout(resolve, 4e3));
+      const response = await fetch(apiBase + "/trash?request_id=" + encodeURIComponent(id), { cache: "no-store" });
+      if (!response.ok) throw Error("Could not check cleanup. Use Refresh to check again.");
+      const result = await response.json();
+      if (result.state === "complete") {
+        await finishPurge(result);
+        return;
+      }
+    }
+    flash("Cleanup is still processing on the server. Refresh later to check completion.");
+  }
+  dialog.addEventListener("submit", async (event) => {
+    if (event.target.id !== "purge-entry") return;
+    event.preventDefault();
+    if (saving) return;
+    const form = event.target;
+    if (form.elements.confirm.value !== "DELETE PERMANENTLY") return;
+    const button = form.querySelector("[type=submit]");
+    saving = true;
+    button.disabled = true;
+    button.textContent = "Removing permanently\u2026";
+    try {
+      const response = await fetch(apiBase + "/trash", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: form.dataset.request, all: form.dataset.all === "true", targets: form.dataset.all === "true" ? [] : JSON.parse(form.dataset.targets), expected_head: Number(form.dataset.head), confirm: form.elements.confirm.value }), signal: AbortSignal.timeout(65e3) });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || "Permanent deletion could not be confirmed.");
+      if (result.state === "complete") await finishPurge(result);
+      else {
+        sessionStorage.setItem("qe-purge-request", result.id);
+        saving = false;
+        await watchPurge(result.id);
+      }
+    } catch (err2) {
+      form.querySelector(".form-error").textContent = err2.message + " If the connection was interrupted, refresh to check the server before retrying.";
+    } finally {
+      saving = false;
+      button.disabled = false;
+      button.textContent = "Delete permanently";
+    }
+  });
+  async function loadTrashCleanup() {
+    const box = app.querySelector("#trash-cleanup-status");
+    if (!box) return;
+    try {
+      const id = sessionStorage.getItem("qe-purge-request"), response = await fetch(apiBase + "/trash" + (id ? "?request_id=" + encodeURIComponent(id) : ""), { cache: "no-store" });
+      if (!response.ok) return;
+      const result = await response.json();
+      if (!box.isConnected) return;
+      if (result.state === "cleaning") {
+        sessionStorage.setItem("qe-purge-request", result.id);
+        box.textContent = "Permanent cleanup is processing on the server. Refresh to check progress. Restoring and saving are paused until cleanup finishes.";
+      } else if (result.state === "complete") {
+        sessionStorage.removeItem("qe-purge-request");
+        box.textContent = "Permanent cleanup completed. Refresh to load the clean workspace.";
+      }
+    } catch {
+      if (box.isConnected) box.textContent = "Could not check cleanup status. Refresh to retry.";
+    }
+  }
   function roleView() {
     const r = hiringRole, job = state.jobs.find((j) => j.id === r.id), active = Boolean(job);
     if (job?.description) return heading(job.title, job.status, tag(job.status, job.status === "Open" ? "good" : "")) + panel("Full job description", '<div class="snapshot">' + escape(job.description) + "</div>") + panel("Approved compensation reference", "<p>" + escape(r.compensation) + "</p><p>" + escape(r.boundary) + "</p>");

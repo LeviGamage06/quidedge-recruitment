@@ -9,7 +9,7 @@ export function validEvent(event) {
 }
 export function validDraft(value) {
   return Boolean(value && typeof value==='object' && !Array.isArray(value) &&
-    ['job','candidate','stage','activity','score','checklist','commission','summary','correction'].includes(value.kind) &&
+    ['job','candidate','stage','activity','score','checklist','commission','summary','correction','recordaction'].includes(value.kind) &&
     typeof value.id==='string' && (!value.id || idPattern.test(value.id)) &&
     typeof value.request==='string' && idPattern.test(value.request) &&
     Number.isSafeInteger(value.revision) && value.revision>=0 && value.values &&

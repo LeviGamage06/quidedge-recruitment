@@ -1,7 +1,10 @@
 name: Deploy QuidEdge Cloudflare Worker
 
-# Deployment is intentionally manual: GitHub Pages and Cloudflare Worker are independent.
+# The initial merge attempts deployment; subsequent deployments run manually.
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy-cloudflare-worker.yml']
   workflow_dispatch:
 
 permissions:
@@ -14,7 +17,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    environment: production
     steps:
       - name: Check out verified code
         uses: actions/checkout@v4

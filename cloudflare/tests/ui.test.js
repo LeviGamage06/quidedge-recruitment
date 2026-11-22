@@ -26,6 +26,27 @@ w.location.hash='pipeline';await tick();d.querySelector('#stage-filter').value='
 w.location.hash='interviews';await tick();click('candidate');assert.match(d.querySelector('[name=alias]').value,/^QE-20261108-[A-F0-9]{6}$/);assert.equal(d.querySelector('[type=submit]').textContent,'Add candidate');assert.equal(d.querySelectorAll('.form-section[open]').length,0);assert.equal(d.querySelector('[name=action]').value,'Review application');assert.equal(d.querySelector('[name=due]').value,'2026-11-09');assert.equal(d.querySelector('[name=owner]').value,'COO');set('alias','QA-NEW');await save();assert.equal(w.location.hash,'#pipeline');assert.match(d.querySelector('#app').textContent,/QA-NEW/);
 w.location.hash='overview';await tick();d.querySelector(`[data-action=view][data-id='${cid}']`).click();await tick();assert.match(d.querySelector('.readiness-summary').textContent,/2 application documents need upload or verification/);assert.equal(d.querySelector('.candidate-tools').open,false);assert.equal(d.querySelector('.history-section').open,false);assert.match(d.querySelector('.timeline').textContent,/Stage changed:/);click('close');
 const testHire={seq:events.length+1,id:'33333333-3333-4333-8333-333333333333',kind:'stage',subject_id:cid,event_date:'2026-11-08',payload:{stage:'Hired',start_date:'2026-11-26'}};events.push(testHire);w.dispatchEvent(new w.Event('online'));await tick();w.location.hash='overview';await tick();assert.match(d.querySelector('#app').textContent,/Hiring completed/);assert.doesNotMatch(d.querySelector('#app').textContent,/Add your first candidate/);assert.doesNotMatch(d.querySelector('#app').textContent,/Set the next step/);
-assert.deepEqual(errors,[]);
+  // Every newly opened position must display its own saved details.
+  w.location.hash='overview';await tick();click('job');
+  set('title','Strategic Partnerships Manager - International Markets');
+  set('department','Strategic Partnerships & Business Development');
+  set('location','Sri Lanka · Remote');
+  set('employment','Commission-based');
+  set('headcount','3');
+  set('target_date','2026-12-15');
+  set('brief','Build international B2B partnerships.');
+  set('description','Develop recurring agency partnerships.');
+  await save();
+  w.location.hash='role';await tick();
+  const positionPanels=[...d.querySelectorAll('.role-position details')];
+  assert.equal(positionPanels.length,2);
+  assert.equal(positionPanels[0].open,true);
+  assert.match(positionPanels[0].textContent,/Strategic Partnerships Manager/);
+  assert.match(positionPanels[0].textContent,/0 \/ 3 hired/);
+  assert.match(positionPanels[0].textContent,/2026-12-15/);
+  assert.match(positionPanels[0].textContent,/Build international B2B partnerships/);
+  assert.match(positionPanels[0].textContent,/Develop recurring agency partnerships/);
+  assert.match(d.querySelector('#app').textContent,/QA role/);
+  assert.deepEqual(errors,[]);
 } finally {dom.window.close();}
 });

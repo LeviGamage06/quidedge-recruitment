@@ -71,6 +71,15 @@ dialog h2{max-width:calc(100% - 85px)}
 @media(max-width:700px){.panel{padding:15px}.record-details{grid-template-columns:1fr}.record-details dd{margin-bottom:8px}.candidate-tools .btn{white-space:normal;text-align:center}.next-action-card .btn{width:100%}.form-actions{bottom:-22px}.form-actions>.btn,.form-actions>button{flex:1;white-space:normal}.metric strong{font-size:27px}}
 
 .form-grid>.wide{grid-column:1/-1}
+/* Readable role details for every saved position. */
+.role-position{margin-top:14px}
+.role-position-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:48px;cursor:pointer}
+.role-position-summary strong{display:block;font-size:1.06rem}
+.role-position-summary small{display:block;color:var(--muted);margin-top:5px;line-height:1.45}
+.role-position-content{display:grid;gap:14px;padding-top:16px}
+.role-position-content>.panel{margin:0;box-shadow:none;border:1px solid var(--line);background:rgba(255,255,255,.55)}
+.role-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
+@media(max-width:500px){.role-position-summary{flex-wrap:wrap}.role-position-summary>.tag{margin-left:0}}
 </style>
 </head>
 <body>
@@ -2116,9 +2125,24 @@ dialog h2{max-width:calc(100% - 85px)}
     }
   }
   function roleView() {
-    const r = hiringRole, job = state.jobs.find((j) => j.id === r.id), active = Boolean(job);
-    if (job?.description) return heading(job.title, job.status, tag(job.status, job.status === "Open" ? "good" : "")) + panel("Full job description", '<div class="snapshot">' + escape(job.description) + "</div>") + panel("Approved compensation reference", "<p>" + escape(r.compensation) + "</p><p>" + escape(r.boundary) + "</p>");
-    return heading(job?.title || r.title, "QuidEdge \xB7 Client Services \xB7 " + (job?.status || "Not added"), active ? tag("Position added", "good") : btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + (job ? panel("Saved role requirements", "<p>" + escape(job.brief || "") + "</p>") : "") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
+    if (state.jobs.length) {
+      const positions = state.jobs.map((job, index) => {
+        const created = events.find((x2) => x2.kind === "job" && x2.id === job.id);
+        const hired = state.candidates.filter((c) => c.job_id === job.id && c.stage === "Hired").length;
+        const details = table(
+          ["Department", "Location / market", "Engagement", "Headcount", "Target hiring date", "Opened (SL)"],
+          [[escape(job.department || "Not specified"), escape(job.location || "Not specified"), escape(job.employment || "Not specified"), escape(hired + " / " + (job.headcount || "1") + " hired"), escape(job.target_date || "Not set"), escape(created?.event_date || "Not recorded")]]
+        );
+        const requirements = job.brief?.trim() ? '<div class="role-text">' + escape(job.brief) + "</div>" : empty("No role requirements have been recorded yet.");
+        const description = job.description?.trim() ? '<div class="role-text">' + escape(job.description) + "</div>" : empty("No public job description has been added yet. Use Edit position to add one.");
+        const legacy = job.id === hiringRole.id ? panel("Client Acquisition compensation reference", "<p>" + escape(hiringRole.compensation) + '</p><p class="hint">' + escape(hiringRole.boundary) + "</p>") : "";
+        return '<section class="panel role-position"><details' + (index === 0 ? " open" : "") + '><summary class="role-position-summary"><span><strong>' + escape(job.title) + "</strong><small>" + escape(job.department || "Department not set") + " \xB7 " + escape(job.location || "Market not set") + "</small></span>" + tag(job.status || "Open", job.status === "Open" ? "good" : "") + '</summary><div class="role-position-content"><div class="toolbar">' + btn("Edit position", "job", job.id) + "</div>" + panel("Position details", details) + panel("Role requirements / success criteria", requirements) + panel("Full job description (public-safe)", description) + legacy + "</div></details></section>";
+      }).join("");
+      const hasLegacy = state.jobs.some((job) => job.id === hiringRole.id);
+      return heading("Hiring roles", "Browse the saved details of every recruitment position.", btn("+ Open position", "job", "", true)) + panel("All positions", '<p class="muted">' + state.jobs.length + " saved position" + (state.jobs.length === 1 ? "" : "s") + ". Select a position to view its details.</p>") + positions + (hasLegacy ? "" : panel("Existing Client Acquisition template", "<p>The original Client Acquisition & Client Relations template can still be added if needed.</p>" + btn("Add this hiring position", "activate-role")));
+    }
+    const r = hiringRole;
+    return heading(r.title, "QuidEdge \xB7 Client Services \xB7 Not added", btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
   }
   async function activateRole() {
     if (saving) return;

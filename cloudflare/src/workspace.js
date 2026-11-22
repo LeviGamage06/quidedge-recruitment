@@ -1,9 +1,27 @@
 function roleView() {
-  const r=hiringRole,job=state.jobs.find(j=>j.id===r.id),active=Boolean(job);
-  if(job?.description)return heading(job.title,job.status,tag(job.status,job.status==='Open'?'good':''))+panel('Full job description','<div class="snapshot">'+e(job.description)+'</div>')+panel('Approved compensation reference','<p>'+e(r.compensation)+'</p><p>'+e(r.boundary)+'</p>');
-  return heading(job?.title||r.title,'QuidEdge · Client Services · '+(job?.status||'Not added'),active?tag('Position added','good'):btn('Add this hiring position','activate-role','',true))+
+  if (state.jobs.length) {
+    const positions=state.jobs.map((job,index)=>{
+      const created=events.find(x=>x.kind==='job'&&x.id===job.id);
+      const hired=state.candidates.filter(c=>c.job_id===job.id&&c.stage==='Hired').length;
+      const details=table(['Department','Location / market','Engagement','Headcount','Target hiring date','Opened (SL)'],
+        [[e(job.department||'Not specified'),e(job.location||'Not specified'),e(job.employment||'Not specified'),e(hired+' / '+(job.headcount||'1')+' hired'),e(job.target_date||'Not set'),e(created?.event_date||'Not recorded')]]);
+      const requirements=job.brief?.trim()?'<div class="role-text">'+e(job.brief)+'</div>':empty('No role requirements have been recorded yet.');
+      const description=job.description?.trim()?'<div class="role-text">'+e(job.description)+'</div>':empty('No public job description has been added yet. Use Edit position to add one.');
+      const legacy=job.id===hiringRole.id?panel('Client Acquisition compensation reference','<p>'+e(hiringRole.compensation)+'</p><p class="hint">'+e(hiringRole.boundary)+'</p>'):'';
+      return '<section class="panel role-position"><details'+(index===0?' open':'')+'>'+
+        '<summary class="role-position-summary"><span><strong>'+e(job.title)+'</strong><small>'+e(job.department||'Department not set')+' · '+e(job.location||'Market not set')+'</small></span>'+tag(job.status||'Open',job.status==='Open'?'good':'')+'</summary>'+
+        '<div class="role-position-content"><div class="toolbar">'+btn('Edit position','job',job.id)+'</div>'+
+        panel('Position details',details)+panel('Role requirements / success criteria',requirements)+panel('Full job description (public-safe)',description)+legacy+'</div></details></section>';
+    }).join('');
+    const hasLegacy=state.jobs.some(job=>job.id===hiringRole.id);
+    return heading('Hiring roles','Browse the saved details of every recruitment position.',btn('+ Open position','job','',true))+
+      panel('All positions','<p class="muted">'+state.jobs.length+' saved position'+(state.jobs.length===1?'':'s')+'. Select a position to view its details.</p>')+
+      positions+(hasLegacy?'':panel('Existing Client Acquisition template','<p>The original Client Acquisition & Client Relations template can still be added if needed.</p>'+btn('Add this hiring position','activate-role')));
+  }
+  const r=hiringRole;
+  return heading(r.title,'QuidEdge · Client Services · Not added',btn('Add this hiring position','activate-role','',true))+
     panel('Commission-only opportunity','<p class="commission-lead">No fixed salary</p><p>'+e(r.compensation)+'</p><p>'+e(r.important)+'</p><div class="commission-grid">'+r.tiers.map(([rate,range])=>'<div><strong>'+e(rate)+'</strong><span>'+e(range)+'</span></div>').join('')+'</div><p>'+e(r.payment)+'</p><p class="hint">'+e(r.boundary)+'</p>')+
-    (job?panel('Saved role requirements','<p>'+e(job.brief||'')+'</p>'):'')+panel('Role details',table(['Company','Location','Engagement','Industry'],[[e(r.company),e(r.location),e(r.employment),e(r.industry)]]))+
+    panel('Role details',table(['Company','Location','Engagement','Industry'],[[e(r.company),e(r.location),e(r.employment),e(r.industry)]]))+
     '<div class="split">'+panel('About QuidEdge',r.about.map(p=>'<p>'+e(p)+'</p>').join(''))+panel('About the role',r.overview.map(p=>'<p>'+e(p)+'</p>').join(''))+'</div>'+
     panel('Key responsibilities','<ol class="role-list">'+r.responsibilities.map(p=>'<li>'+e(p)+'</li>').join('')+'</ol>')+
     panel('Why join QuidEdge?','<div class="benefit-grid">'+r.benefits.map(([title,text])=>'<article><h3>'+e(title)+'</h3><p>'+e(text)+'</p></article>').join('')+'</div>');

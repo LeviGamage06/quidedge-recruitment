@@ -448,3 +448,22 @@ test('Worldwide and Sri Lanka positions upload both document types through the e
   assert.equal(forwarded.filter(p=>!p.action).length,4,'retries do not resend files');
  }finally{globalThis.fetch=original;}
 });
+
+test('saved document links use the latest receipt of each type and reject mismatched bridge identities',async()=>{
+ const cid=id(),jid=id(),first=id(),latest=id(),cover=id(),other=id();
+ assert.equal((await saveRecord({id:jid,kind:'job',subject_id:null,event_date:'2026-11-08',payload:{title:'Document link QA',department:'Growth',location:'Remote'}})).status,201);
+ for(const candidate of [cid,other])assert.equal((await saveRecord({id:candidate,kind:'candidate',subject_id:null,event_date:'2026-11-08',payload:{job_id:jid,alias:'QA-'+candidate.slice(0,8),source:'Referral',stage:'Sourced',action:'Review',owner:'COO',due:'2026-11-24'}})).status,201);
+ for(const [receipt,type] of [[first,'cv'],[latest,'cv'],[cover,'cover']])sql('INSERT INTO recruitment_events (id,kind,subject_id,event_date,payload) VALUES (?,?,?,?,?)',[receipt,'activity',cid,'2026-11-08',JSON.stringify({event:'Document stored',document_type:type,upload_fingerprint:receipt})]);
+ const env={DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test_deployment/exec',DRIVE_WEB_APP_SECRET:'test-only-connection-key-with-32-characters'},original=globalThis.fetch,calls=[];
+ let mismatch=false;
+ globalThis.fetch=async(url,options)=>{const p=JSON.parse(options.body);calls.push(p);return Response.json({ok:true,id:p.id,candidate_id:mismatch?other:p.candidate_id,document_type:p.document_type,available:true,file_id:p.document_type==='cv'?'file_CV':'file_COVER'});};
+ const get=candidate=>worker.fetch(request('/api/documents?candidate_id='+candidate),env);
+ try{
+  let response=await get(cid);assert.equal(response.status,200);assert.match(response.headers.get('Cache-Control'),/no-store/);const data=await response.json();
+  assert.deepEqual(data.documents.map(d=>d.url),['https://drive.google.com/file/d/file_CV/view','https://drive.google.com/file/d/file_COVER/view']);
+  assert.deepEqual(calls.map(c=>c.id),[latest,cover]);assert.ok(calls.every(c=>c.action==='document-link'&&c.candidate_id===cid&&c.fingerprint===c.id));
+  const empty=await(await get(other)).json();assert.ok(empty.documents.every(d=>d.status==='Missing'));assert.equal(calls.length,2);
+  mismatch=true;const wrong=await(await get(cid)).json();assert.ok(wrong.documents.every(d=>d.status==='Unavailable'&&!d.url));
+  assert.equal((await get(id())).status,404);assert.equal((await get('invalid')).status,400);
+ }finally{globalThis.fetch=original;}
+});

@@ -71,3 +71,14 @@ test('shared recruitment destination isolates candidates from different position
  const role=b.root.children[0];assert.equal(role.children.length,2);assert.notEqual(role.children[0].description,role.children[1].description);
  assert.equal(b.send({action:'status'}).cv,'Available');assert.equal(b.send({action:'status'}).cover,'Missing');assert.equal(b.send({action:'status',candidate_id:other}).cv,'Missing');assert.equal(b.send({action:'status',candidate_id:other}).cover,'Available');
 });
+
+test('document links resolve exact candidate, receipt and type without changing private sharing',()=>{
+ const b=bridge();b.send();const base={action:'document-link'};
+ const link=b.send(base);assert.equal(link.available,true);assert.equal(link.document_type,'cv');assert.equal(link.file_id,b.root.children[0].children[0].files[0].id);
+ assert.equal(b.send({...base,document_type:'cover'}).code,'CONFLICT');
+ assert.equal(b.send({...base,fingerprint:'wrong'}).code,'CONFLICT');
+ assert.equal(b.send({...base,candidate_id:'11111111-1111-4111-8111-111111111119'}).available,false);
+ const file=b.items.get(link.file_id);assert.equal(file.access,'PRIVATE');file.description='QE-DOCUMENT:another-candidate:cv:sha';assert.equal(b.send(base).code,'CONFLICT');
+ file.description='QE-DOCUMENT:d3057f15-9b02-43de-92d0-0cb296ecf63e:cv:sha';file.parent=b.root;assert.equal(b.send(base).code,'LOCATION_CHANGED');
+ file.parent=b.root.children[0].children[0];file.trashed=true;assert.equal(b.send(base).code,'TRASHED');
+});

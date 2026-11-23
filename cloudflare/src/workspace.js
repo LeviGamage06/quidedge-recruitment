@@ -59,7 +59,7 @@ function showDocuments(candidate) {
   const job=jobById(candidate.job_id);
   if(!job){show('<h2 id="dialog-title">Position unavailable</h2><p>Restore the candidate’s position before uploading documents.</p>'+btn('Close','close'));return;}
   const stateMarkup='<div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'))+tag('Cover letter: '+(candidate.documents?.cover||'Missing'))+'</div>';
-  show('<div class="section-top"><h2 id="dialog-title">Application documents · '+e(candidateCaption(candidate))+'</h2>'+btn('Close','close')+'</div>'+stateMarkup+
+  show('<div class="section-top"><h2 id="dialog-title">Application documents · '+e(candidateCaption(candidate))+'</h2>'+btn('Close','close')+'</div>'+stateMarkup+documentLinksPanel(candidate)+
     '<p class="public-note">Uploads use the existing private recruitment Drive destination, shared across hiring positions. Each candidate has a separate named folder.</p><p class="hint">Position: '+e(job.title)+' · '+e(job.location||'Market not specified')+'</p>'+
     '<p id="drive-connection" class="hint" role="status">Checking Google Drive connection…</p>'+
     '<form id="document-entry" data-candidate="'+e(candidate.id)+'"><div class="form-grid">'+
@@ -67,6 +67,7 @@ function showDocuments(candidate) {
     '<label class="field">CV<input type="file" name="cv" accept=".pdf,.doc,.docx"></label><label class="field">Cover letter<input type="file" name="cover" accept=".pdf,.doc,.docx"></label></div>'+
     '<p class="hint">PDF, DOC or DOCX · up to 5 MB per file. New versions are preserved; identical retries reuse the existing file.</p>'+
     '<button class="btn" type="button" data-action="verify-documents" data-id="'+e(candidate.id)+'">Verify current file availability</button><p id="upload-progress" role="status"></p><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit" disabled>Upload to Google Drive</button></div></form>');
+  loadDocumentLinks(candidate.id);
   const form=dialog.querySelector('#document-entry');
   form.dataset.cvRequest=newId();form.dataset.coverRequest=newId();
   fetch(apiBase+'/integrations?candidate_id='+encodeURIComponent(candidate.id),{cache:'no-store',signal:AbortSignal.timeout(20000)}).then(async response=>{
@@ -96,7 +97,7 @@ async function saveDocuments(form) {
     progress.textContent='Saved to Google Drive. Original files are preserved.';
     form.elements.private_name.value='';render();flash('Application documents saved to the candidate’s private Drive folder.');
   } catch(err){errorBox.textContent=err.message;progress.textContent='Completed files remain saved. Retry the remaining selected document.';}
-  finally{saving=false;for(const el of controls)el.disabled=false;}
+  finally{saving=false;for(const el of controls)el.disabled=false;loadDocumentLinks(candidate.id);}
 }
 
 async function verifyDocuments(id,control){
@@ -110,3 +111,21 @@ async function loadMaintenanceStatus(){
  try{const response=await fetch(apiBase+'/maintenance',{cache:'no-store',signal:AbortSignal.timeout(20000)});const status=await response.json();if(!response.ok)throw Error();if(target.isConnected)target.textContent='Last successful maintenance: '+(status.last_success?new Date(status.last_success).toLocaleString('en-LK',{timeZone:'Asia/Colombo'})+' SL':'Not yet run')+' · Private event backup through record '+status.backup_cursor+' · Pending document confirmations: '+status.pending_receipts+'. File availability is verified separately.';}catch{if(target.isConnected)target.textContent='Maintenance status unavailable. Ask the owner to check the scheduled Worker.';}
 }
 
+
+function documentLinksPanel(candidate){
+ return '<section class="panel" aria-label="Saved application files"><h3>Saved application files</h3><div class="toolbar" data-document-links="'+e(candidate.id)+'" role="status">Checking saved CV and cover letter…</div><p class="hint">Files open in Google Drive. Sign in with an account that already has permission to view them.</p></section>';
+}
+async function loadDocumentLinks(id){
+ const target=dialog.querySelector('[data-document-links]');if(!target||target.dataset.documentLinks!==id)return;
+ try{
+  const response=await fetch(apiBase+'/documents?candidate_id='+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.timeout(25000)});
+  const result=await response.json();if(!response.ok)throw Error(result.error||'Could not check saved files.');
+  if(!target.isConnected||result.candidate_id!==id)return;
+  if(!Array.isArray(result.documents))throw Error('Could not check saved files.');
+  target.innerHTML=['cv','cover'].map(type=>{
+   const file=result.documents.find(file=>file.type===type),label=type==='cv'?'CV':'cover letter';
+   if(file?.status==='Available'&&/^https:\/\/drive\.google\.com\/file\/d\/[A-Za-z0-9_-]{1,200}\/view$/.test(file.url||''))return '<a class="btn" href="'+e(file.url)+'" target="_blank" rel="noopener noreferrer">Open '+label+'</a>';
+   return '<span>'+e(label+': '+(file?.status==='Missing'?'No saved file':file?.message||'Temporarily unavailable'))+'</span>';
+  }).join('');
+ }catch(err){if(target.isConnected)target.textContent=err.message;}
+}

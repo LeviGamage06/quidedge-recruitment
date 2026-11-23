@@ -37,6 +37,17 @@ function doPost(e){
    if(folder){var files=folder.getFiles();while(files.hasNext()){var file=files.next();notPublic_(file);var description=file.getDescription()||'';if(description.indexOf('QE-DOCUMENT:'+p.candidate_id+':cv:')===0)status.cv='Available';if(description.indexOf('QE-DOCUMENT:'+p.candidate_id+':cover:')===0)status.cover='Available';}}
    return reply_(status);
   }
+  if(p.action==='document-link'){
+   if(!uuid.test(p.id||'')||!['cv','cover'].includes(p.document_type))return reply_({ok:false,code:'INVALID'});
+   var stored=receipt_(folder,p.id),identity={ok:true,id:p.id,candidate_id:p.candidate_id,document_type:p.document_type,available:false};
+   if(!stored)return reply_(identity);
+   if(stored.candidate_id!==p.candidate_id||stored.document_type!==p.document_type||stored.fingerprint!==p.fingerprint)return reply_({ok:false,code:'CONFLICT'});
+   var file=DriveApp.getFileById(stored.file_id);notPublic_(file);
+   var parents=file.getParents(),found=false;while(parents.hasNext())if(parents.next().getId()===folder.getId())found=true;
+   if(!found)throw Error('LOCATION_CHANGED');
+   if((file.getDescription()||'').indexOf('QE-DOCUMENT:'+p.candidate_id+':'+p.document_type+':')!==0)return reply_({ok:false,code:'CONFLICT'});
+   identity.available=true;identity.file_id=file.getId();return reply_(identity);
+  }
   if(p.action==='receipt'){
    if(!uuid.test(p.id||''))return reply_({ok:false,code:'INVALID'});
    var receipt=receipt_(folder,p.id);

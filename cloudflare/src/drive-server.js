@@ -25,8 +25,29 @@ async function uploadFingerprint(input,secret) {
   const signature=await crypto.subtle.sign('HMAC',key,encoder.encode(JSON.stringify([input.candidate_id,input.document_type,input.name.trim(),input.extension,input.data])));
   return Array.from(new Uint8Array(signature),b=>b.toString(16).padStart(2,'0')).join('');
 }
+// Resolve an exact recorded upload; Drive still enforces the viewer's own permissions.
+async function documentLinks(request,env) {
+  const id=new URL(request.url).searchParams.get('candidate_id');
+  if(!uuid.test(id||''))return error('Choose a candidate.');
+  if(!env.DB)return error('Shared storage is unavailable.',503);
+  const candidate=await candidateRecord(env.DB.withSession('first-primary'),id);
+  if(!candidate)return error('Candidate not found.',404);
+  const documents=await Promise.all(['cv','cover'].map(async type=>{
+    const receipt=candidate.history.slice().reverse().find(event=>event.kind==='activity'&&event.payload.event==='Document stored'&&event.payload.document_type===type);
+    if(!receipt)return {type,status:'Missing'};
+    try {
+      const result=await bridgeRequest(env,{action:'document-link',candidate_id:id,id:receipt.id,document_type:type,fingerprint:receipt.payload.upload_fingerprint});
+      if(result.candidate_id!==id||result.document_type!==type||result.id!==receipt.id)throw Error('Mismatched document.');
+      if(result.available===false)return {type,status:'Missing'};
+      if(result.available!==true||!/^[A-Za-z0-9_-]{1,200}$/.test(result.file_id||''))throw Error('Invalid document link.');
+      return {type,status:'Available',url:'https://drive.google.com/file/d/'+result.file_id+'/view'};
+    } catch {return {type,status:'Unavailable',message:'Could not open this file. Ask the owner to check the Drive connection and update the document bridge.'};}
+  }));
+  return json({candidate_id:id,documents});
+}
 async function documentApi(request,env) {
-  if(request.method!=='POST')return error('Use POST to upload a document.',405);
+  if(request.method==='GET')return documentLinks(request,env);
+  if(request.method!=='POST')return error('Use GET or POST.',405);
   if(!driveConfigured(env))return error('Google Drive upload needs owner setup. Your candidate record is safe; no document has been uploaded.',503);
   if(!env.DB)return error('Shared storage is unavailable.',503);
   const input=await boundedJson(request,7.1*1024*1024);

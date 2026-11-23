@@ -1,5 +1,7 @@
 # Recruitment review — 23 November 2026
 
+For the subsequent comprehensive audit, see [the final engineering release report](audit/release-report.md). The measurements below describe the earlier release.
+
 ## Changes in this release
 
 - Reset filters restores the default sort as well as search, stage, position, owner and attention.

@@ -6,11 +6,11 @@ Date: 23 November 2026. Scope: instructions in Pasted text(10).txt.
 
 This follow-up extends the earlier UI release into a source, API, event-history, integration, security, accessibility, performance and deployment review. It preserves the current no-login usage model, existing infrastructure, URLs, database binding, minute scheduler and historical records. No database migration or production candidate mutation is included.
 
-Sixteen scoped defects/engineering findings have fixes prepared, including inconsistent sync histories, role-profile progression, retained role behaviour for active candidates linked to trashed positions, newly created public job descriptions, offline startup, unsupported document controls, input contrast, build reproducibility and deployment of the existing careers Worker. All 73 local automated tests pass. The detailed inventory contains 284 control entries across rendered and conditional contexts; conditional source-only entries are explicitly marked.
+Sixteen scoped defects/engineering findings were fixed or refined in the deployed update, including inconsistent sync histories, role-profile progression, retained role behaviour for active candidates linked to trashed positions, newly created public job descriptions, offline startup, unsupported document controls, input contrast, build reproducibility and deployment of the existing careers Worker. All 73 local automated tests pass. The detailed inventory contains 284 control entries across rendered and conditional contexts; conditional source-only entries are explicitly marked.
 
 **Full production-grade acceptance remains blocked** by the unauthenticated trust model and the separately managed Google/document configuration. Successful tests and deployment of compatible fixes do not close these blockers.
 
-Deployment evidence for this follow-up will be appended after CI and live verification. The starting production revision is `95d3608530719f0a881e84faa8733257c4710429`.
+The compatible fix release was deployed and independently checked; final evidence and acceptance statuses are recorded below. The starting production revision is `95d3608530719f0a881e84faa8733257c4710429`.
 
 ## B. Audit coverage
 
@@ -29,7 +29,7 @@ The production browser baseline checked all eight routes at 320, 360, 375, 390, 
 |---|---:|---:|
 | P0 architectural risk | 0 | 1 |
 | P1 | 7 | 2 |
-| P2 | 9 | 0 |
+| P2 | 9 | 1 |
 
 Eight failing regression cases reproduced sync/validation/progression/offline and public-JD defects before the relevant fixes. Additional source/runtime findings include the redundant projection, inaccurate error message, 1.58:1 control border, documentation drift and missing careers deployment. The register groups related failure modes rather than counting each assertion as another defect.
 
@@ -70,7 +70,7 @@ The assessment follows the principles in [OWASP Authorization](https://cheatshee
 | Integration | Evidence | Limit |
 |---|---|---|
 | Cloudflare D1 | Shared production views load; local SQL-backed mutation, trigger and replay tests pass | Genuine production candidate writes were deliberately not tested |
-| Google Drive | Baseline live health reported a verified private destination; private-folder/receipt/retry/backup tests pass locally | Exact active script version and owner deployment are not available in the browser session |
+| Google Drive | Live health reported a verified private destination; private-folder/receipt/retry/backup tests pass locally | Exact active script version and owner deployment are not available in the browser session |
 | Document uploads | Supported-profile upload/receipt tests, original-version preservation and availability handling pass | Other profiles lack a configured destination; no real applicant upload was used as a probe |
 | Scheduled work | Configuration dispatches each minute; source runs maintenance every ten minutes; live maintenance status was available | No production schedule change; operational logs are separate from browser console observations |
 | Interview reminders | Fixed-recipient/idempotent/ambiguous-failure tests and role-profile tests pass | No real email sent; separately deployed Google role correction still requires owner access |
@@ -104,23 +104,47 @@ Rollback reference: `95d3608530719f0a881e84faa8733257c4710429`. The updated work
 
 Deployment token values are not read or displayed. Successful prior deployments establish that repository credentials function; their exact account-side permission scopes/expiry cannot be independently attested through the available connection. Do not infer least privilege from a successful deploy alone.
 
-## J. Acceptance matrix before final deployment
+## J. Final deployment evidence and acceptance
 
-| Area | Status | Evidence / boundary |
+Code release: `22adfb9dde14f1829ba609f181cf4666f97bff69`; reviewed source head: `22038a0d322f61202837b63ee3d885d241986577`.
+
+- [Merged pull request #3](https://github.com/LeviGamage06/quidedge-recruitment/pull/3).
+- [Final source review CI](https://github.com/LeviGamage06/quidedge-recruitment/actions/runs/45181326016): clean install, advisory audit, 73 tests and generated-file consistency passed.
+- [Production deployment](https://github.com/LeviGamage06/quidedge-recruitment/actions/runs/45181628868): dependency audit reported zero known vulnerabilities; all 73 tests passed; both existing Workers deployed; built/live asset comparisons passed.
+- Recruitment Worker version: `17748790-df14-4c42-9b36-b953e949c65f`.
+- Careers Worker version: `0c46364d-995d-4fa4-b09d-3ab665b15a8d`.
+- [Recruitment production](https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/#overview).
+- [Careers production](https://quidedge-careers.inquiries-quidedge-au.workers.dev/).
+
+The careers deployment completed at approximately 18:43 Sri Lanka time on 23 November 2026. The existing D1 binding was retained; no migration command ran. The alternate Pages deployment is checked separately in the final action status.
+
+Post-deployment browser verification covered 8 staff routes, 3 direct role-detail routes and 3 public JD pages at all 16 specified/boundary widths: **224 combinations, zero measured overflow/clipped-table/duplicate-action failures**, with the actual viewport width checked against each requested width. All three candidate pages rendered; no staff links, forms or scripts appeared. The careers `/api/events` and invalid-job paths showed Page unavailable.
+
+Live interaction checks confirmed copy-link success feedback, default-sort restoration and search focus after Reset filters, mobile-menu Escape handling, candidate-modal Escape/focus return, the new input-border RGB, private Drive readiness and a successful maintenance status with no pending document confirmations. No browser errors/warnings were observed. Native preview was clicked; its destination was verified through a directly controlled candidate-page tab because no controllable popup tab was exposed by this browser surface. Tab-boundary focus wrapping, screen-reader behaviour and actual browser zoom remain uncertified.
+
+Browser screenshots were captured during visual review. Screenshots containing operational records were not published into this public repository. Cloudflare Worker exception-stream access was not exposed by the available account tooling; deployment logs and the browser console were reviewed, not misrepresented as a full production log audit.
+
+### Additional content finding
+
+DATA-05: the Worldwide partnerships JD is already stored at exactly 12,000 characters and ends mid-word. The same ending appears in the editor and the public page, so this is an existing content-integrity problem. A related Library document was read, but it contains the Sri Lanka/AUD variant and is not an authoritative replacement for the Worldwide/USD text. The approved complete Worldwide copy is required to restore the missing content safely. Existing text was not silently rewritten.
+
+### Final acceptance matrix
+
+| Area | Status | Actual evidence / remaining boundary |
 |---|---|---|
-| Frontend UI/UX | Pass for reviewed scope | Inventory, UI suites, 128 baseline route/width checks |
-| Mobile responsiveness | Pass for browser viewports | All requested narrow widths plus boundaries; no physical-device claim |
-| Desktop responsiveness | Pass for browser viewports | 1280/1440/1920 plus boundaries; post-release recheck pending |
-| Buttons and forms | Pass for covered workflows | Native controls, synthetic interactions/exports; conditional inventory states labelled |
-| Candidate pipeline | Pass in controlled tests | SQL-backed lifecycle, revision/duplicate/profile-gate checks |
-| Interviews | Pass in controlled tests | Scheduling, overlap, cancellation, ICS, reminders; no real email |
-| Job-description sharing | Pass in controlled tests | Default Open fix, isolated public routes and safe projection |
-| CV/document management | Blocked for full-platform acceptance | Existing supported workflow tested; additional profiles need configuration |
-| Google Drive integration | Blocked for final owner sign-off | Health/local bridge evidence; active deployment version not confirmed |
-| Database integrity | Pass in controlled tests | Append-only/CAS/restore tests; live production reads only |
-| Application security | Blocked | SEC-01 unauthenticated sensitive/privileged authority |
-| Automated testing | Pass locally | 73 tests; clean CI/advisory check pending |
-| Cloudflare deployment | Blocked pending release run | No follow-up deployment claimed yet |
-| Production live verification | Blocked pending final smoke | Baseline verified; follow-up build not yet published |
+| Frontend UI/UX | Pass for reviewed scope | 284-entry inventory, UI/export tests and visual inspection |
+| Mobile responsiveness | Pass for tested CSS viewports | All requested narrow widths and breakpoint boundaries; physical devices untested |
+| Desktop responsiveness | Pass for tested CSS viewports | 1280/1440/1920 and intermediate boundaries; no clipped table actions |
+| Buttons and forms | Pass for covered journeys | Local mutation tests plus live safe validation/navigation/menu/reset/copy checks |
+| Candidate pipeline | Pass in controlled tests | SQL-backed lifecycle, duplicate/revision/profile gates and retained parent-role behaviour |
+| Interviews | Pass in controlled tests | Booking/conflict/cancel/scorecard/reminder/ICS checks; no real email sent |
+| Job-description sharing | Blocked for complete content | Routing/isolation passed on all 3 live public pages and isolated invalid/API routes; DATA-05 copy incomplete |
+| CV/document management | Blocked for whole-platform acceptance | Supported profile tested; other profiles need private destination setup |
+| Google Drive integration | Blocked for owner-deployment sign-off | Live readiness plus local bridge tests; exact active Google version unconfirmed |
+| Database integrity | Pass in controlled tests | Trigger/CAS/replay/restore tests; no genuine production candidate mutation |
+| Application security | Blocked | SEC-01: no trusted staff identity for sensitive/privileged operations |
+| Automated testing | Pass | 73 tests; clean review/deployment CI; registry audit reported zero known vulnerabilities |
+| Cloudflare deployment | Pass | Both Worker version IDs and exact live/build comparisons |
+| Production live verification | Pass for non-destructive smoke scope | 224 responsive checks and listed live interactions; no real file/email/destructive probes |
 
-This matrix intentionally distinguishes compatible fixes from full enterprise readiness. Open critical/high concerns block full sign-off even if the incremental deployment succeeds.
+The scoped compatible fixes are live. Full enterprise/security/content acceptance is **blocked**, requiring: a trust-model decision, authenticated owner Apps Script deployment, private-upload setup for additional profiles, and complete approved Worldwide JD copy. These conditions are not hidden behind a green test count.

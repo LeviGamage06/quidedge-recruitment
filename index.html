@@ -154,7 +154,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
 #trash-cleanup-status{color:var(--muted);font-size:.82rem}
 @media(min-width:1101px){.top{display:grid;grid-template-columns:auto 1fr auto;gap:20px}.top nav{justify-content:center}.top .brand{font-size:30px}}
 @media(max-width:1200px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.split{grid-template-columns:1fr}}
-@media(max-width:1000px){
+@media(max-width:1100px){
  .top{display:grid;grid-template-columns:1fr auto;gap:10px 12px;padding:12px 20px;position:relative;z-index:5}
  .brand{font-size:29px}.top .pill{grid-column:2;grid-row:1;font-size:.75rem;padding:8px 10px;min-height:40px}
  .mobile-nav-toggle{display:flex;justify-content:space-between;grid-column:1/-1;width:100%;border-radius:12px;background:var(--surface);font-weight:650}
@@ -163,13 +163,22 @@ details[open]>.role-position-summary::after{content:'Hide details'}
  .mobile-nav-toggle::after{content:'Menu';font-size:.8rem;font-weight:500;color:var(--muted)}.mobile-nav-open .mobile-nav-toggle::after{content:'Close menu'}
  main{padding-top:20px}.intro h1{font-size:32px}
 }
+@media(min-width:701px) and (max-width:1100px){
+ .scroll{overflow:visible}table,tbody,tr{display:block;min-width:0;width:100%}
+ thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ tbody tr{padding:12px 0 16px;margin-bottom:12px;border-bottom:1px solid var(--line)}tbody tr:last-child{margin-bottom:0}
+ td{display:grid;width:100%;grid-template-columns:minmax(130px,25%) minmax(0,1fr);gap:20px;align-items:start;padding:10px 0;text-align:left}
+ td::before{content:attr(data-label);font-size:.78rem;font-weight:650;line-height:1.5;color:var(--muted)}td small{text-align:left}
+ td .row-actions{justify-content:flex-start}td[data-label=Actions],td[data-label=Action]{display:block;padding-top:16px}td[data-label=Actions]::before,td[data-label=Action]::before{display:none}
+ .tag{overflow-wrap:normal}.row-actions .btn{min-width:110px}
+}
 @media(max-width:700px){
  main{padding-inline:16px}.top{padding-inline:16px}.intro{margin-top:0;margin-bottom:20px}.intro>div:first-child{flex-basis:100%}.intro .toolbar{width:100%}.intro .toolbar>.btn{flex:1 1 135px}
  .metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-block:16px}.metric{padding:14px 12px;min-height:100px;border-radius:14px}.metric-label{font-size:.8rem}.metric strong{font-size:30px}.metric-caption{display:none}
  .coo-stats{gap:10px}.coo-stats .panel{margin:0;padding:14px;min-height:110px}.coo-stats{margin-bottom:16px}
  .panel{padding:16px;border-radius:16px;margin-bottom:14px}.section-top{align-items:flex-start}.section-top h2{font-size:22px}.section-top>.btn{flex:none}
  .filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.filters>.field:first-child{grid-column:1/-1}
- .scroll{overflow:visible}table,thead,tbody,tr,td{min-width:0;width:100%}table{display:block}
+ .scroll{overflow:visible}table,tbody,tr,td{min-width:0;width:100%}table{display:block}thead{width:1px}
  tbody tr{padding:12px 0 16px;margin-bottom:12px;border-bottom:1px solid var(--line)}
  tbody tr:last-child{margin-bottom:0}td{display:grid;grid-template-columns:minmax(84px,30%) minmax(0,1fr);gap:10px;align-items:start;padding:9px 0;text-align:left}
  td::before{font-size:.76rem;line-height:1.5;flex:initial}td .cell-content{min-width:0}td small,td .cell-content small{text-align:left;font-size:.79rem;line-height:1.5;margin-top:4px}
@@ -2408,7 +2417,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   menu.id='workspace-menu';menu.type='button';menu.className='btn mobile-nav-toggle';
   menu.setAttribute('aria-controls','nav');menu.setAttribute('aria-expanded','false');
   header.insertBefore(menu,nav);
-  const media=window.matchMedia?.('(max-width:1000px)');
+  const media=window.matchMedia?.('(max-width:1100px)');
   function closeMenu(){header.classList.remove('mobile-nav-open');menu.setAttribute('aria-expanded','false');}
   menu.addEventListener('click',()=>{const open=header.classList.toggle('mobile-nav-open');menu.setAttribute('aria-expanded',String(open));});
   nav.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});

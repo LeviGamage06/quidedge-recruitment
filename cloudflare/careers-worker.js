@@ -30,7 +30,7 @@ export default {
   if(!match)return response(page('Page unavailable','<h1>Page unavailable</h1><p>Check the job link you received and try again.</p>'),404);
   try{
    if(!env.RECRUITMENT)throw Error("Unavailable");
-   const upstream=await env.RECRUITMENT.fetch(UPSTREAM+'?id='+encodeURIComponent(match[1]),{headers:{Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)});
+   const upstream=await env.RECRUITMENT.fetch(UPSTREAM+'?id='+encodeURIComponent(match[1]),{headers:{Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000)});
    if(upstream.status===404)return response(page('Opportunity unavailable','<h1>This opportunity is no longer available.</h1><p>Contact the person who shared this link for the latest opportunities.</p>'),404);
    if(!upstream.ok)throw Error('Unavailable');
    const data=await upstream.json();if(data.job?.id!==match[1]||typeof data.job?.title!=='string')throw Error('Invalid job');

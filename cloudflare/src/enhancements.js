@@ -7,7 +7,7 @@
   menu.id='workspace-menu';menu.type='button';menu.className='btn mobile-nav-toggle';
   menu.setAttribute('aria-controls','nav');menu.setAttribute('aria-expanded','false');
   header.insertBefore(menu,nav);
-  const media=window.matchMedia?.('(max-width:1000px)');
+  const media=window.matchMedia?.('(max-width:1100px)');
   function closeMenu(){header.classList.remove('mobile-nav-open');menu.setAttribute('aria-expanded','false');}
   menu.addEventListener('click',()=>{const open=header.classList.toggle('mobile-nav-open');menu.setAttribute('aria-expanded',String(open));});
   nav.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});

@@ -29,6 +29,8 @@ let refreshing = false;
 let saving = false;
 let timer;
 let focusReturn;
+let renderedHash;
+let openPositions = new Set();
 let pendingRecord = null;
 let lastDay=dateSL();
 let reportDate = lastDay;
@@ -43,8 +45,10 @@ let guideTrack = 'Client Acquisition & Relations';
 let searchTimer;
 let noticeTimer;
 
-const page = () => ['overview','coo','role','pipeline','activity','interviews','guide','trash'].includes(location.hash.slice(1)) ?
-  location.hash.slice(1) : 'overview';
+const roleTarget = () => location.hash.startsWith('#role/') ? location.hash.slice(6) : '';
+const page = () => roleTarget() ? 'role' :
+  ['overview','coo','role','pipeline','activity','interviews','guide','trash'].includes(location.hash.slice(1)) ?
+    location.hash.slice(1) : 'overview';
 const btn = (label,action,id = '',primary = false) =>
   '<button type="button" class="btn ' + (primary ? 'primary' : '') +
   '" data-action="' + e(action) + '" data-id="' + e(id) + '">' + e(label) + '</button>';
@@ -58,11 +62,12 @@ function options(values,selected = '') {
       '>' + e(label) + '</option>';
   }).join('');
 }
-function table(head,rows) {
-  return '<div class="scroll"><table><thead><tr>' +
-    head.map(h => '<th scope="col">' + e(h) + '</th>').join('') +
-    '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map((cell,i) =>
-      '<td data-label="' + e(head[i]) + '">' + cell + '</td>').join('') + '</tr>').join('') +
+function table(head,rows,{className='',label=''} = {}) {
+  return '<div class="scroll"><table'+(className?' class="'+e(className)+'"':'')+
+    (label?' aria-label="'+e(label)+'"':'')+' role="table"><thead role="rowgroup"><tr role="row">' +
+    head.map(h => '<th role="columnheader" scope="col">' + e(h) + '</th>').join('') +
+    '</tr></thead><tbody role="rowgroup">' + rows.map(row => '<tr role="row">' + row.map((cell,i) =>
+      '<td role="cell" data-label="' + e(head[i]) + '">' + cell + '</td>').join('') + '</tr>').join('') +
     '</tbody></table></div>';
 }
 const panel = (title,html,action = '') => '<section class="panel"><div class="section-top"><h2>' +
@@ -75,6 +80,12 @@ const eventLabel = event => ({
   summary:'Daily summary',score:event.payload.round + ' scorecard'
 })[event.kind];
 const jobTitle = id => jobNames.get(id) || 'Position unavailable';
+function positionOptions(jobs) {
+  const titleCounts = new Map();
+  for (const job of jobs) titleCounts.set(job.title,(titleCounts.get(job.title)||0)+1);
+  return jobs.map(job => [job.id,titleCounts.get(job.title)>1 ?
+    [job.title,job.location,job.department].filter(Boolean).join(' · ') : job.title]);
+}
 const candidateById = id => candidateIndex.get(id);
 function storageDrafts() {
   try {
@@ -141,18 +152,19 @@ function overview() {
       ' / ' + e(job.headcount || '1') + ' hired',
     e(job.target_date || 'To confirm'),
     tag(job.status,job.status === 'Open' ? 'good' : '')+(Number(job.headcount||1)<=candidates.filter(c=>c.job_id===job.id&&c.stage==='Hired').length?'<small>Hiring target reached · review position status</small>':''),
-    '<div class="row-actions">'+btn('Manage','job',job.id)+dangerBtn('Move to Trash','delete-record',job.id)+ (job.profile==='client-acquisition-v1'?btn('Full job description','job',job.id):'')+'</div>'
+    '<div class="row-actions"><a class="btn" href="#role/'+encodeURIComponent(job.id)+'">View job description</a>'+
+      btn('Manage','job',job.id)+dangerBtn('Move to Trash','delete-record',job.id)+'</div>'
   ]);
   return heading('Recruitment management','Keep roles, next actions and hiring decisions moving.',
     '<div class="toolbar">' + btn('Export records','export') + btn('+ Open position','job') + btn('+ Add candidate','candidate','',true) + '</div>') +
     '<div class="metrics" aria-label="Current pipeline counts">' + metrics + '</div>' +
-    panel('Today’s priorities',queue.length ? candidateTable(queue.slice(0,5)) :
+    panel('Hiring priorities',queue.length ? candidateTable(queue.slice(0,5)) :
       empty(candidates.length ? 'No pending actions. All active candidates are on track or the hiring process is complete.' : 'No candidates added yet. Add a candidate to get started.'),
       btn('View all actions','attention')) +
     panel('Upcoming interviews',bookingPreview(),btn('Open calendar','interviews-view')) +
-    panel('Positions',jobRows.length ? table(['Role','Department / market','Headcount','Target date','Status','Action'],jobRows) :
+    panel('Positions',jobRows.length ? table(['Role','Department / market','Headcount','Target date','Status','Actions'],jobRows,{className:'positions-table',label:'Positions'}) :
       empty('Open a position, define the role requirements, then add candidates.'),
-      tag(openJobs.length + ' open · ' + active.length + ' active candidates')) +
+      tag(openJobs.length + ' open · ' + active.length + (active.length===1?' active candidate':' active candidates'))) +
     panel('Recent candidates',candidateTable(candidates.slice(0,6)),btn('View pipeline','pipeline-view'));
 }
 function filteredCandidates() {
@@ -177,8 +189,10 @@ function candidateResults() {
   const pages = Math.max(1,Math.ceil(list.length / pageSize));
   currentPage = Math.min(currentPage,pages);
   const start = (currentPage - 1) * pageSize;
-  return '<p class="result-count" role="status">' + list.length + ' candidates · page ' + currentPage + ' of ' + pages + '</p>' +
-    (list.length?candidateTable(list.slice(start,start + pageSize)):empty(state.candidates.length?'No candidates match these filters. Clear filters to see all candidates.':'No candidates added yet.')+'<div class="toolbar">'+btn('Clear filters','reset')+btn('+ Add candidate','candidate','',true)+'</div>') +
+  return '<p class="result-count" role="status" tabindex="-1">' + list.length +
+    (list.length===1?' candidate':' candidates') + (pages>1?' · page ' + currentPage + ' of ' + pages:'') + '</p>' +
+    (list.length?candidateTable(list.slice(start,start + pageSize)):empty(state.candidates.length?
+      'No candidates match these filters. Use Reset filters to see all candidates.':'No candidates added yet.')) +
     (pages > 1 ? '<div class="pagination">' +
       (currentPage > 1 ? btn('Previous','previous') : '') +
       (currentPage < pages ? btn('Next','next') : '') + '</div>' : '');
@@ -188,7 +202,7 @@ function pipeline() {
     '<div class="toolbar">' + btn('Export CSV','csv') + btn('+ Add candidate','candidate','',true) + '</div>') +
     panel('Candidates','<div class="filters">' +
       '<label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + e(search) + '"></label>' +
-      '<label class="field">Position<select id="job-filter">' + options([['','All positions'],...state.jobs.map(job => [job.id,job.title])],jobFilter) + '</select></label>' +
+      '<label class="field">Position<select id="job-filter">' + options([['','All positions'],...positionOptions(state.jobs)],jobFilter) + '</select></label>' +
       '<label class="field">Stage<select id="stage-filter">' + options([['','All stages'],...groupStages.map(([name]) => ['group:' + name,name + ' group']),...stages],stageFilter) + '</select></label>' +
       '<label class="field">Action owner<select id="owner-filter">' + options([['','All owners'],...owners],ownerFilter) + '</select></label>' +
       '<label class="field">Attention<select id="attention-filter">' + options([['','All candidates'],['needs-action','Needs action'],'Overdue','Due today','Needs decision','Missing next step','Closed'],attentionFilter) + '</select></label>' +
@@ -270,6 +284,14 @@ function render() {
     document.activeElement.selectionStart,document.activeElement.selectionEnd
   ] : null;
   const view = page();
+  const sameRoute = renderedHash === location.hash;
+  const previousPositions = app.querySelectorAll('.role-position details[data-position-id]');
+  if (view==='role') {
+    openPositions = sameRoute && previousPositions.length ?
+      new Set(Array.from(previousPositions).filter(detail=>detail.open).map(detail=>detail.dataset.positionId)) :
+      new Set([roleTarget() || state.jobs[0]?.id]);
+  }
+  renderedHash = location.hash;
   for (const link of document.querySelectorAll('#nav a')) {
     const selected = link.hash === '#' + view;
     link.classList.toggle('active',selected);
@@ -304,7 +326,13 @@ const select = (name,label,choices,value) => field(name,label,{kind:'select',cho
 const notes = (name,label,required = false,value = '') => field(name,label,{kind:'textarea',wide:true,required,max:600,value});
 
 function show(html) {
-  focusReturn = document.activeElement;
+  if (!dialog.open) {
+    const element = document.activeElement;
+    const action = element?.dataset.action;
+    const id = element?.dataset.id;
+    const controls = action ? Array.from(app.querySelectorAll('[data-action]')).filter(item=>item.dataset.action===action && item.dataset.id===id) : [];
+    focusReturn = {element,action,id,index:controls.indexOf(element),hash:location.hash};
+  }
   dialog.innerHTML = html;
   if (!dialog.open) dialog.showModal();
   dialog.scrollTop = 0;
@@ -312,7 +340,12 @@ function show(html) {
 async function showRecord(candidate) {
   const request=newId();show('<h2 id="dialog-title">Loading candidate history</h2>'+btn('Close','close'));dialog.dataset.recordRequest=request;
   try{ingest(await loadEvents(0,{subject:candidate.id}));}catch(err){if(dialog.open&&dialog.dataset.recordRequest===request)show('<h2 id="dialog-title">History unavailable</h2><p>'+e(err.message)+'</p>'+btn('Close','close'));return;}
-  if(!dialog.open||dialog.dataset.recordRequest!==request)return;candidate=candidateById(candidate.id);
+  if(!dialog.open||dialog.dataset.recordRequest!==request)return;
+  candidate=candidateById(candidate.id);
+  if (!candidate) {
+    show('<h2 id="dialog-title">Candidate no longer available</h2><p>Check Trash for this record.</p>'+btn('Close','close'));
+    return;
+  }
   const checklist = checklistItems.map(([key,label]) =>
     '<li><span>' + e(label) + '</span>' + tag(candidate.checklist[key] || 'Pending',
       candidate.checklist[key] === 'Complete' ? 'good' : '') + '</li>').join('');
@@ -362,7 +395,7 @@ function openForm(kind,id = '',restored = null) {
       (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
   } else if (kind === 'candidate') {
     title = 'Add a candidate';
-    fields=field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('source','Source',sources,sources[0])+'<div class="wide">'+select('job_id','Position',openJobs.map(item=>[item.id,item.title]),openJobs[0].id)+'</div>'+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
+    fields=field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('source','Source',sources,sources[0])+'<div class="wide">'+select('job_id','Position',positionOptions(openJobs),openJobs[0].id)+'</div>'+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
   } else if (kind === 'stage' && candidate) {
     title = 'Update · ' + candidate.alias;
     fields = select('stage','Stage',stages,candidate.stage) + next(candidate) +
@@ -512,6 +545,7 @@ async function refresh() {
     if(dayChanged){if(reportDate===lastDay)reportDate=today;lastDay=today;}
     if (changed || initial || hadFailure || dayChanged) render();
     else if(page()==='coo')loadMaintenanceStatus();
+    if (initial && roleTarget()) focusRoute();
   } catch (error) {
     failure = error.message;
     mode.textContent = 'Retry sync';
@@ -576,7 +610,7 @@ document.addEventListener('click',async event => {
     const actionLabel=action==='cancel-interview'?'Cancel interview':action==='schedule-r1'?'Schedule R1 interview':'Schedule R2 interview';form.dataset.submitLabel=actionLabel;form.querySelector('[type=submit]').textContent=actionLabel;
     updateStageFields();saveDraft();return;
   }
-  if (action === 'close') { saveDraft();dialog.close();render();return }
+  if (action === 'close') { saveDraft();dialog.close();return }
   if (action === 'discard') {
     const form=dialog.querySelector('#entry');
     const [kind,recordId]=id ? id.split(':') : [form?.dataset.kind,form?.dataset.id];
@@ -596,10 +630,11 @@ document.addEventListener('click',async event => {
     render();
     return;
   }
-  if (action === 'reset') { resetFilters();render();return }
+  if (action === 'reset') { resetFilters();render();document.getElementById('search')?.focus();return }
   if (action === 'next' || action === 'previous') {
     currentPage += action === 'next' ? 1 : -1;
     render();
+    app.querySelector('.result-count')?.focus();
     return;
   }
   if (action === 'view') {
@@ -648,7 +683,11 @@ dialog.addEventListener('cancel',event => {
 });
 dialog.addEventListener('close',() => {
   if (!saving) render();
-  if (focusReturn?.isConnected) focusReturn.focus();
+  if (!focusReturn || focusReturn.hash!==location.hash) return;
+  const {element,action,id,index} = focusReturn;
+  const controls = action ? Array.from(app.querySelectorAll('[data-action]')).filter(item=>item.dataset.action===action && item.dataset.id===id) : [];
+  (element?.isConnected ? element : controls[index] || app).focus({preventScroll:true});
+  focusReturn = null;
 });
 dialog.addEventListener('submit',async event => {
   if(event.target.id==='document-entry'){event.preventDefault();saveDocuments(event.target);return;}
@@ -729,7 +768,15 @@ dialog.addEventListener('submit',async event => {
   }
 });
 sync.addEventListener('click',refresh);
-window.addEventListener('hashchange',() => { render();app.focus({preventScroll:true}) });
+function focusRoute() {
+  if (dialog.open) return;
+  const detail = Array.from(app.querySelectorAll('.role-position details[data-position-id]'))
+    .find(item=>item.dataset.positionId===roleTarget());
+  const target = detail?.querySelector('summary') || app;
+  target.focus({preventScroll:true});
+  target.scrollIntoView?.({block:'start'});
+}
+window.addEventListener('hashchange',() => { render();focusRoute(); });
 window.addEventListener('online',refresh);
 window.addEventListener('offline',() => { mode.textContent = 'Offline · draft kept';sync.className = 'pill error' });
 document.addEventListener('visibilitychange',() => { if (!document.hidden && !dialog.open) refresh() });
@@ -796,14 +843,19 @@ function nextCandidateAction(candidate){
 function bookingPreview(){const bookings=scheduledInterviews().filter(({slot})=>+new Date(slot+':00+05:30')>=Date.now()).slice(0,3);return bookings.length?table(['Candidate','Round','Sri Lanka time','Action'],bookings.map(({candidate,round,slot})=>[e(candidate.alias),e(round),e(slot.replace('T',' ')),btn('Review booking','stage',candidate.id)])):empty('No upcoming interviews are booked.');}
 
 async function showInterviewDetails(id){
- const c=candidateById(id),round=c.stage==='R1 Scheduled'?'R1':'R2',slot=c[round.toLowerCase()];
- show('<h2>Loading meeting details…</h2>');
+ const c=candidateById(id);
+ if (!c) return;
+ const round=c.stage==='R1 Scheduled'?'R1':'R2',slot=c[round.toLowerCase()];
+ if (!slot) return;
+ show('<h2>Loading meeting details…</h2>'+btn('Close','close'));
+ const loading = dialog.querySelector('h2');
  try{
-  const response=await fetch(apiBase+'/interviews',{cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'Could not load meeting details.');
+  const response=await fetch(apiBase+'/interviews',{cache:'no-store',signal:AbortSignal.timeout(20000)}),data=await response.json();if(!response.ok)throw Error(data.error||'Could not load meeting details.');
+  if (!dialog.open || !loading.isConnected) return;
   const prior=data.meetings.find(m=>m.candidate_id===id),currentBooking=interviewRevision(events,c),m=prior?.round===round&&prior?.slot===slot&&prior?.booking_seq===currentBooking?prior:{};
   const status=m.enabled&&data.email_ready===false?'Email activation or quota needs attention. The reminder will wait for the email service.':m.status==='sending'?'Sending / awaiting confirmation':m.status==='sent'?'Email service accepted the reminder':m.status==='needs-review'?'Delivery could not be confirmed. Check with the recipient before scheduling another reminder.':m.status==='pending'?'Scheduled — checked every minute. Email delivery can take longer.':'Reminder off';
   show('<h2>Zoom & email reminder</h2><p>'+e(c.alias+' · '+round+' · '+slot.replace('T',' ')+' Sri Lanka time')+'</p><p role="status">'+e(status)+'</p>'+(data.email_ready===false?'<p class="hint">Zoom links can be saved now. Automatic email is waiting for Google email authorization or available daily quota.</p>':'')+ (m.zoom?'<p><a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+e(m.zoom)+'">Open Zoom meeting</a></p>':'')+'<form id="interview-entry" class="form-grid" data-id="'+e(id)+'" data-round="'+round+'" data-slot="'+e(slot)+'" data-version="'+e(prior?.version||'')+'">'+field('zoom','Zoom meeting link',{kind:'url',value:m.zoom||'',wide:true})+select('enabled','Automatic email reminder',[['false','Off'],['true','On']],String(m.enabled||false))+field('remind_at','Send reminder at (Sri Lanka time)',{kind:'datetime-local',value:m.remind_at||'',wide:true})+'<p class="hint wide">Recipient: prasad.quidedge@gmail.com. Choose a time before the interview. Rescheduling requires a new reminder; cancelling or moving the candidate to Trash stops pending reminders.</p><p class="form-error wide" role="alert"></p><div class="form-actions wide">'+btn('Close','close')+'<button class="btn primary" type="submit">Save meeting details</button></div></form>');
- }catch(err){show('<h2>Meeting details unavailable</h2><p role="alert">'+e(err.message)+'</p>'+btn('Close','close'));}
+ }catch(err){if(dialog.open&&loading.isConnected)show('<h2>Meeting details unavailable</h2><p role="alert">'+e(err.message)+'</p>'+btn('Close','close'));}
 }
 dialog.addEventListener('submit',async event=>{
  if(event.target.id!=='interview-entry')return;

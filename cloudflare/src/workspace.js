@@ -1,6 +1,6 @@
 function roleView() {
   if (state.jobs.length) {
-    const positions=state.jobs.map((job,index)=>{
+    const positions=state.jobs.map(job=>{
       const created=events.find(x=>x.kind==='job'&&x.id===job.id);
       const hired=state.candidates.filter(c=>c.job_id===job.id&&c.stage==='Hired').length;
       const details=table(['Department','Location / market','Engagement','Headcount','Target hiring date','Opened (SL)'],
@@ -8,14 +8,15 @@ function roleView() {
       const requirements=job.brief?.trim()?'<div class="role-text">'+e(job.brief)+'</div>':empty('No role requirements have been recorded yet.');
       const description=job.description?.trim()?'<div class="role-text">'+e(job.description)+'</div>':empty('No public job description has been added yet. Use Edit position to add one.');
       const legacy=job.id===hiringRole.id?panel('Client Acquisition compensation reference','<p>'+e(hiringRole.compensation)+'</p><p class="hint">'+e(hiringRole.boundary)+'</p>'):'';
-      return '<section class="panel role-position"><details'+(index===0?' open':'')+'>'+
+      return '<section class="panel role-position"><details data-position-id="'+e(job.id)+'" data-position-status="'+e(job.status)+'"'+(openPositions.has(job.id)?' open':'')+'>'+
         '<summary class="role-position-summary"><span><strong>'+e(job.title)+'</strong><small>'+e(job.department||'Department not set')+' · '+e(job.location||'Market not set')+'</small></span>'+tag(job.status||'Open',job.status==='Open'?'good':'')+'</summary>'+
         '<div class="role-position-content"><div class="toolbar">'+btn('Edit position','job',job.id)+'</div>'+
         panel('Position details',details)+panel('Role requirements / success criteria',requirements)+panel('Full job description (public-safe)',description)+legacy+'</div></details></section>';
     }).join('');
     const hasLegacy=state.jobs.some(job=>job.id===hiringRole.id);
     return heading('Hiring roles','Browse the saved details of every recruitment position.',btn('+ Open position','job','',true))+
-      panel('All positions','<p class="muted">'+state.jobs.length+' saved position'+(state.jobs.length===1?'':'s')+'. Select a position to view its details.</p>')+
+      panel('All positions','<p class="muted">'+state.jobs.length+' saved position'+(state.jobs.length===1?'':'s')+'. Select a position to view its details.</p>'+
+        (roleTarget()&&!state.jobs.some(job=>job.id===roleTarget())?'<p role="status">This position is unavailable. Choose another position below.</p>':''))+
       positions+(hasLegacy?'':panel('Existing Client Acquisition template','<p>The original Client Acquisition & Client Relations template can still be added if needed.</p>'+btn('Add this hiring position','activate-role')));
   }
   const r=hiringRole;

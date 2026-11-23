@@ -103,14 +103,14 @@ main{padding-bottom:max(48px,env(safe-area-inset-bottom));}
 .panel{border:1px solid #e1e2d6;box-shadow:0 2px 4px #24261703}
 .panel p{line-height:1.6}
 .toolbar{gap:8px}.toolbar>.field{flex:1 1 180px}
-.tag{white-space:normal;line-height:1.4;overflow-wrap:anywhere;font-size:.78rem}
+.tag{white-space:normal;line-height:1.4;overflow-wrap:normal;font-size:.78rem}
 .metric{min-height:110px}.metric-label{font-size:.85rem;line-height:1.35}.metric strong{margin-top:12px;font-variant-numeric:tabular-nums}
 .metric:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 .split{grid-template-columns:repeat(2,minmax(0,1fr))}
 .scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
 table{table-layout:auto;line-height:1.5}th,td{padding:14px 12px;overflow-wrap:anywhere}
 th:first-child,td:first-child{padding-left:0}th:last-child,td:last-child{padding-right:0}
-thead th{font-size:.72rem}td{font-size:.9rem}td small{font-size:.79rem;line-height:1.5}
+thead th{font-size:.72rem;overflow-wrap:normal}td{font-size:.9rem}td small{font-size:.79rem;line-height:1.5}
 .row-actions{flex-wrap:wrap;gap:8px}.row-actions .btn{min-height:44px;padding:9px 12px;font-size:.8rem}
 .cell-content{display:block;min-width:0}.cell-content>small{display:block}
 .field{display:block;font-size:.86rem;line-height:1.5;font-weight:650}
@@ -152,7 +152,15 @@ details[open]>.role-position-summary::after{content:'Hide details'}
 .scope-note{border-left:3px solid #b98738;padding:10px 14px;background:#f3ead7;margin-block:12px 18px;font-size:.85rem;line-height:1.6}
 .share-jd-box{padding:16px;background:#f3ead7;border:1px solid #dfc99b;border-radius:12px;display:grid;gap:12px}.share-jd-box input{font-size:.9rem;font-weight:400}.share-jd-box p{margin:0}
 #trash-cleanup-status{color:var(--muted);font-size:.82rem}
-@media(min-width:1101px){.top{display:grid;grid-template-columns:auto 1fr auto;gap:20px}.top nav{justify-content:center}.top .brand{font-size:30px}}
+@media(min-width:1101px){
+ .top{display:grid;grid-template-columns:auto 1fr auto;gap:20px}.top nav{justify-content:center}.top .brand{font-size:30px}
+ .positions-table :is(th,td):nth-child(3),
+ .positions-table :is(th,td):nth-child(4),
+ .positions-table :is(th,td):nth-child(5){white-space:nowrap}
+ .positions-table td:nth-child(5) small{white-space:normal;min-width:9ch}
+ .positions-table :is(th,td):last-child{width:29%}
+ .positions-table .row-actions .btn{white-space:nowrap}
+}
 @media(max-width:1200px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.split{grid-template-columns:1fr}}
 @media(max-width:1100px){
  .top{display:grid;grid-template-columns:1fr auto;gap:10px 12px;padding:12px 20px;position:relative;z-index:5}
@@ -543,7 +551,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     } };
   }
 
-  // node_modules/fflate/esm/browser.js
+  // ../../../../new-chat/work/test-deps/node_modules/fflate/esm/browser.js
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -1203,6 +1211,8 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   var saving = false;
   var timer;
   var focusReturn;
+  var renderedHash;
+  var openPositions = /* @__PURE__ */ new Set();
   var pendingRecord = null;
   var lastDay = dateSL();
   var reportDate = lastDay;
@@ -1216,7 +1226,8 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   var guideTrack = "Client Acquisition & Relations";
   var searchTimer;
   var noticeTimer;
-  var page = () => ["overview", "coo", "role", "pipeline", "activity", "interviews", "guide", "trash"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
+  var roleTarget = () => location.hash.startsWith("#role/") ? location.hash.slice(6) : "";
+  var page = () => roleTarget() ? "role" : ["overview", "coo", "role", "pipeline", "activity", "interviews", "guide", "trash"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
   var btn = (label, action, id = "", primary = false) => '<button type="button" class="btn ' + (primary ? "primary" : "") + '" data-action="' + escape(action) + '" data-id="' + escape(id) + '">' + escape(label) + "</button>";
   var dangerBtn = (label, action, id) => btn(label, action, id).replace('class="btn ', 'class="btn danger ');
   var tag = (text, type = "") => '<span class="tag ' + type + '">' + escape(text) + "</span>";
@@ -1227,8 +1238,8 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       return '<option value="' + escape(value) + '"' + (String(value) === String(selected) ? " selected" : "") + ">" + escape(label) + "</option>";
     }).join("");
   }
-  function table(head, rows) {
-    return '<div class="scroll"><table><thead><tr>' + head.map((h) => '<th scope="col">' + escape(h) + "</th>").join("") + "</tr></thead><tbody>" + rows.map((row) => "<tr>" + row.map((cell, i2) => '<td data-label="' + escape(head[i2]) + '">' + cell + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
+  function table(head, rows, { className = "", label = "" } = {}) {
+    return '<div class="scroll"><table' + (className ? ' class="' + escape(className) + '"' : "") + (label ? ' aria-label="' + escape(label) + '"' : "") + ' role="table"><thead role="rowgroup"><tr role="row">' + head.map((h) => '<th role="columnheader" scope="col">' + escape(h) + "</th>").join("") + '</tr></thead><tbody role="rowgroup">' + rows.map((row) => '<tr role="row">' + row.map((cell, i2) => '<td role="cell" data-label="' + escape(head[i2]) + '">' + cell + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
   }
   var panel = (title, html, action = "") => '<section class="panel"><div class="section-top"><h2>' + escape(title) + "</h2>" + action + "</div>" + html + "</section>";
   var heading = (title, subtitle, action = "") => '<div class="intro"><div><p class="eyebrow">QuidEdge / Operations</p><h1>' + escape(title) + '</h1><p class="sub">' + escape(subtitle) + "</p></div>" + action + "</div>";
@@ -1241,6 +1252,11 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     score: event.payload.round + " scorecard"
   })[event.kind];
   var jobTitle = (id) => jobNames.get(id) || "Position unavailable";
+  function positionOptions(jobs) {
+    const titleCounts = /* @__PURE__ */ new Map();
+    for (const job of jobs) titleCounts.set(job.title, (titleCounts.get(job.title) || 0) + 1);
+    return jobs.map((job) => [job.id, titleCounts.get(job.title) > 1 ? [job.title, job.location, job.department].filter(Boolean).join(" \xB7 ") : job.title]);
+  }
   var candidateById = (id) => candidateIndex.get(id);
   function storageDrafts() {
     try {
@@ -1315,20 +1331,20 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       String(candidates.filter((candidate) => candidate.job_id === job.id && candidate.stage === "Hired").length) + " / " + escape(job.headcount || "1") + " hired",
       escape(job.target_date || "To confirm"),
       tag(job.status, job.status === "Open" ? "good" : "") + (Number(job.headcount || 1) <= candidates.filter((c) => c.job_id === job.id && c.stage === "Hired").length ? "<small>Hiring target reached \xB7 review position status</small>" : ""),
-      '<div class="row-actions">' + btn("Manage", "job", job.id) + dangerBtn("Move to Trash", "delete-record", job.id) + (job.profile === "client-acquisition-v1" ? btn("Full job description", "job", job.id) : "") + "</div>"
+      '<div class="row-actions"><a class="btn" href="#role/' + encodeURIComponent(job.id) + '">View job description</a>' + btn("Manage", "job", job.id) + dangerBtn("Move to Trash", "delete-record", job.id) + "</div>"
     ]);
     return heading(
       "Recruitment management",
       "Keep roles, next actions and hiring decisions moving.",
       '<div class="toolbar">' + btn("Export records", "export") + btn("+ Open position", "job") + btn("+ Add candidate", "candidate", "", true) + "</div>"
     ) + '<div class="metrics" aria-label="Current pipeline counts">' + metrics + "</div>" + panel(
-      "Today\u2019s priorities",
+      "Hiring priorities",
       queue.length ? candidateTable(queue.slice(0, 5)) : empty(candidates.length ? "No pending actions. All active candidates are on track or the hiring process is complete." : "No candidates added yet. Add a candidate to get started."),
       btn("View all actions", "attention")
     ) + panel("Upcoming interviews", bookingPreview(), btn("Open calendar", "interviews-view")) + panel(
       "Positions",
-      jobRows.length ? table(["Role", "Department / market", "Headcount", "Target date", "Status", "Action"], jobRows) : empty("Open a position, define the role requirements, then add candidates."),
-      tag(openJobs.length + " open \xB7 " + active.length + " active candidates")
+      jobRows.length ? table(["Role", "Department / market", "Headcount", "Target date", "Status", "Actions"], jobRows, { className: "positions-table", label: "Positions" }) : empty("Open a position, define the role requirements, then add candidates."),
+      tag(openJobs.length + " open \xB7 " + active.length + (active.length === 1 ? " active candidate" : " active candidates"))
     ) + panel("Recent candidates", candidateTable(candidates.slice(0, 6)), btn("View pipeline", "pipeline-view"));
   }
   function filteredCandidates() {
@@ -1348,14 +1364,14 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     const pages = Math.max(1, Math.ceil(list.length / pageSize));
     currentPage = Math.min(currentPage, pages);
     const start = (currentPage - 1) * pageSize;
-    return '<p class="result-count" role="status">' + list.length + " candidates \xB7 page " + currentPage + " of " + pages + "</p>" + (list.length ? candidateTable(list.slice(start, start + pageSize)) : empty(state.candidates.length ? "No candidates match these filters. Clear filters to see all candidates." : "No candidates added yet.") + '<div class="toolbar">' + btn("Clear filters", "reset") + btn("+ Add candidate", "candidate", "", true) + "</div>") + (pages > 1 ? '<div class="pagination">' + (currentPage > 1 ? btn("Previous", "previous") : "") + (currentPage < pages ? btn("Next", "next") : "") + "</div>" : "");
+    return '<p class="result-count" role="status" tabindex="-1">' + list.length + (list.length === 1 ? " candidate" : " candidates") + (pages > 1 ? " \xB7 page " + currentPage + " of " + pages : "") + "</p>" + (list.length ? candidateTable(list.slice(start, start + pageSize)) : empty(state.candidates.length ? "No candidates match these filters. Use Reset filters to see all candidates." : "No candidates added yet.")) + (pages > 1 ? '<div class="pagination">' + (currentPage > 1 ? btn("Previous", "previous") : "") + (currentPage < pages ? btn("Next", "next") : "") + "</div>" : "");
   }
   function pipeline() {
     return heading(
       "Candidate pipeline",
       "Filter by role, stage, owner or outstanding action.",
       '<div class="toolbar">' + btn("Export CSV", "csv") + btn("+ Add candidate", "candidate", "", true) + "</div>"
-    ) + panel("Candidates", '<div class="filters"><label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + escape(search) + '"></label><label class="field">Position<select id="job-filter">' + options([["", "All positions"], ...state.jobs.map((job) => [job.id, job.title])], jobFilter) + '</select></label><label class="field">Stage<select id="stage-filter">' + options([["", "All stages"], ...groupStages.map(([name]) => ["group:" + name, name + " group"]), ...stages], stageFilter) + '</select></label><label class="field">Action owner<select id="owner-filter">' + options([["", "All owners"], ...owners], ownerFilter) + '</select></label><label class="field">Attention<select id="attention-filter">' + options([["", "All candidates"], ["needs-action", "Needs action"], "Overdue", "Due today", "Needs decision", "Missing next step", "Closed"], attentionFilter) + '</select></label><label class="field">Sort<select id="sort-filter">' + options([["recent", "Newest first"], ["due", "Due date"], ["code", "Candidate code"]], sort) + '</select></label></div><div id="candidate-results">' + candidateResults() + "</div>", btn("Reset filters", "reset"));
+    ) + panel("Candidates", '<div class="filters"><label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + escape(search) + '"></label><label class="field">Position<select id="job-filter">' + options([["", "All positions"], ...positionOptions(state.jobs)], jobFilter) + '</select></label><label class="field">Stage<select id="stage-filter">' + options([["", "All stages"], ...groupStages.map(([name]) => ["group:" + name, name + " group"]), ...stages], stageFilter) + '</select></label><label class="field">Action owner<select id="owner-filter">' + options([["", "All owners"], ...owners], ownerFilter) + '</select></label><label class="field">Attention<select id="attention-filter">' + options([["", "All candidates"], ["needs-action", "Needs action"], "Overdue", "Due today", "Needs decision", "Missing next step", "Closed"], attentionFilter) + '</select></label><label class="field">Sort<select id="sort-filter">' + options([["recent", "Newest first"], ["due", "Due date"], ["code", "Candidate code"]], sort) + '</select></label></div><div id="candidate-results">' + candidateResults() + "</div>", btn("Reset filters", "reset"));
   }
   var loadedReportDates = /* @__PURE__ */ new Set();
   async function loadReport(date) {
@@ -1432,6 +1448,12 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       document.activeElement.selectionEnd
     ] : null;
     const view = page();
+    const sameRoute = renderedHash === location.hash;
+    const previousPositions = app.querySelectorAll(".role-position details[data-position-id]");
+    if (view === "role") {
+      openPositions = sameRoute && previousPositions.length ? new Set(Array.from(previousPositions).filter((detail) => detail.open).map((detail) => detail.dataset.positionId)) : /* @__PURE__ */ new Set([roleTarget() || state.jobs[0]?.id]);
+    }
+    renderedHash = location.hash;
     for (const link of document.querySelectorAll("#nav a")) {
       const selected = link.hash === "#" + view;
       link.classList.toggle("active", selected);
@@ -1461,7 +1483,13 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   var select = (name, label, choices, value) => field(name, label, { kind: "select", choices, value, required: true });
   var notes = (name, label, required = false, value = "") => field(name, label, { kind: "textarea", wide: true, required, max: 600, value });
   function show(html) {
-    focusReturn = document.activeElement;
+    if (!dialog.open) {
+      const element = document.activeElement;
+      const action = element?.dataset.action;
+      const id = element?.dataset.id;
+      const controls = action ? Array.from(app.querySelectorAll("[data-action]")).filter((item) => item.dataset.action === action && item.dataset.id === id) : [];
+      focusReturn = { element, action, id, index: controls.indexOf(element), hash: location.hash };
+    }
     dialog.innerHTML = html;
     if (!dialog.open) dialog.showModal();
     dialog.scrollTop = 0;
@@ -1478,6 +1506,10 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     }
     if (!dialog.open || dialog.dataset.recordRequest !== request2) return;
     candidate = candidateById(candidate.id);
+    if (!candidate) {
+      show('<h2 id="dialog-title">Candidate no longer available</h2><p>Check Trash for this record.</p>' + btn("Close", "close"));
+      return;
+    }
     const checklist = checklistItems.map(([key, label]) => "<li><span>" + escape(label) + "</span>" + tag(
       candidate.checklist[key] || "Pending",
       candidate.checklist[key] === "Complete" ? "good" : ""
@@ -1523,7 +1555,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + notes("brief", "Role requirements / success criteria", true, job?.brief || "") + field("description", "Full job description (public-safe)", { kind: "textarea", wide: true, max: 12e3, value: job?.description || "" }) + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
     } else if (kind === "candidate") {
       title = "Add a candidate";
-      fields = field("alias", "Candidate code", { required: true, max: 40, value: "QE-" + dateSL().replaceAll("-", "") + "-" + newId().slice(0, 6).toUpperCase() }) + select("source", "Source", sources, sources[0]) + '<div class="wide">' + select("job_id", "Position", openJobs.map((item) => [item.id, item.title]), openJobs[0].id) + '</div><p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p><details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">' + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + '</div></details><details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">' + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + notes("terms_detail", "Agreed commission boundaries / exceptions (required when accepted)", false, "") + '</div></details><details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>' + next({ action: "Review application", due: tomorrowSL(), owner: "COO" }) + "</details>";
+      fields = field("alias", "Candidate code", { required: true, max: 40, value: "QE-" + dateSL().replaceAll("-", "") + "-" + newId().slice(0, 6).toUpperCase() }) + select("source", "Source", sources, sources[0]) + '<div class="wide">' + select("job_id", "Position", positionOptions(openJobs), openJobs[0].id) + '</div><p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p><details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">' + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + '</div></details><details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">' + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + notes("terms_detail", "Agreed commission boundaries / exceptions (required when accepted)", false, "") + '</div></details><details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>' + next({ action: "Review application", due: tomorrowSL(), owner: "COO" }) + "</details>";
     } else if (kind === "stage" && candidate) {
       title = "Update \xB7 " + candidate.alias;
       fields = select("stage", "Stage", stages, candidate.stage) + next(candidate) + field("r1", "R1 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r1 }) + field("r2", "R2 interview (Sri Lanka time)", { kind: "datetime-local", value: candidate.r2 }) + '<div class="wide" id="start-field">' + field("start_date", "Confirmed start date", { kind: "date", value: candidate.start_date }) + "</div>" + notes("note", "Reason / decision summary", true) + '<div class="hint wide" id="schedule-help" role="status"></div>' + (candidate.commission_ack !== "Accepted" || !candidate.terms_detail ? '<div class="wide"><p class="hint">Confirm commission terms before scheduling an interview.</p>' + btn("Review commission terms", "commission", candidate.id) + "</div>" : "") + '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
@@ -1690,6 +1722,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       }
       if (changed || initial || hadFailure || dayChanged) render();
       else if (page() === "coo") loadMaintenanceStatus();
+      if (initial && roleTarget()) focusRoute();
     } catch (error) {
       failure = error.message;
       mode.textContent = "Retry sync";
@@ -1805,7 +1838,6 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     if (action === "close") {
       saveDraft();
       dialog.close();
-      render();
       return;
     }
     if (action === "discard") {
@@ -1834,11 +1866,13 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     if (action === "reset") {
       resetFilters();
       render();
+      document.getElementById("search")?.focus();
       return;
     }
     if (action === "next" || action === "previous") {
       currentPage += action === "next" ? 1 : -1;
       render();
+      app.querySelector(".result-count")?.focus();
       return;
     }
     if (action === "view") {
@@ -1930,7 +1964,11 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   });
   dialog.addEventListener("close", () => {
     if (!saving) render();
-    if (focusReturn?.isConnected) focusReturn.focus();
+    if (!focusReturn || focusReturn.hash !== location.hash) return;
+    const { element, action, id, index } = focusReturn;
+    const controls = action ? Array.from(app.querySelectorAll("[data-action]")).filter((item) => item.dataset.action === action && item.dataset.id === id) : [];
+    (element?.isConnected ? element : controls[index] || app).focus({ preventScroll: true });
+    focusReturn = null;
   });
   dialog.addEventListener("submit", async (event) => {
     if (event.target.id === "document-entry") {
@@ -2025,9 +2063,16 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     }
   });
   sync.addEventListener("click", refresh);
+  function focusRoute() {
+    if (dialog.open) return;
+    const detail = Array.from(app.querySelectorAll(".role-position details[data-position-id]")).find((item) => item.dataset.positionId === roleTarget());
+    const target = detail?.querySelector("summary") || app;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView?.({ block: "start" });
+  }
   window.addEventListener("hashchange", () => {
     render();
-    app.focus({ preventScroll: true });
+    focusRoute();
   });
   window.addEventListener("online", refresh);
   window.addEventListener("offline", () => {
@@ -2123,16 +2168,21 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     return bookings.length ? table(["Candidate", "Round", "Sri Lanka time", "Action"], bookings.map(({ candidate, round, slot }) => [escape(candidate.alias), escape(round), escape(slot.replace("T", " ")), btn("Review booking", "stage", candidate.id)])) : empty("No upcoming interviews are booked.");
   }
   async function showInterviewDetails(id) {
-    const c = candidateById(id), round = c.stage === "R1 Scheduled" ? "R1" : "R2", slot = c[round.toLowerCase()];
-    show("<h2>Loading meeting details\u2026</h2>");
+    const c = candidateById(id);
+    if (!c) return;
+    const round = c.stage === "R1 Scheduled" ? "R1" : "R2", slot = c[round.toLowerCase()];
+    if (!slot) return;
+    show("<h2>Loading meeting details\u2026</h2>" + btn("Close", "close"));
+    const loading = dialog.querySelector("h2");
     try {
-      const response = await fetch(apiBase + "/interviews", { cache: "no-store" }), data = await response.json();
+      const response = await fetch(apiBase + "/interviews", { cache: "no-store", signal: AbortSignal.timeout(2e4) }), data = await response.json();
       if (!response.ok) throw Error(data.error || "Could not load meeting details.");
+      if (!dialog.open || !loading.isConnected) return;
       const prior = data.meetings.find((m2) => m2.candidate_id === id), currentBooking = interviewRevision(events, c), m = prior?.round === round && prior?.slot === slot && prior?.booking_seq === currentBooking ? prior : {};
       const status = m.enabled && data.email_ready === false ? "Email activation or quota needs attention. The reminder will wait for the email service." : m.status === "sending" ? "Sending / awaiting confirmation" : m.status === "sent" ? "Email service accepted the reminder" : m.status === "needs-review" ? "Delivery could not be confirmed. Check with the recipient before scheduling another reminder." : m.status === "pending" ? "Scheduled \u2014 checked every minute. Email delivery can take longer." : "Reminder off";
       show("<h2>Zoom & email reminder</h2><p>" + escape(c.alias + " \xB7 " + round + " \xB7 " + slot.replace("T", " ") + " Sri Lanka time") + '</p><p role="status">' + escape(status) + "</p>" + (data.email_ready === false ? '<p class="hint">Zoom links can be saved now. Automatic email is waiting for Google email authorization or available daily quota.</p>' : "") + (m.zoom ? '<p><a class="btn primary" target="_blank" rel="noopener noreferrer" href="' + escape(m.zoom) + '">Open Zoom meeting</a></p>' : "") + '<form id="interview-entry" class="form-grid" data-id="' + escape(id) + '" data-round="' + round + '" data-slot="' + escape(slot) + '" data-version="' + escape(prior?.version || "") + '">' + field("zoom", "Zoom meeting link", { kind: "url", value: m.zoom || "", wide: true }) + select("enabled", "Automatic email reminder", [["false", "Off"], ["true", "On"]], String(m.enabled || false)) + field("remind_at", "Send reminder at (Sri Lanka time)", { kind: "datetime-local", value: m.remind_at || "", wide: true }) + '<p class="hint wide">Recipient: prasad.quidedge@gmail.com. Choose a time before the interview. Rescheduling requires a new reminder; cancelling or moving the candidate to Trash stops pending reminders.</p><p class="form-error wide" role="alert"></p><div class="form-actions wide">' + btn("Close", "close") + '<button class="btn primary" type="submit">Save meeting details</button></div></form>');
     } catch (err2) {
-      show('<h2>Meeting details unavailable</h2><p role="alert">' + escape(err2.message) + "</p>" + btn("Close", "close"));
+      if (dialog.open && loading.isConnected) show('<h2>Meeting details unavailable</h2><p role="alert">' + escape(err2.message) + "</p>" + btn("Close", "close"));
     }
   }
   dialog.addEventListener("submit", async (event) => {
@@ -2256,7 +2306,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   }
   function roleView() {
     if (state.jobs.length) {
-      const positions = state.jobs.map((job, index) => {
+      const positions = state.jobs.map((job) => {
         const created = events.find((x2) => x2.kind === "job" && x2.id === job.id);
         const hired = state.candidates.filter((c) => c.job_id === job.id && c.stage === "Hired").length;
         const details = table(
@@ -2266,10 +2316,10 @@ details[open]>.role-position-summary::after{content:'Hide details'}
         const requirements = job.brief?.trim() ? '<div class="role-text">' + escape(job.brief) + "</div>" : empty("No role requirements have been recorded yet.");
         const description = job.description?.trim() ? '<div class="role-text">' + escape(job.description) + "</div>" : empty("No public job description has been added yet. Use Edit position to add one.");
         const legacy = job.id === hiringRole.id ? panel("Client Acquisition compensation reference", "<p>" + escape(hiringRole.compensation) + '</p><p class="hint">' + escape(hiringRole.boundary) + "</p>") : "";
-        return '<section class="panel role-position"><details' + (index === 0 ? " open" : "") + '><summary class="role-position-summary"><span><strong>' + escape(job.title) + "</strong><small>" + escape(job.department || "Department not set") + " \xB7 " + escape(job.location || "Market not set") + "</small></span>" + tag(job.status || "Open", job.status === "Open" ? "good" : "") + '</summary><div class="role-position-content"><div class="toolbar">' + btn("Edit position", "job", job.id) + "</div>" + panel("Position details", details) + panel("Role requirements / success criteria", requirements) + panel("Full job description (public-safe)", description) + legacy + "</div></details></section>";
+        return '<section class="panel role-position"><details data-position-id="' + escape(job.id) + '" data-position-status="' + escape(job.status) + '"' + (openPositions.has(job.id) ? " open" : "") + '><summary class="role-position-summary"><span><strong>' + escape(job.title) + "</strong><small>" + escape(job.department || "Department not set") + " \xB7 " + escape(job.location || "Market not set") + "</small></span>" + tag(job.status || "Open", job.status === "Open" ? "good" : "") + '</summary><div class="role-position-content"><div class="toolbar">' + btn("Edit position", "job", job.id) + "</div>" + panel("Position details", details) + panel("Role requirements / success criteria", requirements) + panel("Full job description (public-safe)", description) + legacy + "</div></details></section>";
       }).join("");
       const hasLegacy = state.jobs.some((job) => job.id === hiringRole.id);
-      return heading("Hiring roles", "Browse the saved details of every recruitment position.", btn("+ Open position", "job", "", true)) + panel("All positions", '<p class="muted">' + state.jobs.length + " saved position" + (state.jobs.length === 1 ? "" : "s") + ". Select a position to view its details.</p>") + positions + (hasLegacy ? "" : panel("Existing Client Acquisition template", "<p>The original Client Acquisition & Client Relations template can still be added if needed.</p>" + btn("Add this hiring position", "activate-role")));
+      return heading("Hiring roles", "Browse the saved details of every recruitment position.", btn("+ Open position", "job", "", true)) + panel("All positions", '<p class="muted">' + state.jobs.length + " saved position" + (state.jobs.length === 1 ? "" : "s") + ". Select a position to view its details.</p>" + (roleTarget() && !state.jobs.some((job) => job.id === roleTarget()) ? '<p role="status">This position is unavailable. Choose another position below.</p>' : "")) + positions + (hasLegacy ? "" : panel("Existing Client Acquisition template", "<p>The original Client Acquisition & Client Relations template can still be added if needed.</p>" + btn("Add this hiring position", "activate-role")));
     }
     const r = hiringRole;
     return heading(r.title, "QuidEdge \xB7 Client Services \xB7 Not added", btn("Add this hiring position", "activate-role", "", true)) + panel("Commission-only opportunity", '<p class="commission-lead">No fixed salary</p><p>' + escape(r.compensation) + "</p><p>" + escape(r.important) + '</p><div class="commission-grid">' + r.tiers.map(([rate, range]) => "<div><strong>" + escape(rate) + "</strong><span>" + escape(range) + "</span></div>").join("") + "</div><p>" + escape(r.payment) + '</p><p class="hint">' + escape(r.boundary) + "</p>") + panel("Role details", table(["Company", "Location", "Engagement", "Industry"], [[escape(r.company), escape(r.location), escape(r.employment), escape(r.industry)]])) + '<div class="split">' + panel("About QuidEdge", r.about.map((p) => "<p>" + escape(p) + "</p>").join("")) + panel("About the role", r.overview.map((p) => "<p>" + escape(p) + "</p>").join("")) + "</div>" + panel("Key responsibilities", '<ol class="role-list">' + r.responsibilities.map((p) => "<li>" + escape(p) + "</li>").join("") + "</ol>") + panel("Why join QuidEdge?", '<div class="benefit-grid">' + r.benefits.map(([title, text]) => "<article><h3>" + escape(title) + "</h3><p>" + escape(text) + "</p></article>").join("") + "</div>");
@@ -2450,7 +2500,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       cell.dataset.cellReady='true';const content=document.createElement('div');content.className='cell-content';while(cell.firstChild)content.append(cell.firstChild);cell.append(content);
     }
     for(const table of root.querySelectorAll('table:not([data-table-ready])')){
-      table.dataset.tableReady='true';const title=table.closest('.panel')?.querySelector('h2')?.textContent.trim();if(title)table.setAttribute('aria-label',title);
+      table.dataset.tableReady='true';const title=table.closest('.panel')?.querySelector('h2')?.textContent.trim();if(title&&!table.hasAttribute('aria-label'))table.setAttribute('aria-label',title);
       for(const th of table.querySelectorAll('th'))th.scope='col';
     }
     for(const item of root.querySelectorAll('.role-text:not([data-copy-ready])')){
@@ -2458,21 +2508,14 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       if(/^#{1,6}\s|\*\*[^*]+\*\*|^\s*[-*]\s|^\s*\d+[.)]\s/m.test(text)){item.innerHTML=richText(text);item.classList.add('rich-copy');item.style.whiteSpace='normal';}
     }
     for(const detail of root.querySelectorAll('.role-position details:not([data-role-ready])')){
-      detail.dataset.roleReady='true';const button=detail.querySelector('[data-action=job]');if(button?.dataset.id)detail.dataset.jobId=button.dataset.id;
-      if(button?.dataset.id){
+      detail.dataset.roleReady='true';
+      const id=detail.dataset.positionId;
+      if(id && detail.dataset.positionStatus==='Open'){
         const toolbar=detail.querySelector('.toolbar');
-        const share=document.createElement('button');share.type='button';share.className='btn primary';share.textContent='Share JD with candidate';share.dataset.action='share-candidate-jd';share.dataset.id=button.dataset.id;toolbar?.append(share);
+        const share=document.createElement('button');share.type='button';share.className='btn primary';share.textContent='Share JD with candidate';share.dataset.action='share-candidate-jd';share.dataset.id=id;toolbar?.append(share);
         const hint=document.createElement('p');hint.className='hint';hint.textContent='Candidate links show this job only, on a separate careers page.';toolbar?.after(hint);
       }
     }
-    // Give every saved position a direct route to its own requirements.
-    if(location.hash==='#overview')for(const row of root.querySelectorAll('tr')){
-      const manage=row.querySelector('[data-action=job][data-id]');if(!manage||row.querySelector('[data-action=open-role-details]'))continue;
-      const actions=row.querySelector('.row-actions');if(!actions)continue;
-      const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='View job description';button.dataset.action='open-role-details';button.dataset.id=manage.dataset.id;actions.append(button);
-    }
-    const status=root.querySelector('.result-count');if(status&&!status.dataset.grammarReady){status.dataset.grammarReady='true';if(/^1 candidates/.test(status.textContent))status.textContent=status.textContent.replace('1 candidates','1 candidate');status.setAttribute('aria-live','polite');}
-    const search=root.querySelector('#search');if(search){search.placeholder='Search candidates or positions';search.setAttribute('aria-label','Search candidates or positions');}
     const sameView=view===location.hash;view=location.hash;
     if(!sameView)closeMenu();
     if(dialog.open){
@@ -2500,12 +2543,6 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       if(!box){box=document.createElement('div');box.className='share-jd-box';const label=document.createElement('label');label.className='field';label.textContent='Candidate-only job link';const input=document.createElement('input');input.type='url';input.readOnly=true;input.value=url;input.setAttribute('aria-label','Candidate-only job link');label.append(input);const actions=document.createElement('div');actions.className='toolbar';const copy=document.createElement('button');copy.type='button';copy.className='btn primary';copy.textContent='Copy link';const open=document.createElement('a');open.className='btn';open.textContent='Preview candidate page';open.href=url;open.target='_blank';open.rel='noopener noreferrer';const status=document.createElement('p');status.className='hint';status.setAttribute('role','status');copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);status.textContent='Link copied. Ready to send to your candidate.';}catch{input.focus();input.select();status.textContent='Select and copy the link above.';}});actions.append(copy,open);box.append(label,actions,status);toolbar.after(box);}
       box.querySelector('input').focus();box.querySelector('input').select();return;
     }
-    const link=event.target.closest('[data-action=open-role-details]');if(!link)return;
-    event.preventDefault();const id=link.dataset.id;location.hash='role';
-    frame(()=>frame(()=>{
-      enhance();const details=Array.from(root.querySelectorAll('.role-position details')).find(x=>x.dataset.jobId===id);
-      if(details){details.open=true;details.scrollIntoView({block:'start',behavior:'instant'});const summary=details.querySelector('summary');summary?.focus({preventScroll:true});}
-    }));
   });
   dialog.addEventListener('invalid',event=>{
     const input=event.target;if(!input.matches('input,textarea,select'))return;

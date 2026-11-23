@@ -49,9 +49,31 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler deploy --keep-vars
-      - name: Check publicly served Hiring Role frontend
+      - name: Verify Cloudflare serves this build
         run: |
-          curl --fail --silent --show-error --location --retry 5 --retry-delay 3 \
-            "https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/app.js" \
-            | grep -Fq "Browse the saved details of every recruitment position"
-          echo "Cloudflare Worker is serving the updated Hiring Role code."
+          node --input-type=module <<'JS'
+          import { writeFile } from 'node:fs/promises';
+          import worker from './cloudflare/worker.js';
+
+          for (const asset of ['index.html', 'app.js', 'styles.css']) {
+            const response = await worker.fetch(new Request('https://local.invalid/' + asset), {});
+            if (!response.ok) throw new Error('Could not read built asset ' + asset);
+            await writeFile(process.env.RUNNER_TEMP + '/' + asset, await response.text());
+          }
+          JS
+          origin="https://quidedge-recruitment.inquiries-quidedge-au.workers.dev"
+          for asset in index.html app.js styles.css; do
+            matched=false
+            for attempt in 1 2 3 4 5; do
+              if curl --fail --silent --show-error --max-time 15 --output "$RUNNER_TEMP/live-$asset" "$origin/$asset" &&
+                cmp --silent "$RUNNER_TEMP/$asset" "$RUNNER_TEMP/live-$asset"; then
+                matched=true
+                break
+              fi
+              sleep 3
+            done
+            if [ "$matched" != true ]; then
+              echo "::error::Cloudflare is serving a different $asset from the tested build."
+              exit 1
+            fi
+          done

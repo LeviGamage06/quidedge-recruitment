@@ -22,7 +22,7 @@ const scoreEvent=events.find(e=>e.kind==='score');click('view');await tick();d.q
 w.location.hash='activity';await tick();click('summary');set('progress','QA daily progress');set('priorities','QA next action');await save();const summary=events.at(-1);d.querySelector(`[data-action=edit-event][data-id='${summary.id}']`).click();set('progress','QA corrected daily progress');await save();assert.equal(events.at(-1).payload.supersedes,summary.id);
 const latestSummary=events.at(-1);d.querySelector(`[data-action=delete-record][data-id='${latestSummary.id}']`).click();set('note','Delete summary');await save();assert.doesNotMatch(d.querySelector('#app').textContent,/QA corrected daily progress/);
 w.location.hash='trash';await tick();d.querySelector(`[data-action=restore-record][data-id='${latestSummary.id}']`).click();set('note','Restore summary');await save();w.location.hash='activity';await tick();assert.match(d.querySelector('#app').textContent,/QA corrected daily progress/);
-w.location.hash='pipeline';await tick();d.querySelector('#stage-filter').value='Hired';d.querySelector('#stage-filter').dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(d.querySelector('#app').textContent,/No candidates match/);click('reset');assert.match(d.querySelector('#app').textContent,/QA-002/);
+w.location.hash='pipeline';await tick();d.querySelector('#stage-filter').value='Hired';d.querySelector('#stage-filter').dispatchEvent(new w.Event('change',{bubbles:true}));assert.match(d.querySelector('#app').textContent,/No candidates match/);click('reset');assert.match(d.querySelector('#app').textContent,/QA-002/);assert.equal(d.activeElement.id,'search');
 w.location.hash='interviews';await tick();click('candidate');assert.match(d.querySelector('[name=alias]').value,/^QE-20261108-[A-F0-9]{6}$/);assert.equal(d.querySelector('[type=submit]').textContent,'Add candidate');assert.equal(d.querySelectorAll('.form-section[open]').length,0);assert.equal(d.querySelector('[name=action]').value,'Review application');assert.equal(d.querySelector('[name=due]').value,'2026-11-09');assert.equal(d.querySelector('[name=owner]').value,'COO');set('alias','QA-NEW');await save();assert.equal(w.location.hash,'#pipeline');assert.match(d.querySelector('#app').textContent,/QA-NEW/);
 w.location.hash='overview';await tick();d.querySelector(`[data-action=view][data-id='${cid}']`).click();await tick();assert.match(d.querySelector('.readiness-summary').textContent,/2 application documents need upload or verification/);assert.equal(d.querySelector('.candidate-tools').open,false);assert.equal(d.querySelector('.history-section').open,false);assert.match(d.querySelector('.timeline').textContent,/Stage changed:/);click('close');
 const testHire={seq:events.length+1,id:'33333333-3333-4333-8333-333333333333',kind:'stage',subject_id:cid,event_date:'2026-11-08',payload:{stage:'Hired',start_date:'2026-11-26'}};events.push(testHire);w.dispatchEvent(new w.Event('online'));await tick();w.location.hash='overview';await tick();assert.match(d.querySelector('#app').textContent,/Hiring completed/);assert.doesNotMatch(d.querySelector('#app').textContent,/Add your first candidate/);assert.doesNotMatch(d.querySelector('#app').textContent,/Set the next step/);
@@ -47,6 +47,32 @@ const testHire={seq:events.length+1,id:'33333333-3333-4333-8333-333333333333',ki
   assert.match(positionPanels[0].textContent,/Build international B2B partnerships/);
   assert.match(positionPanels[0].textContent,/Develop recurring agency partnerships/);
   assert.match(d.querySelector('#app').textContent,/QA role/);
+  w.location.hash='';await tick();
+  const rows=[...d.querySelectorAll('.positions-table tbody tr')];
+  assert.equal(rows.length,2);
+  for (const row of rows) {
+    assert.equal(row.querySelectorAll('a[href^="#role/"]').length,1);
+    assert.equal(row.querySelectorAll('button[data-action=job]').length,1);
+    assert.doesNotMatch(row.textContent,/Full job description/);
+  }
+  rows[1].querySelector('a').click();
+  await tick();
+  assert.equal(w.location.hash,'#role/'+jid);
+  const selected=d.querySelector('.role-position details[open]');
+  assert.equal(d.querySelectorAll('.role-position details[open]').length,1);
+  assert.equal(selected.dataset.positionId,jid);
+  assert.equal(d.activeElement,selected.querySelector('summary'));
+  assert.equal(d.querySelector('#nav [aria-current=page]').hash,'#role');
+  const editPosition=selected.querySelector('[data-action=job]');
+  editPosition.focus();
+  editPosition.click();
+  click('close');
+  assert.equal(d.activeElement.dataset.id,jid);
+  assert.equal(d.activeElement.dataset.action,'job');
+  d.querySelector('.role-position details[open]').open=false;
+  w.dispatchEvent(new w.Event('online'));
+  await tick();
+  assert.equal(d.querySelectorAll('.role-position details[open]').length,0);
   assert.deepEqual(errors,[]);
 } finally {dom.window.close();}
 });

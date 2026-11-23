@@ -20,14 +20,14 @@ main{padding-bottom:max(48px,env(safe-area-inset-bottom));}
 .panel{border:1px solid #e1e2d6;box-shadow:0 2px 4px #24261703}
 .panel p{line-height:1.6}
 .toolbar{gap:8px}.toolbar>.field{flex:1 1 180px}
-.tag{white-space:normal;line-height:1.4;overflow-wrap:anywhere;font-size:.78rem}
+.tag{white-space:normal;line-height:1.4;overflow-wrap:normal;font-size:.78rem}
 .metric{min-height:110px}.metric-label{font-size:.85rem;line-height:1.35}.metric strong{margin-top:12px;font-variant-numeric:tabular-nums}
 .metric:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 .split{grid-template-columns:repeat(2,minmax(0,1fr))}
 .scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
 table{table-layout:auto;line-height:1.5}th,td{padding:14px 12px;overflow-wrap:anywhere}
 th:first-child,td:first-child{padding-left:0}th:last-child,td:last-child{padding-right:0}
-thead th{font-size:.72rem}td{font-size:.9rem}td small{font-size:.79rem;line-height:1.5}
+thead th{font-size:.72rem;overflow-wrap:normal}td{font-size:.9rem}td small{font-size:.79rem;line-height:1.5}
 .row-actions{flex-wrap:wrap;gap:8px}.row-actions .btn{min-height:44px;padding:9px 12px;font-size:.8rem}
 .cell-content{display:block;min-width:0}.cell-content>small{display:block}
 .field{display:block;font-size:.86rem;line-height:1.5;font-weight:650}
@@ -69,7 +69,15 @@ details[open]>.role-position-summary::after{content:'Hide details'}
 .scope-note{border-left:3px solid #b98738;padding:10px 14px;background:#f3ead7;margin-block:12px 18px;font-size:.85rem;line-height:1.6}
 .share-jd-box{padding:16px;background:#f3ead7;border:1px solid #dfc99b;border-radius:12px;display:grid;gap:12px}.share-jd-box input{font-size:.9rem;font-weight:400}.share-jd-box p{margin:0}
 #trash-cleanup-status{color:var(--muted);font-size:.82rem}
-@media(min-width:1101px){.top{display:grid;grid-template-columns:auto 1fr auto;gap:20px}.top nav{justify-content:center}.top .brand{font-size:30px}}
+@media(min-width:1101px){
+ .top{display:grid;grid-template-columns:auto 1fr auto;gap:20px}.top nav{justify-content:center}.top .brand{font-size:30px}
+ .positions-table :is(th,td):nth-child(3),
+ .positions-table :is(th,td):nth-child(4),
+ .positions-table :is(th,td):nth-child(5){white-space:nowrap}
+ .positions-table td:nth-child(5) small{white-space:normal;min-width:9ch}
+ .positions-table :is(th,td):last-child{width:29%}
+ .positions-table .row-actions .btn{white-space:nowrap}
+}
 @media(max-width:1200px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.split{grid-template-columns:1fr}}
 @media(max-width:1100px){
  .top{display:grid;grid-template-columns:1fr auto;gap:10px 12px;padding:12px 20px;position:relative;z-index:5}

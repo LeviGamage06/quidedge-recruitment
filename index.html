@@ -551,7 +551,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     } };
   }
 
-  // ../../../../new-chat/work/test-deps/node_modules/fflate/esm/browser.js
+  // node_modules/fflate/esm/browser.js
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -1472,13 +1472,15 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       if (selection) active.setSelectionRange(...selection);
     }
   }
-  function field(name, label, { kind = "text", value = "", choices = [], required = false, max: max2 = 240, wide = false } = {}) {
+  function field(name, label, { kind = "text", value = "", choices = [], required = false, max: max2 = 240, wide = false, showLimit = false } = {}) {
     const attributes = 'name="' + escape(name) + '"' + (required ? " required" : "");
     let input;
     if (kind === "select") input = "<select " + attributes + ">" + options(choices, value) + "</select>";
-    else if (kind === "textarea") input = "<textarea " + attributes + ' maxlength="' + max2 + '">' + escape(value) + "</textarea>";
-    else input = '<input type="' + escape(kind) + '" ' + attributes + ' value="' + escape(value) + '"' + (kind === "text" ? ' maxlength="' + max2 + '"' : "") + (kind === "number" ? ' min="1" max="999" step="1"' : "") + ">";
-    return '<label class="field' + (wide ? " wide" : "") + '">' + escape(label) + (required ? ' <span class="required" aria-hidden="true">*</span>' : "") + input + "</label>";
+    else if (kind === "textarea") {
+      const limit = showLimit ? ' data-text-limit="' + max2 + '" aria-describedby="' + escape(name) + '-limit"' : ' maxlength="' + max2 + '"';
+      input = "<textarea " + attributes + limit + ">" + escape(value) + "</textarea>";
+    } else input = '<input type="' + escape(kind) + '" ' + attributes + ' value="' + escape(value) + '"' + (kind === "text" ? ' maxlength="' + max2 + '"' : "") + (kind === "number" ? ' min="1" max="999" step="1"' : "") + ">";
+    return '<label class="field' + (wide ? " wide" : "") + '">' + escape(label) + (required ? ' <span class="required" aria-hidden="true">*</span>' : "") + input + "</label>" + (showLimit ? '<p class="hint wide" id="' + escape(name) + '-limit"></p>' : "");
   }
   var select = (name, label, choices, value) => field(name, label, { kind: "select", choices, value, required: true });
   var notes = (name, label, required = false, value = "") => field(name, label, { kind: "textarea", wide: true, required, max: 600, value });
@@ -1552,7 +1554,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       fields = '<input type="hidden" name="operation" value="' + (deleted ? "restore" : "delete") + '"><input type="hidden" name="target_id" value="' + escape(id) + '">' + notes("note", deleted ? "Restoration reason" : "Deletion reason", true) + '<p class="hint wide">' + (deleted ? "Restoring makes this record available again." : "This moves the record to Trash. You can restore it later. Original files and audit history are preserved.") + "</p>";
     } else if (kind === "job") {
       title = job ? "Manage position" : "Open a position";
-      fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + notes("brief", "Role requirements / success criteria", true, job?.brief || "") + field("description", "Full job description (public-safe)", { kind: "textarea", wide: true, max: 12e3, value: job?.description || "" }) + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
+      fields = field("title", "Job title", { ...required, value: job?.title }) + field("department", "Department", { ...required, value: job?.department || "Client Services" }) + field("location", "Location / market", { ...required, value: job?.location || "Sri Lanka \xB7 Remote" }) + select("employment", "Engagement type", employmentTypes, job?.employment || "Contract") + field("headcount", "Target headcount", { ...required, kind: "number", value: job?.headcount || "1" }) + field("target_date", "Target hiring date", { kind: "date", value: job?.target_date }) + field("brief", "Role requirements / success criteria", { kind: "textarea", wide: true, required: true, max: 600, showLimit: true, value: job?.brief }) + field("description", "Full job description (public-safe)", { kind: "textarea", wide: true, max: 12e3, showLimit: true, value: job?.description }) + (job ? select("status", "Position status", ["Open", "Paused", "Closed"], job.status) + notes("note", "Reason for update", true) : "");
     } else if (kind === "candidate") {
       title = "Add a candidate";
       fields = field("alias", "Candidate code", { required: true, max: 40, value: "QE-" + dateSL().replaceAll("-", "") + "-" + newId().slice(0, 6).toUpperCase() }) + select("source", "Source", sources, sources[0]) + '<div class="wide">' + select("job_id", "Position", positionOptions(openJobs), openJobs[0].id) + '</div><p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p><details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">' + select("availability", "Availability", ["To confirm", "Available now", "Within 2 weeks", "Within 1 month", "Later"], "To confirm") + field("notice", "Notice period", { value: "To confirm" }) + field("market", "Target client markets", { value: "To confirm" }) + '</div></details><details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">' + select("commission_plan", "Commission structure", ["10 / 20 / 30 recurring", "Other agreed terms"], "10 / 20 / 30 recurring") + select("commission_ack", "Candidate accepts commission-only terms", ["Pending", "Accepted", "Declined"], "Pending") + notes("terms_detail", "Agreed commission boundaries / exceptions (required when accepted)", false, "") + '</div></details><details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>' + next({ action: "Review application", due: tomorrowSL(), owner: "COO" }) + "</details>";
@@ -1604,6 +1606,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     updateStageFields();
     if (pendingRecord) freezePending();
     const openedForm = dialog.querySelector("#entry");
+    for (const field2 of openedForm.querySelectorAll("[data-text-limit]")) updateTextLimit(field2);
     openedForm.dataset.baseline = JSON.stringify(draftValues(openedForm));
     openedForm.dataset.restored = restored ? "1" : "";
     openedForm.dataset.submitLabel = submitLabel;
@@ -1935,7 +1938,17 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     }
     openForm(action, id);
   });
+  function updateTextLimit(field2) {
+    const limit = Number(field2.dataset.textLimit);
+    const length = field2.value.length;
+    const remaining = limit - length;
+    const error = remaining < 0 ? "Shorten this text by " + (-remaining).toLocaleString("en-LK") + " characters before saving." : "";
+    field2.setCustomValidity(error);
+    const hint = document.getElementById(field2.name + "-limit");
+    hint.textContent = length.toLocaleString("en-LK") + " / " + limit.toLocaleString("en-LK") + " characters" + (error ? " \xB7 " + error : remaining === 0 ? " \xB7 At the limit. Check that the full text is present." : "");
+  }
   dialog.addEventListener("input", (event) => {
+    if (event.target.matches("[data-text-limit]")) updateTextLimit(event.target);
     if (event.target.form?.id === "document-entry") {
       if (event.target.name === "private_name") {
         event.target.form.dataset.cvRequest = newId();

@@ -312,15 +312,19 @@ function render() {
     if (selection) active.setSelectionRange(...selection);
   }
 }
-function field(name,label,{kind = 'text',value = '',choices = [],required = false,max = 240,wide = false} = {}) {
+function field(name,label,{kind = 'text',value = '',choices = [],required = false,max = 240,wide = false,showLimit = false} = {}) {
   const attributes = 'name="' + e(name) + '"' + (required ? ' required' : '');
   let input;
   if (kind === 'select') input = '<select ' + attributes + '>' + options(choices,value) + '</select>';
-  else if (kind === 'textarea') input = '<textarea ' + attributes + ' maxlength="' + max + '">' + e(value) + '</textarea>';
+  else if (kind === 'textarea') {
+    const limit = showLimit ? ' data-text-limit="'+max+'" aria-describedby="'+e(name)+'-limit"' : ' maxlength="'+max+'"';
+    input = '<textarea '+attributes+limit+'>'+e(value)+'</textarea>';
+  }
   else input = '<input type="' + e(kind) + '" ' + attributes + ' value="' + e(value) + '"' +
     (kind === 'text' ? ' maxlength="' + max + '"' : '') + (kind === 'number' ? ' min="1" max="999" step="1"' : '') + '>';
   return '<label class="field' + (wide ? ' wide' : '') + '">' + e(label) +
-    (required ? ' <span class="required" aria-hidden="true">*</span>' : '') + input + '</label>';
+    (required ? ' <span class="required" aria-hidden="true">*</span>' : '') + input + '</label>'+
+    (showLimit?'<p class="hint wide" id="'+e(name)+'-limit"></p>':'');
 }
 const select = (name,label,choices,value) => field(name,label,{kind:'select',choices,value,required:true});
 const notes = (name,label,required = false,value = '') => field(name,label,{kind:'textarea',wide:true,required,max:600,value});
@@ -391,7 +395,8 @@ function openForm(kind,id = '',restored = null) {
       select('employment','Engagement type',employmentTypes,job?.employment || 'Contract') +
       field('headcount','Target headcount',{...required,kind:'number',value:job?.headcount || '1'}) +
       field('target_date','Target hiring date',{kind:'date',value:job?.target_date}) +
-      notes('brief','Role requirements / success criteria',true,job?.brief || '') +field('description','Full job description (public-safe)',{kind:'textarea',wide:true,max:12000,value:job?.description||''})+
+      field('brief','Role requirements / success criteria',{kind:'textarea',wide:true,required:true,max:600,showLimit:true,value:job?.brief}) +
+      field('description','Full job description (public-safe)',{kind:'textarea',wide:true,max:12000,showLimit:true,value:job?.description})+
       (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
   } else if (kind === 'candidate') {
     title = 'Add a candidate';
@@ -452,6 +457,7 @@ function openForm(kind,id = '',restored = null) {
   updateStageFields();
   if (pendingRecord) freezePending();
   const openedForm=dialog.querySelector('#entry');
+  for (const field of openedForm.querySelectorAll('[data-text-limit]')) updateTextLimit(field);
   openedForm.dataset.baseline=JSON.stringify(draftValues(openedForm));
   openedForm.dataset.restored=restored?'1':'';
   openedForm.dataset.submitLabel=submitLabel;
@@ -663,7 +669,18 @@ document.addEventListener('click',async event => {
   }
   openForm(action,id);
 });
+function updateTextLimit(field) {
+  const limit = Number(field.dataset.textLimit);
+  const length = field.value.length;
+  const remaining = limit-length;
+  const error = remaining<0 ? 'Shorten this text by '+(-remaining).toLocaleString('en-LK')+' characters before saving.' : '';
+  field.setCustomValidity(error);
+  const hint = document.getElementById(field.name+'-limit');
+  hint.textContent = length.toLocaleString('en-LK')+' / '+limit.toLocaleString('en-LK')+' characters'+
+    (error?' · '+error:remaining===0?' · At the limit. Check that the full text is present.':'');
+}
 dialog.addEventListener('input',event=>{
+  if (event.target.matches('[data-text-limit]')) updateTextLimit(event.target);
   if(event.target.form?.id==='document-entry'){
     if(event.target.name==='private_name'){event.target.form.dataset.cvRequest=newId();event.target.form.dataset.coverRequest=newId();}
     if(['cv','cover'].includes(event.target.name))event.target.form.dataset[event.target.name+'Request']=newId();

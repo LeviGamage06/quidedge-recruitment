@@ -63,9 +63,11 @@ jobs:
           JS
           origin="https://quidedge-recruitment.inquiries-quidedge-au.workers.dev"
           for asset in index.html app.js styles.css; do
+            path="$asset"
+            if [ "$asset" = index.html ]; then path=""; fi
             matched=false
             for attempt in 1 2 3 4 5; do
-              if curl --fail --silent --show-error --max-time 15 --output "$RUNNER_TEMP/live-$asset" "$origin/$asset" &&
+              if curl --fail --silent --show-error --max-time 15 --output "$RUNNER_TEMP/live-$asset" "$origin/$path" &&
                 cmp --silent "$RUNNER_TEMP/$asset" "$RUNNER_TEMP/live-$asset"; then
                 matched=true
                 break

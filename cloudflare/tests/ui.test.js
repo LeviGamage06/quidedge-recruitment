@@ -35,6 +35,15 @@ const testHire={seq:events.length+1,id:'33333333-3333-4333-8333-333333333333',ki
   set('headcount','3');
   set('target_date','2026-12-15');
   set('brief','Build international B2B partnerships.');
+  const jobDescription=d.querySelector('[name=description]');
+  assert.equal(jobDescription.hasAttribute('maxlength'),false);
+  set('description','A'.repeat(12001));
+  assert.equal(jobDescription.value.length,12001);
+  assert.equal(jobDescription.validity.customError,true);
+  assert.match(d.querySelector('#description-limit').textContent,/Shorten this text by 1/);
+  set('description','A'.repeat(12000));
+  assert.equal(jobDescription.validity.valid,true);
+  assert.match(d.querySelector('#description-limit').textContent,/Check that the full text is present/);
   set('description','Develop recurring agency partnerships.');
   await save();
   w.location.hash='role';await tick();

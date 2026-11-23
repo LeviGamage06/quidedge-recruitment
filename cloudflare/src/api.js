@@ -38,7 +38,7 @@ const eventFields = {
   },
   candidate: {
     required:['alias','job_id','source','stage','action','due','owner'],
-    optional:['availability','notice','blocker','commission_ack','commission_plan','market','terms_detail']
+    optional:['name','availability','notice','blocker','commission_ack','commission_plan','market','terms_detail']
   },
   stage: {
     required:['stage','note'],
@@ -46,7 +46,7 @@ const eventFields = {
   },
   activity: {
     required:['event','note'],
-    optional:['terms','writing','references','offer','agreement','nda','commission_ack','commission_plan','alias','source','availability','notice','market','cv_state','cover_state','terms_detail']
+    optional:['name','terms','writing','references','offer','agreement','nda','commission_ack','commission_plan','alias','source','availability','notice','market','cv_state','cover_state','terms_detail']
   },
   summary: {required:['progress','priorities'],optional:['blockers','operation','target_id','note']},
   score: {
@@ -83,9 +83,10 @@ function validate(record) {
   }
   for (const [key,value] of Object.entries(payload)) {
     if ((!required.includes(key) && !optional.includes(key)) || typeof value !== 'string') return 'This record contains an unsupported field or value.';
-    const limit=key==='description'?12000:600;
+    const limit=key==='description'?12000:key==='name'?120:600;
     if(value.length>limit)return (key==='description'?'The full job description':'The '+key.replaceAll('_',' ')+' field')+' must be '+limit.toLocaleString('en-US')+' characters or fewer.';
-    if (privacyProblem(value)) return 'Public records must omit names, phone numbers, email addresses and links. Use candidate codes.';
+    if(key==='name'&&(!value.trim()||/[<>\x00-\x1f\x7f\u202a-\u202e\u2066-\u2069]/.test(value)||kind==='activity'&&payload.event!=='Candidate details corrected'))return 'Enter a valid candidate name in the candidate details form.';
+    if (privacyProblem(value)) return 'Keep phone numbers, email addresses and links out of recruitment fields.';
     if (['due','start_date','target_date'].includes(key) && value && !validDate(value)) return 'Choose a valid date.';
     if (['r1','r2'].includes(key) && value) {
       if (!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) || !validDate(value.slice(0,10))) {

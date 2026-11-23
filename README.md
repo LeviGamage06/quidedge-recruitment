@@ -28,7 +28,7 @@ A GitHub Pages commit deploys the alternate frontend only. Worker and Google App
 
 ## Data and privacy
 
-Recruitment events remain append-only for ordinary operations. SQL triggers reject UPDATE and reject DELETE except for the exact event IDs in a server-validated permanent Trash cleanup job. Candidate corrections add events. Candidate names and application bytes never enter public event records. Keep names and contact details out of all public notes; automated pattern checks do not recognize every kind of personal information.
+Recruitment events remain append-only for ordinary operations. SQL triggers reject UPDATE and reject DELETE except for the exact event IDs in a server-validated permanent Trash cleanup job. Candidate corrections add events. Candidate display names are saved in event records and shown in the workspace with their stable codes, as authorized by the owner. Application document bytes remain in private Drive. Keep contact details and document contents out of notes; automated pattern checks do not recognize every kind of personal information.
 
 Uploads accept PDF, DOC and DOCX up to 5 MB, with structural checks and bounded DOCX expansion. These checks are not antivirus scanning. The private named folder can be renamed when the full name is corrected during an upload; original application files remain preserved. Receipts record prior storage; use Verify current file availability for an up-to-date check. The latest displayed availability remains a statement about the recorded check time.
 

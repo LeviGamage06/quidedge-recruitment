@@ -48,7 +48,7 @@ function cooView() {
     panel('Today’s next actions',due.length?candidateTable(due):empty('No actions are due today or overdue.'))+
     '<div class="split">'+panel('Ready for COO review',review.length?candidateTable(review):empty('No candidates are waiting for an interview, reference or offer review.'))+panel('Commission acknowledgement',terms.length?candidateTable(terms,'commission','Review terms'):empty('All active candidates have accepted commission terms and recorded boundaries.'))+'</div>'+
     panel('CV & cover letter checklist',documents.length?table(['Candidate','CV','Cover letter','Action'],documents.map(c=>[
-      '<strong>'+e(c.alias)+'</strong>',tag(c.documents?.cv||'Missing',c.documents?.cv==='Available'?'good':'warn'),
+      candidateIdentity(c),tag(c.documents?.cv||'Missing',c.documents?.cv==='Available'?'good':'warn'),
       tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn(jobById(c.job_id)?.profile==='client-acquisition-v1'?'Upload documents':'View document setup','documents',c.id,true)
     ])):empty(active.length?'All active candidates have both application documents.':'No active candidates need document review.'))+
     panel('Daily COO handover',summaries.length?'<p>'+e(summaries.at(-1).payload.progress)+'</p><p><strong>Blockers / decisions:</strong> '+e(summaries.at(-1).payload.blockers||'None recorded')+'</p><p><strong>Next priorities:</strong> '+e(summaries.at(-1).payload.priorities)+'</p>':empty('Add today’s progress, blockers and next priorities.'),btn('+ Daily summary','summary','',true))+
@@ -61,11 +61,11 @@ function showDocuments(candidate) {
     show('<h2 id="dialog-title">Document upload is not configured for this position</h2><p>This private upload workflow is currently available for the Client Acquisition &amp; Client Relations position. The owner needs to configure a private destination for this position before documents can be uploaded here.</p><p class="hint">The candidate record remains available. No files or personal information have been sent.</p>'+btn('Close','close'));return;
   }
   const stateMarkup='<div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'))+tag('Cover letter: '+(candidate.documents?.cover||'Missing'))+'</div>';
-  show('<div class="section-top"><h2 id="dialog-title">Application documents · '+e(candidate.alias)+'</h2>'+btn('Close','close')+'</div>'+stateMarkup+
-    '<p class="public-note">The full name and document contents go to Google Drive. They are not saved to the public candidate record or browser draft.</p>'+
+  show('<div class="section-top"><h2 id="dialog-title">Application documents · '+e(candidateCaption(candidate))+'</h2>'+btn('Close','close')+'</div>'+stateMarkup+
+    '<p class="public-note">This folder name and the document contents go to Google Drive. Edit candidate details to change the name displayed in the workspace.</p>'+
     '<p id="drive-connection" class="hint" role="status">Checking Google Drive connection…</p>'+
     '<form id="document-entry" data-candidate="'+e(candidate.id)+'"><div class="form-grid">'+
-    field('private_name','Candidate’s full name (private)',{required:true,max:120,wide:true})+
+    field('private_name','Full name for Drive folder',{required:true,max:120,wide:true,value:candidate.name||''})+
     '<label class="field">CV<input type="file" name="cv" accept=".pdf,.doc,.docx"></label><label class="field">Cover letter<input type="file" name="cover" accept=".pdf,.doc,.docx"></label></div>'+
     '<p class="hint">PDF, DOC or DOCX · up to 5 MB per file. New versions are preserved; identical retries reuse the existing file.</p>'+
     '<button class="btn" type="button" data-action="verify-documents" data-id="'+e(candidate.id)+'">Verify current file availability</button><p id="upload-progress" role="status"></p><p class="form-error" role="alert"></p><div class="form-actions"><button class="btn primary" type="submit" disabled>Upload to Google Drive</button></div></form>');

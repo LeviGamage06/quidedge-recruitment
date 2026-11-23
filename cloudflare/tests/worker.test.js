@@ -412,3 +412,19 @@ test('overlong descriptions report the actual description limit and create no re
  const id=crypto.randomUUID();const response=await saveRecord({id,kind:'job',subject_id:null,event_date:'2026-11-23',payload:{title:'Validation fixture',department:'Growth',location:'Remote',description:'A'.repeat(12001)}});
  assert.equal(response.status,400);assert.match((await response.json()).error,/12,000/);assert.equal(sql('SELECT id FROM recruitment_events WHERE id=?',[id]).length,0);
 });
+
+test('candidate display names persist through API correction while codes and public job isolation remain intact',async()=>{
+ const jid=crypto.randomUUID(),cid=crypto.randomUUID(),name='Synthetic Candidate O’Neil – 李';
+ assert.equal((await saveRecord({id:jid,kind:'job',subject_id:null,event_date:'2026-11-23',payload:{title:'Name feature fixture',department:'Growth',location:'Remote'}})).status,201);
+ const candidate={id:cid,kind:'candidate',subject_id:null,event_date:'2026-11-23',payload:{name,alias:'QA-NAME-FEATURE',job_id:jid,source:'Referral',stage:'Sourced',action:'Review',due:'2026-12-25',owner:'COO'}};
+ assert.equal((await saveRecord(candidate)).status,201);assert.equal((await saveRecord(candidate)).status,200);
+ const correction={id:crypto.randomUUID(),kind:'activity',subject_id:cid,event_date:'2026-11-23',payload:{event:'Candidate details corrected',name:'Synthetic Candidate Updated',alias:'QA-NAME-FEATURE',source:'Referral',availability:'To confirm',notice:'To confirm',note:'Name updated'}};
+ assert.equal((await saveRecord(correction)).status,201);
+ const {project}=await import('../src/model.js');const snapshot=await(await worker.fetch(request('/api/bootstrap'),{DB})).json();const current=project(snapshot.events).candidates.find(c=>c.id===cid);assert.equal(current.name,'Synthetic Candidate Updated');assert.equal(current.alias,'QA-NAME-FEATURE');
+ const publicJob=await worker.fetch(request('/api/public-job?id='+jid),{DB});assert.equal(publicJob.status,200);assert.doesNotMatch(await publicJob.text(),/Synthetic Candidate|QA-NAME-FEATURE/);
+});
+test('candidate names reject overlong text, markup, control characters and contact details',async()=>{
+ for(const name of ['A'.repeat(121),'<img src=x onerror=alert(1)>','Synthetic\nInjected','contact@example.com']){
+  const response=await saveRecord({id:crypto.randomUUID(),kind:'candidate',subject_id:null,event_date:'2026-11-23',payload:{name,alias:'QA-BAD-NAME',job_id:crypto.randomUUID(),source:'Referral',stage:'Sourced',action:'Review',due:'2026-12-25',owner:'COO'}});assert.equal(response.status,400);
+ }
+});

@@ -5,6 +5,7 @@
 - Reset filters restores the default sort as well as search, stage, position, owner and attention.
 - The COO handover reads effective, visible summaries: edited and deleted entries and Trash operations cannot replace the current handover.
 - Active candidates remain in COO queues when their position is moved to Trash. Missing commission boundaries also appear in the terms queue.
+- Table sections inside split layouts occupy the full row so desktop actions and content remain readable.
 - Empty queues explain their state without suggesting another candidate must be added.
 - Closed candidates receive an appropriate record-review action before document or commission suggestions.
 - Save receipts must match the submitted event date and complete payload before the draft is cleared.
@@ -19,7 +20,7 @@
 
 The local build and all 63 automated tests passed. The suite covers create/edit workflows, independent drafts, scheduling, cancellations, overlaps, commission and hiring gates, private document validation, upload recovery, backups, soft deletion, restoration, permanent cleanup and isolated candidate-facing job pages. New regression tests exercise the changes above.
 
-Live inspection confirmed the overview, mobile menu, role descriptions, candidate form, pipeline filters and COO workspace load. Google Drive reported its private destination ready; the maintenance view reported a successful backup and zero pending document confirmations. Live destructive operations, applicant uploads, hiring decisions and outgoing email were not performed. Automated operational checks use synthetic local records and mocked external services.
+All eight live routes loaded at 320, 390, 768, 1024 and 1440 CSS pixels without page-width overflow. Desktop screenshots also identified a compressed COO table; the responsive stylesheet now gives split-layout tables the full row. Live inspection confirmed the mobile menu, role descriptions, candidate form, pipeline filters and COO workspace load. Google Drive reported its private destination ready; the maintenance view reported a successful backup and zero pending document confirmations. Live destructive operations, applicant uploads, hiring decisions and outgoing email were not performed. Automated operational checks use synthetic local records and mocked external services.
 
 ## Access and integration limits
 

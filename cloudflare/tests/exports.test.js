@@ -18,7 +18,7 @@ test('JSON, filtered CSV and SL calendar exports contain the persisted synthetic
   w.URL.createObjectURL=blob=>{blobs.push(blob);return 'blob:https://example.test/'+blobs.length;};w.URL.revokeObjectURL=()=>{};
   const nativeClick=w.HTMLAnchorElement.prototype.click;w.HTMLAnchorElement.prototype.click=function(){if(this.download){downloads.push(this.download);return;}nativeClick.call(this);};
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
-  w.fetch=async(url,options={})=>{if(options.method==='POST'){writes++;throw Error('No mutations expected');}if(String(url).includes('/bootstrap'))return Response.json({events,cursor:events.length});if(String(url).includes('/maintenance'))return Response.json({backup_cursor:0,pending_receipts:0});const u=new URL(url,'https://example.test');return Response.json(events.filter(e=>e.seq>Number(u.searchParams.get('after')||0)));};
+  w.fetch=async(url,options={})=>{if(options.method==='POST'){writes++;throw Error('No mutations expected');}if(String(url).includes('/bootstrap'))return Response.json({events,cursor:events.length});if(String(url).includes('/integrations'))return Response.json({drive_ready:false});if(String(url).includes('/maintenance'))return Response.json({backup_cursor:0,pending_receipts:0});const u=new URL(url,'https://example.test');return Response.json(events.filter(e=>e.seq>Number(u.searchParams.get('after')||0)));};
   w.addEventListener('error',event=>errors.push(event.error));
  }});
  const w=dom.window,d=w.document,tick=()=>new Promise(r=>setTimeout(r,40));
@@ -28,7 +28,7 @@ test('JSON, filtered CSV and SL calendar exports contain the persisted synthetic
   const csv=await blobs[1].text();assert.match(csv,/QA-HIRED/);assert.doesNotMatch(csv,/QA-ACTIVE/);assert.ok(csv.includes('"\'=2+2"'),'spreadsheet formula is escaped');assert.equal(csv.split('\r\n').length,2);
   w.location.hash='interviews';await tick();d.querySelector('[data-action=calendar]').click();const calendar=await blobs[2].text();assert.match(calendar,/DTSTART:20261220T033000Z/);assert.match(calendar,/DTEND:20261220T040000Z/);assert.match(calendar,/QA-ACTIVE/);assert.match(downloads[2],/\.ics$/);
   for(const line of calendar.split('\r\n'))assert.ok(new TextEncoder().encode(line).length<=75);
-  w.location.hash='coo';await tick();const setup=d.querySelector('[data-action=documents]');assert.equal(setup.textContent,'View document setup');setup.click();await tick();assert.match(d.querySelector('dialog').textContent,/not configured for this position/);assert.equal(d.querySelector('dialog input[type=file]'),null);
+  w.location.hash='coo';await tick();const setup=d.querySelector('[data-action=documents]');assert.equal(setup.textContent,'Upload documents');setup.click();await tick();assert.match(d.querySelector('dialog').textContent,/existing private recruitment Drive destination/);assert.equal(d.querySelectorAll('dialog input[type=file]').length,2);assert.equal(d.querySelector('#document-entry [type=submit]').disabled,true);
   assert.equal(writes,0);assert.deepEqual(errors,[]);
  }finally{w.close();}
 });

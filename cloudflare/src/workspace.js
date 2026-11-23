@@ -49,7 +49,7 @@ function cooView() {
     '<div class="split">'+panel('Ready for COO review',review.length?candidateTable(review):empty('No candidates are waiting for an interview, reference or offer review.'))+panel('Commission acknowledgement',terms.length?candidateTable(terms,'commission','Review terms'):empty('All active candidates have accepted commission terms and recorded boundaries.'))+'</div>'+
     panel('CV & cover letter checklist',documents.length?table(['Candidate','CV','Cover letter','Action'],documents.map(c=>[
       candidateIdentity(c),tag(c.documents?.cv||'Missing',c.documents?.cv==='Available'?'good':'warn'),
-      tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn(jobById(c.job_id)?.profile==='client-acquisition-v1'?'Upload documents':'View document setup','documents',c.id,true)
+      tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn('Upload documents','documents',c.id,true)
     ])):empty(active.length?'All active candidates have both application documents.':'No active candidates need document review.'))+
     panel('Daily COO handover',summaries.length?'<p>'+e(summaries.at(-1).payload.progress)+'</p><p><strong>Blockers / decisions:</strong> '+e(summaries.at(-1).payload.blockers||'None recorded')+'</p><p><strong>Next priorities:</strong> '+e(summaries.at(-1).payload.priorities)+'</p>':empty('Add today’s progress, blockers and next priorities.'),btn('+ Daily summary','summary','',true))+
     panel('Storage maintenance','<p id="maintenance-state">Checking recovery and backup status…</p>');
@@ -57,12 +57,10 @@ function cooView() {
 function showDocuments(candidate) {
   if(!candidate)return;
   const job=jobById(candidate.job_id);
-  if(job?.profile!=='client-acquisition-v1'){
-    show('<h2 id="dialog-title">Document upload is not configured for this position</h2><p>This private upload workflow is currently available for the Client Acquisition &amp; Client Relations position. The owner needs to configure a private destination for this position before documents can be uploaded here.</p><p class="hint">The candidate record remains available. No files or personal information have been sent.</p>'+btn('Close','close'));return;
-  }
+  if(!job){show('<h2 id="dialog-title">Position unavailable</h2><p>Restore the candidate’s position before uploading documents.</p>'+btn('Close','close'));return;}
   const stateMarkup='<div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'))+tag('Cover letter: '+(candidate.documents?.cover||'Missing'))+'</div>';
   show('<div class="section-top"><h2 id="dialog-title">Application documents · '+e(candidateCaption(candidate))+'</h2>'+btn('Close','close')+'</div>'+stateMarkup+
-    '<p class="public-note">This folder name and the document contents go to Google Drive. Edit candidate details to change the name displayed in the workspace.</p>'+
+    '<p class="public-note">Uploads use the existing private recruitment Drive destination, shared across hiring positions. Each candidate has a separate named folder.</p><p class="hint">Position: '+e(job.title)+' · '+e(job.location||'Market not specified')+'</p>'+
     '<p id="drive-connection" class="hint" role="status">Checking Google Drive connection…</p>'+
     '<form id="document-entry" data-candidate="'+e(candidate.id)+'"><div class="form-grid">'+
     field('private_name','Full name for Drive folder',{required:true,max:120,wide:true,value:candidate.name||''})+
@@ -75,7 +73,7 @@ function showDocuments(candidate) {
     if(!response.ok)throw new Error('Connection check failed.');
     const status=await response.json(); if(!form.isConnected)return;
     const text=dialog.querySelector('#drive-connection');
-    text.textContent=status.drive_ready?'Private Drive destination verified. A named folder is created on first upload. Corrected names rename only that folder; original files remain preserved.':'Google Drive is not verified. Ask the owner to check authorization and the private destination folder, then reopen this dialog. Candidate records remain available.';
+    text.textContent=status.drive_ready?'Private recruitment Drive destination verified. A named candidate folder is created on first upload. Corrected names rename only that folder; original files remain preserved.':'Google Drive is not verified. Ask the owner to check authorization and the private destination folder, then reopen this dialog. Candidate records remain available.';
     form.querySelector('[type=submit]').disabled=!status.drive_ready;
   }).catch(()=>{if(form.isConnected)dialog.querySelector('#drive-connection').textContent='Could not check Drive. Close and reopen this panel to retry.';});
 }

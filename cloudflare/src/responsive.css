@@ -31,6 +31,12 @@ th:first-child,td:first-child{padding-left:0}th:last-child,td:last-child{padding
 thead th{font-size:.72rem;overflow-wrap:normal}td{font-size:.9rem}td small{font-size:.79rem;line-height:1.5}
 .row-actions{flex-wrap:wrap;gap:8px}.row-actions .btn{min-height:44px;padding:9px 12px;font-size:.8rem}
 .cell-content{display:block;min-width:0}.cell-content>small{display:block}
+.candidate-documents{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--muted);font-size:.76rem;line-height:1.5;margin-top:8px}.candidate-documents span{white-space:nowrap}
+@media(min-width:1101px){
+ .candidate-table{table-layout:fixed}.candidate-table th:nth-child(1){width:22%}.candidate-table th:nth-child(2){width:auto}.candidate-table th:nth-child(3){width:148px}.candidate-table th:nth-child(4){width:17%}.candidate-table th:nth-child(5){width:128px}.candidate-table th:nth-child(6){width:150px}
+ .candidate-table td{vertical-align:top;padding-block:18px;overflow-wrap:break-word}.candidate-table .tag{font-size:.75rem;white-space:nowrap;padding-inline:8px}.candidate-table .row-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.candidate-table .row-actions .btn{width:100%;min-height:44px;padding:9px 10px;white-space:nowrap}
+}
+
 .field{display:block;font-size:.86rem;line-height:1.5;font-weight:650}
 .field>input,.field>select,.field>textarea{display:block;margin-top:6px}
 .required{display:inline;color:#843d16;margin-left:2px}

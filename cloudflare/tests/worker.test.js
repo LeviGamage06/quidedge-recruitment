@@ -428,3 +428,23 @@ test('candidate names reject overlong text, markup, control characters and conta
   const response=await saveRecord({id:crypto.randomUUID(),kind:'candidate',subject_id:null,event_date:'2026-11-23',payload:{name,alias:'QA-BAD-NAME',job_id:crypto.randomUUID(),source:'Referral',stage:'Sourced',action:'Review',due:'2026-12-25',owner:'COO'}});assert.equal(response.status,400);
  }
 });
+
+test('Worldwide and Sri Lanka positions upload both document types through the existing private bridge',async()=>{
+ const original=globalThis.fetch,forwarded=[];
+ const env={DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test_deployment/exec',DRIVE_WEB_APP_SECRET:'test-only-connection-key-with-32-characters'};
+ globalThis.fetch=async(url,options)=>{assert.equal(url,env.DRIVE_WEB_APP_URL);const p=JSON.parse(options.body);forwarded.push(p);return Response.json(p.action==='status'?{ok:true,cv:'Available',cover:'Available'}:{ok:true,document_type:p.document_type});};
+ try{
+  for(const market of ['Worldwide','Sri Lanka']){
+   const jobId=id(),cid=id();assert.equal((await saveRecord({id:jobId,kind:'job',subject_id:null,event_date:'2026-11-23',payload:{title:'Synthetic Partnerships Manager',department:'Growth',location:market}})).status,201);
+   assert.equal((await saveRecord({id:cid,kind:'candidate',subject_id:null,event_date:'2026-11-23',payload:{name:'Synthetic Applicant',alias:'QA-'+cid.slice(0,8),job_id:jobId,source:'Referral',stage:'Sourced',action:'Review',owner:'COO',due:'2026-11-24'}})).status,201);
+   for(const document_type of ['cv','cover']){
+    const input={id:id(),candidate_id:cid,name:'Synthetic Private Folder',document_type,extension:'pdf',data:btoa(validPdf)};
+    const upload=()=>worker.fetch(request('/api/documents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)}),env);
+    assert.equal((await upload()).status,201);const call=forwarded.at(-1);assert.equal(call.candidate_id,cid);assert.equal(call.document_type,document_type);assert.match(call.alias,/^QA-/);assert.equal((await upload()).status,200);
+   }
+   const status=await worker.fetch(request('/api/document-status?candidate_id='+cid),env);assert.equal(status.status,200);assert.equal((await status.json()).cv,'Available');
+   const history=sql('SELECT payload FROM recruitment_events WHERE subject_id=?',[cid]);assert.equal(history.length,2);assert.doesNotMatch(JSON.stringify(history),/Synthetic Private Folder|test-only-connection-key|JVBERi0/);
+  }
+  assert.equal(forwarded.filter(p=>!p.action).length,4,'retries do not resend files');
+ }finally{globalThis.fetch=original;}
+});

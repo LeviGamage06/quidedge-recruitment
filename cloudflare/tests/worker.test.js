@@ -61,6 +61,14 @@ test('frontend assets use the independent same-origin API', async () => {
   assert.match(body,/eventsUrl: '\/api\/events'/);
   assert.doesNotMatch(readFileSync(new URL('../worker.js',import.meta.url),'utf8'),/chatgpt\.site/);
 });
+test('staff pages reject framing and restrict script, connection and browser permissions',async()=>{
+ const response=await worker.fetch(request('/'),{});
+ assert.equal(response.headers.get('X-Frame-Options'),'DENY');
+ assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');
+ assert.match(response.headers.get('Content-Security-Policy'),/script-src 'self';/);
+ assert.match(response.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/);
+ assert.match(response.headers.get('Permissions-Policy'),/microphone=\(\)/);
+});
 test('API preflight allows the existing GitHub frontend',async()=>{
   const response=await worker.fetch(request('/api/events',{method:'OPTIONS',headers:{Origin:origin}}),{});
   assert.equal(response.status,204);
@@ -332,7 +340,8 @@ test('interview cancellation frees the slot and restore cannot introduce an over
  assert.equal((await control(original.id,'delete')).status,201);
 });
 test('meeting settings validate Zoom and SL time, reject stale writes, cancel/reschedule and send once',async()=>{
- const cid='baaaaaaa-1111-4111-8111-111111111111',jid=defaultRoleRecord.id;
+ const cid='baaaaaaa-1111-4111-8111-111111111111',jid='baaaaaaa-1111-4111-8111-111111111110';
+ sql("INSERT INTO recruitment_events(id,kind,event_date,payload) VALUES (?,'job','2026-11-08',?)",[jid,JSON.stringify({title:'Strategic Partnerships Manager',department:'Growth',location:'Remote',status:'Open'})]);
  const future=new Date(Date.now()+86400000).toISOString().slice(0,16),reminder=new Date(Date.now()+3600000).toISOString().slice(0,16);
  sql("INSERT INTO recruitment_events(id,kind,event_date,payload) VALUES (?,'candidate','2026-11-08',?)",[cid,JSON.stringify({alias:'REMINDER-TEST',job_id:jid,stage:'R1 Scheduled',r1:future})]);
  const save=p=>worker.fetch(request('/api/interviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({candidate_id:cid,round:'R1',slot:future,zoom:'https://zoom.us/j/123456789',enabled:true,remind_at:reminder,version:'',...p})}),{DB});
@@ -345,7 +354,9 @@ test('meeting settings validate Zoom and SL time, reject stale writes, cancel/re
  assert.equal((await save({remind_at:sendAt})).status,409);
  assert.equal((await save({remind_at:sendAt,version:m.version})).status,200);
  const env={DB,DRIVE_WEB_APP_URL:'https://script.google.com/macros/s/test/exec',DRIVE_WEB_APP_SECRET:'test-only-secret-with-at-least-32-characters'};
- const originalFetch=globalThis.fetch;let mails=0;globalThis.fetch=async(url,o)=>{const p=JSON.parse(o.body);if(p.action==='health')return Response.json({ok:true,email_ready:true});assert.equal(p.action,'interview-email');mails++;return Response.json({ok:true,sent:true});};
+ const {project}=await import('../src/model.js');
+ const expectedRole=project(sql('SELECT * FROM recruitment_events ORDER BY seq').map(e=>({...e,payload:JSON.parse(e.payload)}))).jobs.find(j=>j.id===jid).title;
+ const originalFetch=globalThis.fetch;let mails=0;globalThis.fetch=async(url,o)=>{const p=JSON.parse(o.body);if(p.action==='health')return Response.json({ok:true,email_ready:true});assert.equal(p.action,'interview-email');assert.equal(p.role,expectedRole);mails++;return Response.json({ok:true,sent:true});};
  async function cron(){const work=[];await worker.scheduled({scheduledTime:Date.UTC(2026,10,8,0,1)},env,{waitUntil:p=>work.push(p)});await Promise.all(work);}
  try{
   const key='interview:'+cid,load=()=>JSON.parse(sql('SELECT value FROM maintenance_state WHERE key=?',[key])[0].value),put=v=>sql('UPDATE maintenance_state SET value=? WHERE key=?',[JSON.stringify(v),key]);
@@ -353,6 +364,17 @@ test('meeting settings validate Zoom and SL time, reject stale writes, cancel/re
   put({...m,status:'pending',slot:'2026-01-01T01:00',remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'cancelled');assert.equal(mails,1);
   sql("INSERT INTO recruitment_events(id,kind,subject_id,event_date,payload) VALUES (?,'stage',?,'2026-11-08',?)",['baaaaaaa-1111-4111-8111-111111111112',cid,JSON.stringify({stage:'Replied'})]);put({...m,remind_at:'2026-01-01T00:00'});await cron();assert.equal(load().status,'cancelled');assert.equal(mails,1);
  }finally{globalThis.fetch=originalFetch;}
+});
+test('trashed candidates cannot receive new reminders or document status writes',async()=>{
+ const cid='deadbeef-1111-4111-8111-111111111111',tid='deadbeef-1111-4111-8111-111111111112';
+ const slot=new Date(Date.now()+86400000).toISOString().slice(0,16);
+ sql("INSERT INTO recruitment_events(id,kind,event_date,payload) VALUES (?,'candidate','2026-11-08',?)",[cid,JSON.stringify({alias:'TRASH-BOOKING',job_id:defaultRoleRecord.id,stage:'R1 Scheduled',r1:slot})]);
+ sql("INSERT INTO recruitment_events(id,kind,event_date,payload) VALUES (?,'summary','2026-11-08',?)",[tid,JSON.stringify({operation:'delete',target_id:cid,note:'Removed'})]);
+ const call=(path,payload)=>worker.fetch(request(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),{DB});
+ const meeting=await call('/api/interviews',{candidate_id:cid,round:'R1',slot,zoom:'',enabled:false,remind_at:'',version:''});
+ assert.equal(meeting.status,409);
+ assert.equal((await call('/api/document-status',{candidate_id:cid,id:crypto.randomUUID()})).status,404);
+ assert.equal(sql('SELECT * FROM maintenance_state WHERE key=?',['interview:'+cid]).length,0);
 });
 test('permanent Trash cleanup removes database, reminders, receipts and managed copies with safe resumable failure',async()=>{
  const cid='de1e7e00-1111-4111-8111-111111111111',sid='de1e7e00-1111-4111-8111-111111111112',tid='de1e7e00-1111-4111-8111-111111111113',note='de1e7e00-1111-4111-8111-111111111114',nt='de1e7e00-1111-4111-8111-111111111115',rid='de1e7e00-1111-4111-8111-111111111116';

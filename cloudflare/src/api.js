@@ -310,7 +310,10 @@ export default {
     const asset = ASSETS[path];
     const cache = 'no-cache';
     return new Response(request.method === 'HEAD' ? null : asset.body,{
-      headers:{'Content-Type':asset.type,'Cache-Control':cache,'X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex'}
+      headers:{'Content-Type':asset.type,'Cache-Control':cache,'X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex',
+        'X-Frame-Options':'DENY','Referrer-Policy':'no-referrer',
+        'Permissions-Policy':'camera=(), microphone=(), geolocation=()',
+        'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"}
     });
   }
 };

@@ -10,6 +10,11 @@ test('bad responses cannot confirm saves or erase the caller draft',async()=>{
  try {for(const body of [{},{...event,id:'d3057f15-9b02-43de-92d0-0cb296ecf642'}]){globalThis.fetch=async()=>Response.json(body);await assert.rejects(()=>append(event),/not confirmed/);}}
  finally{globalThis.fetch=original;}
 });
+test('a receipt with changed payload or event date cannot clear the pending save',async()=>{
+ const original=globalThis.fetch;
+ try{for(const body of [{...event,event_date:'2026-11-06'},{...event,payload:{title:'Wrong role'}}]){globalThis.fetch=async()=>Response.json(body);await assert.rejects(()=>append(event),/not confirmed/);}}
+ finally{globalThis.fetch=original;}
+});
 test('event loading rejects duplicate, descending and malformed records',async()=>{
  const original=globalThis.fetch;
  try {for(const body of [[event,event],[{...event,seq:2},event],[{...event,payload:null}]]){globalThis.fetch=async()=>Response.json(body);await assert.rejects(()=>loadEvents(),/cursor/);}}

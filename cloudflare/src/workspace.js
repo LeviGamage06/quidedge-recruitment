@@ -34,25 +34,23 @@ async function activateRole() {
 }
 function cooView() {
   queueMicrotask(()=>loadMaintenanceStatus());
-  const relatedJobs=state.jobs;
-  const ids=new Set(relatedJobs.map(j=>j.id));
-  const candidates=state.candidates.filter(c=>ids.has(c.job_id));
+  const candidates=state.candidates;
   const active=candidates.filter(c=>!closed.includes(c.stage));
   const due=active.filter(c=>c.due && c.due<=dateSL()).sort((a,b)=>a.due.localeCompare(b.due));
   const documents=active.filter(c=>c.documents?.cv!=='Available'||c.documents?.cover!=='Available');
-  const terms=active.filter(c=>c.commission_ack!=='Accepted');
+  const terms=active.filter(c=>c.commission_ack!=='Accepted'||!c.terms_detail?.trim());
   const review=active.filter(c=>['R1 Review','R2 Review','Reference Check','Offer / Agreement'].includes(c.stage));
   const stats=[['Active candidates',active.length],['Due / overdue',due.length],['Documents incomplete',documents.length],['Terms to confirm',terms.length]];
-  const summaries=events.filter(x=>x.kind==='summary'&&x.event_date===dateSL());
+  const summaries=visibleEvents(events).filter(x=>x.kind==='summary'&&x.event_date===dateSL());
   return heading('COO recruitment workspace','All hiring positions · Daily priorities and review queue',
     '<div class="toolbar">'+btn('Role & commission terms','role-view')+btn('+ Add candidate','candidate','',true)+'</div>')+
     '<div class="coo-stats">'+stats.map(([title,total])=>'<div class="panel"><span>'+e(title)+'</span><strong>'+total+'</strong></div>').join('')+'</div>'+
-    panel('Today’s next actions',candidateTable(due))+
-    '<div class="split">'+panel('Ready for COO review',candidateTable(review))+panel('Commission acknowledgement',candidateTable(terms,'commission','Review terms'))+'</div>'+
+    panel('Today’s next actions',due.length?candidateTable(due):empty('No actions are due today or overdue.'))+
+    '<div class="split">'+panel('Ready for COO review',review.length?candidateTable(review):empty('No candidates are waiting for an interview, reference or offer review.'))+panel('Commission acknowledgement',terms.length?candidateTable(terms,'commission','Review terms'):empty('All active candidates have accepted commission terms and recorded boundaries.'))+'</div>'+
     panel('CV & cover letter checklist',documents.length?table(['Candidate','CV','Cover letter','Action'],documents.map(c=>[
       '<strong>'+e(c.alias)+'</strong>',tag(c.documents?.cv||'Missing',c.documents?.cv==='Available'?'good':'warn'),
       tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn('Upload documents','documents',c.id,true)
-    ])):empty(active.length?'All active candidates have both application documents.':'No candidates added yet. Upload status will appear here.'))+
+    ])):empty(active.length?'All active candidates have both application documents.':'No active candidates need document review.'))+
     panel('Daily COO handover',summaries.length?'<p>'+e(summaries.at(-1).payload.progress)+'</p><p><strong>Blockers / decisions:</strong> '+e(summaries.at(-1).payload.blockers||'None recorded')+'</p><p><strong>Next priorities:</strong> '+e(summaries.at(-1).payload.priorities)+'</p>':empty('Add today’s progress, blockers and next priorities.'),btn('+ Daily summary','summary','',true))+
     panel('Storage maintenance','<p id="maintenance-state">Checking recovery and backup status…</p>');
 }
@@ -109,6 +107,6 @@ async function verifyDocuments(id,control){
 
 async function loadMaintenanceStatus(){
  const target=document.querySelector('#maintenance-state');if(!target)return;
- try{const response=await fetch(apiBase+'/maintenance',{cache:'no-store'});const status=await response.json();if(!response.ok)throw Error();if(target.isConnected)target.textContent='Last successful maintenance: '+(status.last_success?new Date(status.last_success).toLocaleString('en-LK',{timeZone:'Asia/Colombo'})+' SL':'Not yet run')+' · Private event backup through record '+status.backup_cursor+' · Pending document confirmations: '+status.pending_receipts+'. File availability is verified separately.';}catch{if(target.isConnected)target.textContent='Maintenance status unavailable. Ask the owner to check the scheduled Worker.';}
+ try{const response=await fetch(apiBase+'/maintenance',{cache:'no-store',signal:AbortSignal.timeout(20000)});const status=await response.json();if(!response.ok)throw Error();if(target.isConnected)target.textContent='Last successful maintenance: '+(status.last_success?new Date(status.last_success).toLocaleString('en-LK',{timeZone:'Asia/Colombo'})+' SL':'Not yet run')+' · Private event backup through record '+status.backup_cursor+' · Pending document confirmations: '+status.pending_receipts+'. File availability is verified separately.';}catch{if(target.isConnected)target.textContent='Maintenance status unavailable. Ask the owner to check the scheduled Worker.';}
 }
 

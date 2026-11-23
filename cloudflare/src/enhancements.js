@@ -16,13 +16,14 @@
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const inline=s=>escape(s).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
   function richText(text){
-    let html='',paragraph=[],list='',items=[];
+    let html='',paragraph=[],list='',items=[],listStart=1;
     const flushParagraph=()=>{if(paragraph.length){html+='<p>'+paragraph.map(inline).join('<br>')+'</p>';paragraph=[];}};
-    const flushList=()=>{if(list){html+='<'+list+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+list+'>';list='';items=[];}};
+    const flushList=()=>{if(list){html+='<'+list+(list==='ol'?' start="'+listStart+'"':'')+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+list+'>';list='';items=[];}};
     for(const line of text.split(/\r?\n/)){
-      const heading=line.match(/^#{1,6}\s+(.+)$/),bullet=line.match(/^\s*[-*]\s+(.+)$/),ordered=line.match(/^\s*\d+[.)]\s+(.+)$/);
+      const heading=line.match(/^#{1,6}\s+(.+)$/),bullet=line.match(/^\s*[-*•]\s+(.+)$/),ordered=line.match(/^\s*(\d+)[.)]\s+(.+)$/);
       if(heading){flushParagraph();flushList();const level=line.startsWith('###')?'h4':'h3';html+='<'+level+'>'+inline(heading[1])+'</'+level+'>';}
-      else if(bullet||ordered){flushParagraph();const type=bullet?'ul':'ol';if(list&&list!==type)flushList();list=type;items.push((bullet||ordered)[1]);}
+      else if(bullet||ordered){flushParagraph();const type=bullet?'ul':'ol';if(list&&list!==type)flushList();if(!list)listStart=ordered?Math.min(Number(ordered[1]),9999):1;list=type;items.push(bullet?bullet[1]:ordered[2]);}
+      else if(/^\s*---+\s*$/.test(line)){flushParagraph();flushList();html+='<hr>';}
       else if(!line.trim()){flushParagraph();flushList();}
       else{flushList();paragraph.push(line);}
     }
@@ -45,7 +46,7 @@
     }
     for(const item of root.querySelectorAll('.role-text:not([data-copy-ready])')){
       item.dataset.copyReady='true';const text=item.textContent;
-      if(/^#{1,6}\s|\*\*[^*]+\*\*|^\s*[-*]\s|^\s*\d+[.)]\s/m.test(text)){item.innerHTML=richText(text);item.classList.add('rich-copy');item.style.whiteSpace='normal';}
+      if(/^#{1,6}\s|\*\*[^*]+\*\*|^\s*[-*•]\s|^\s*\d+[.)]\s/m.test(text)){item.innerHTML=richText(text);item.classList.add('rich-copy');item.style.whiteSpace='normal';}
     }
     for(const detail of root.querySelectorAll('.role-position details:not([data-role-ready])')){
       detail.dataset.roleReady='true';

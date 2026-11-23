@@ -16,8 +16,8 @@ async function bridgeRequest(env,body,timeout=20000){
  return result;
 }
 async function candidateRecord(db,id){
- const rows=await db.prepare('SELECT * FROM recruitment_events WHERE id=? OR subject_id=? ORDER BY seq').bind(id,id).all();
- return project(rows.results.map(toEvent)).candidates[0];
+ const rows=await db.prepare("SELECT * FROM recruitment_events WHERE id=? OR subject_id=? OR kind='summary' AND json_extract(payload,'$.operation') IS NOT NULL ORDER BY seq").bind(id,id).all();
+ return project(rows.results.map(toEvent)).candidates.find(candidate=>candidate.id===id&&!candidate.deleted);
 }
 async function finalizeDocument(db,job){
  await db.prepare('INSERT INTO recruitment_events (id,kind,subject_id,event_date,payload) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING').bind(job.id,'activity',job.candidate_id,job.event_date,job.payload).run();

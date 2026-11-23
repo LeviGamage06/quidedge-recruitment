@@ -563,7 +563,8 @@ async function refresh() {
   }
 }
 function resetFilters() {
-  stageFilter = '';jobFilter = '';ownerFilter = '';attentionFilter = '';search = '';currentPage = 1;
+  clearTimeout(searchTimer);
+  stageFilter = '';jobFilter = '';ownerFilter = '';attentionFilter = '';search = '';sort = 'recent';currentPage = 1;
 }
 app.addEventListener('input',event => {
   if (event.target.id !== 'search') return;
@@ -849,9 +850,9 @@ function historyTitle(event,candidate){
  return eventLabel(event);
 }
 function nextCandidateAction(candidate){
+ if(closed.includes(candidate.stage))return {label:'Review candidate details',action:'correction',description:candidate.stage==='Hired'?'Hiring completed. Review the record if any details need updating.':'This hiring process is closed. Review details or reopen it through the stage controls.'};
  if(state.jobs.find(job=>job.id===candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
  if(candidate.commission_ack!=='Accepted'||!candidate.terms_detail)return {label:'Review commission terms',action:'commission',description:'Record the candidate’s acknowledgement and agreed boundaries before progressing.'};
- if(closed.includes(candidate.stage))return {label:'Review candidate details',action:'correction',description:candidate.stage==='Hired'?'Hiring completed. Review the record if any details need updating.':'This hiring process is closed. Review details or reopen it through the stage controls.'};
  if(['R1 Review','R2 Review'].includes(candidate.stage))return {label:'Complete interview scorecard',action:'score',description:'Record observed evidence before deciding the next stage.'};
  if(candidate.stage==='Offer / Agreement')return {label:'Review hiring checklist',action:'checklist',description:'Confirm all hiring requirements before marking the candidate hired.'};
  if(['R1 Scheduled','R2 Scheduled'].includes(candidate.stage))return {label:'Review interview booking',action:'stage',description:'Confirm the interview time and next action.'};
@@ -878,7 +879,7 @@ dialog.addEventListener('submit',async event=>{
  if(event.target.id!=='interview-entry')return;
  event.preventDefault();if(saving)return;const form=event.target;const button=form.querySelector('[type=submit]');saving=true;button.disabled=true;button.textContent='Saving…';
  try{
- const response=await fetch(apiBase+'/interviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({candidate_id:form.dataset.id,round:form.dataset.round,slot:form.dataset.slot,version:form.dataset.version,zoom:form.elements.zoom.value.trim(),enabled:form.elements.enabled.value==='true',remind_at:form.elements.remind_at.value})});
+ const response=await fetch(apiBase+'/interviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({candidate_id:form.dataset.id,round:form.dataset.round,slot:form.dataset.slot,version:form.dataset.version,zoom:form.elements.zoom.value.trim(),enabled:form.elements.enabled.value==='true',remind_at:form.elements.remind_at.value}),signal:AbortSignal.timeout(20000)});
  const result=await response.json();if(!response.ok)throw Error(result.error||'Could not save meeting details.');dialog.close();flash('Zoom link and reminder settings saved.');
  }catch(err){form.querySelector('.form-error').textContent=err.message;}finally{saving=false;button.disabled=false;button.textContent='Save meeting details';}
 });

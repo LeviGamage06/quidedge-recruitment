@@ -1,10 +1,10 @@
 name: Deploy QuidEdge Cloudflare Worker
 
-# Deploy on updates to this workflow, or via the manual Run workflow action.
+# Deploy tested source changes and generated assets, or run manually.
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/deploy-cloudflare-worker.yml']
+    paths: ['cloudflare/**', 'backend.js', 'index.html', '.github/workflows/deploy-cloudflare-worker.yml']
   workflow_dispatch:
 
 permissions:

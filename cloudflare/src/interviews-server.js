@@ -1,7 +1,7 @@
 // Meeting settings are operational metadata, outside the append-only public audit feed.
 const reminderRecipient='prasad.quidedge@gmail.com';
 function bookingSeq(c){return c.booking_seq||0;}
-function meetingSlot(c){const round=c?.stage==='R1 Scheduled'?'R1':c?.stage==='R2 Scheduled'?'R2':'';return round&&c[round.toLowerCase()]?{round,slot:c[round.toLowerCase()]}:null;}
+function meetingSlot(c){if(!c||c.deleted)return null;const round=c.stage==='R1 Scheduled'?'R1':c.stage==='R2 Scheduled'?'R2':'';return round&&c[round.toLowerCase()]?{round,slot:c[round.toLowerCase()]}:null;}
 function zoomProblem(value){try{const u=new URL(value);return u.protocol!=='https:'||u.username||u.password||!(u.hostname==='zoom.us'||u.hostname.endsWith('.zoom.us'))||!/^\/(j|my|s)\//.test(u.pathname)||value.length>1500;}catch{return true;}}
 async function meetingCandidates(db){const rows=await db.prepare('SELECT * FROM recruitment_events ORDER BY seq').all();const history=rows.results.map(toEvent);return project(history).candidates.map(c=>({...c,booking_seq:interviewRevision(history,c)}));}
 async function interviewApi(request,env,url){
@@ -41,7 +41,8 @@ async function dispatchInterviewReminders(env){
   const claimed={...m,status:'sending'};
   const claim=await db.prepare('UPDATE maintenance_state SET value=? WHERE key=? AND value=? RETURNING key').bind(JSON.stringify(claimed),row.key,row.value).first();if(!claim)continue;
   try{
-   const result=await bridgeRequest(env,{action:'interview-email',candidate_id:c.id,id:m.version,alias:c.alias,role:'Client Acquisition & Client Relations Specialist',round:m.round,slot:m.slot,zoom:m.zoom},45000);
+   const role=(await jobHistory(db,c.job_id))?.title||'Recruitment position';
+   const result=await bridgeRequest(env,{action:'interview-email',candidate_id:c.id,id:m.version,alias:c.alias,role,round:m.round,slot:m.slot,zoom:m.zoom},45000);
    status=result.sent===true?'sent':'needs-review';
   }catch{status='needs-review';}
   await db.prepare('UPDATE maintenance_state SET value=? WHERE key=? AND value=?').bind(JSON.stringify({...claimed,status,processed_at:new Date().toISOString()}),row.key,JSON.stringify(claimed)).run();

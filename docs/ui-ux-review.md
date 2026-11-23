@@ -1,56 +1,32 @@
-# Recruitment UI/UX review — 23 November 2026
+# Recruitment review — 23 November 2026
 
-The live recruitment workspace now displays each saved position's own requirements and full job description. Candidate sharing opens a separate careers origin, without staff navigation or candidate records.
+## Changes in this release
 
-## Reviewed journeys
-
-1. Overview: metrics, priorities, positions and direct links to the correct JD.
-2. COO workspace: priorities and review queues across all saved positions.
-3. Hiring roles: expandable details, long descriptions, edit controls and candidate sharing.
-4. Pipeline: search, filters, candidate table and record actions.
-5. Daily activity: entry controls and activity history.
-6. Interviews: calendar, scheduling form and action controls.
-7. Interview guide: long-form reading and navigation.
-8. Trash: empty state, recovery controls and existing destructive-action wording.
-
-Candidate records, new-candidate forms, new-position forms and interview scheduling dialogs were also inspected. Live checks did not create applicants, alter hiring decisions, send email or delete records.
-
-## Findings and changes
-
-| Priority | Finding | Result |
-| --- | --- | --- |
-| High | New positions did not display their own JD | Every role has its own expandable requirements and description |
-| High | Sharing the workspace exposed the staff interface | Dedicated candidate page on a separate Worker/origin |
-| High | Small-screen navigation and tables were difficult to use | Accessible menu; labelled table cards; no page-width overflow at tested sizes |
-| Medium | Tablet tables broke stage names and headings into fragments | Tables become readable label/value records through 1100px |
-| Medium | Long forms and modal actions were difficult to reach | Sticky heading/actions, viewport-bounded dialogs, larger inputs and touch targets |
-| Medium | Invalid fields inside collapsed groups were hard to find | Groups reveal invalid fields with associated inline errors |
-| Medium | Dense text, JD formatting and focus cues hindered reading | Safer Markdown formatting, stronger contrast, visible focus, reduced-motion and print styles |
-| Medium | COO position scope remained tied to the original role | Workspace includes all saved hiring positions |
-
-## Candidate sharing
-
-In Hiring role, expand the position, select **Share JD with candidate**, then **Copy link**. Preview checks the same candidate-facing page.
-
-The candidate page exposes only the role title, department, location, engagement, headcount, requirements and public-safe JD. It has no dashboard links, client scripts, forms, CV access or staff API proxy. Only Open positions are published; paused, closed and deleted roles return an unavailable page. Edits to the saved public-safe JD appear on refresh. Never put confidential information in either public JD field.
-
-The careers Worker uses the `RECRUITMENT` service binding to request the narrowly projected `/api/public-job` endpoint. It does not bind the recruitment database. Redirects are handled manually and rejected rather than followed. CSP blocks scripts, connections, forms and framing. Responses are not cached.
-
-**Access boundary:** the original recruitment workspace remains public under its existing configuration. The shared careers link does not grant access or link to it, but it does not add authentication to an independently known recruitment URL. Complete staff-only protection would require authentication, which was outside this release and was previously declined.
+- Reset filters restores the default sort as well as search, stage, position, owner and attention.
+- The COO handover reads effective, visible summaries: edited and deleted entries and Trash operations cannot replace the current handover.
+- Active candidates remain in COO queues when their position is moved to Trash. Missing commission boundaries also appear in the terms queue.
+- Empty queues explain their state without suggesting another candidate must be added.
+- Closed candidates receive an appropriate record-review action before document or commission suggestions.
+- Save receipts must match the submitted event date and complete payload before the draft is cleared.
+- Trashed candidates cannot receive new interview settings or document-status writes. Existing reminder revision checks remain in place.
+- Reminder emails use the saved position title instead of a fixed Client Acquisition title.
+- Meeting saves and maintenance reads have timeouts.
+- Job descriptions retain numbered-list starting values, recognise bullet characters and render separators.
+- Worker responses deny framing, suppress referrers, restrict scripts/connections and disable unneeded camera, microphone and location permissions.
+- Production deployment now runs on source and generated-asset changes, with build, tests, snapshot consistency and live asset comparisons.
 
 ## Verification
 
-- Build and 58 automated tests passed, including existing hiring, storage, document, interview and recovery tests.
-- Added tests cover accessible navigation, enhancement idempotency, unsafe JD markup, public field allowlisting, closed/deleted roles, HTTP methods, redirect rejection and absent staff routes.
-- All eight live routes were checked at 320, 390, 768, 1024 and 1440 CSS pixels: 40 route/width combinations, without document-width overflow.
-- The live candidate JD loaded at all five widths without overflow, dashboard links or scripts. The careers `/api/events` route displayed Page unavailable.
-- Mobile menu open/close/Escape, the copy confirmation, and empty-job-form validation were checked live. Drafts were discarded.
-- Before/after screenshots were captured during this session. Candidate information screenshots were kept out of this public repository.
+The local build and all 63 automated tests passed. The suite covers create/edit workflows, independent drafts, scheduling, cancellations, overlaps, commission and hiring gates, private document validation, upload recovery, backups, soft deletion, restoration, permanent cleanup and isolated candidate-facing job pages. New regression tests exercise the changes above.
 
-These are Chromium viewport checks, not physical-device, Safari, Firefox or screen-reader certification. No release can guarantee every device or every future content combination.
+Live inspection confirmed the overview, mobile menu, role descriptions, candidate form, pipeline filters and COO workspace load. Google Drive reported its private destination ready; the maintenance view reported a successful backup and zero pending document confirmations. Live destructive operations, applicant uploads, hiring decisions and outgoing email were not performed. Automated operational checks use synthetic local records and mocked external services.
 
-## Deployment notes
+## Access and integration limits
 
-Production recruitment was updated by appending the reviewed presentation/public-job changes to the existing live Worker, preserving its additional live CV/name features. The careers Worker was deployed separately with the approved service binding. The repository contains the modular UI changes, careers source/configuration and generated assets.
+The staff workspace retains its existing public access configuration. Candidate codes and public-safe notes are required. Security headers and origin restrictions do not provide staff authentication; knowing the staff URL still permits access under the existing product design.
 
-The deployed recruitment Worker already contained features absent from the repository baseline. Reconcile those pre-existing live changes before replacing production wholesale with a new source build. Do not overwrite the deployed Worker blindly. Candidate sharing requires both the recruitment public-job handler and the careers service binding.
+The private document-upload workflow currently supports positions with the Client Acquisition profile. Other positions do not gain document-upload support in this release. CV semantic matching is not present in this repository baseline and was not added or certified by this review.
+
+Candidate JD sharing uses the separate careers origin and an allowlisted public projection. Closed, paused and deleted roles remain unavailable to applicants.
+
+A successful test run establishes the tested behaviour, not a guarantee of zero defects. Physical devices, Safari, Firefox, screen readers and real external email delivery require separate validation.

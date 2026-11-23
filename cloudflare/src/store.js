@@ -48,7 +48,8 @@ export async function append(event) {
   const saved=await request('',{
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(event)
   });
-  if(!validEvent(saved)||saved.id!==event.id||saved.kind!==event.kind||saved.subject_id!==event.subject_id) {
+  const fields = value => JSON.stringify(Object.entries(value||{}).sort(([a],[b])=>a.localeCompare(b)));
+  if(!validEvent(saved)||saved.id!==event.id||saved.kind!==event.kind||saved.subject_id!==event.subject_id||saved.event_date!==event.event_date||fields(saved.payload)!==fields(event.payload)) {
     throw new Error('The saved record was not confirmed. Your draft is kept; retry the same save.');
   }
   return saved;

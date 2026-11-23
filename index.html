@@ -551,7 +551,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     } };
   }
 
-  // node_modules/fflate/esm/browser.js
+  // ../../../../new-chat/quidedge-recruitment/cloudflare/node_modules/fflate/esm/browser.js
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -1155,7 +1155,8 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event)
     });
-    if (!validEvent(saved) || saved.id !== event.id || saved.kind !== event.kind || saved.subject_id !== event.subject_id) {
+    const fields = (value) => JSON.stringify(Object.entries(value || {}).sort(([a], [b]) => a.localeCompare(b)));
+    if (!validEvent(saved) || saved.id !== event.id || saved.kind !== event.kind || saved.subject_id !== event.subject_id || saved.event_date !== event.event_date || fields(saved.payload) !== fields(event.payload)) {
       throw new Error("The saved record was not confirmed. Your draft is kept; retry the same save.");
     }
     return saved;
@@ -1737,11 +1738,13 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     }
   }
   function resetFilters() {
+    clearTimeout(searchTimer);
     stageFilter = "";
     jobFilter = "";
     ownerFilter = "";
     attentionFilter = "";
     search = "";
+    sort = "recent";
     currentPage = 1;
   }
   app.addEventListener("input", (event) => {
@@ -2168,9 +2171,9 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     return eventLabel(event);
   }
   function nextCandidateAction(candidate) {
+    if (closed.includes(candidate.stage)) return { label: "Review candidate details", action: "correction", description: candidate.stage === "Hired" ? "Hiring completed. Review the record if any details need updating." : "This hiring process is closed. Review details or reopen it through the stage controls." };
     if (state.jobs.find((job) => job.id === candidate.job_id)?.profile === "client-acquisition-v1" && ["cv", "cover"].some((type) => candidate.documents?.[type] !== "Available")) return { label: "Upload or verify documents", action: "documents", description: "Complete the application file record. The hiring checklist and document availability are tracked separately." };
     if (candidate.commission_ack !== "Accepted" || !candidate.terms_detail) return { label: "Review commission terms", action: "commission", description: "Record the candidate\u2019s acknowledgement and agreed boundaries before progressing." };
-    if (closed.includes(candidate.stage)) return { label: "Review candidate details", action: "correction", description: candidate.stage === "Hired" ? "Hiring completed. Review the record if any details need updating." : "This hiring process is closed. Review details or reopen it through the stage controls." };
     if (["R1 Review", "R2 Review"].includes(candidate.stage)) return { label: "Complete interview scorecard", action: "score", description: "Record observed evidence before deciding the next stage." };
     if (candidate.stage === "Offer / Agreement") return { label: "Review hiring checklist", action: "checklist", description: "Confirm all hiring requirements before marking the candidate hired." };
     if (["R1 Scheduled", "R2 Scheduled"].includes(candidate.stage)) return { label: "Review interview booking", action: "stage", description: "Confirm the interview time and next action." };
@@ -2208,7 +2211,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     button.disabled = true;
     button.textContent = "Saving\u2026";
     try {
-      const response = await fetch(apiBase + "/interviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate_id: form.dataset.id, round: form.dataset.round, slot: form.dataset.slot, version: form.dataset.version, zoom: form.elements.zoom.value.trim(), enabled: form.elements.enabled.value === "true", remind_at: form.elements.remind_at.value }) });
+      const response = await fetch(apiBase + "/interviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate_id: form.dataset.id, round: form.dataset.round, slot: form.dataset.slot, version: form.dataset.version, zoom: form.elements.zoom.value.trim(), enabled: form.elements.enabled.value === "true", remind_at: form.elements.remind_at.value }), signal: AbortSignal.timeout(2e4) });
       const result = await response.json();
       if (!response.ok) throw Error(result.error || "Could not save meeting details.");
       dialog.close();
@@ -2353,26 +2356,24 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   }
   function cooView() {
     queueMicrotask(() => loadMaintenanceStatus());
-    const relatedJobs = state.jobs;
-    const ids = new Set(relatedJobs.map((j) => j.id));
-    const candidates = state.candidates.filter((c) => ids.has(c.job_id));
+    const candidates = state.candidates;
     const active = candidates.filter((c) => !closed.includes(c.stage));
     const due = active.filter((c) => c.due && c.due <= dateSL()).sort((a, b) => a.due.localeCompare(b.due));
     const documents = active.filter((c) => c.documents?.cv !== "Available" || c.documents?.cover !== "Available");
-    const terms = active.filter((c) => c.commission_ack !== "Accepted");
+    const terms = active.filter((c) => c.commission_ack !== "Accepted" || !c.terms_detail?.trim());
     const review = active.filter((c) => ["R1 Review", "R2 Review", "Reference Check", "Offer / Agreement"].includes(c.stage));
     const stats = [["Active candidates", active.length], ["Due / overdue", due.length], ["Documents incomplete", documents.length], ["Terms to confirm", terms.length]];
-    const summaries = events.filter((x2) => x2.kind === "summary" && x2.event_date === dateSL());
+    const summaries = visibleEvents(events).filter((x2) => x2.kind === "summary" && x2.event_date === dateSL());
     return heading(
       "COO recruitment workspace",
       "All hiring positions \xB7 Daily priorities and review queue",
       '<div class="toolbar">' + btn("Role & commission terms", "role-view") + btn("+ Add candidate", "candidate", "", true) + "</div>"
-    ) + '<div class="coo-stats">' + stats.map(([title, total]) => '<div class="panel"><span>' + escape(title) + "</span><strong>" + total + "</strong></div>").join("") + "</div>" + panel("Today\u2019s next actions", candidateTable(due)) + '<div class="split">' + panel("Ready for COO review", candidateTable(review)) + panel("Commission acknowledgement", candidateTable(terms, "commission", "Review terms")) + "</div>" + panel("CV & cover letter checklist", documents.length ? table(["Candidate", "CV", "Cover letter", "Action"], documents.map((c) => [
+    ) + '<div class="coo-stats">' + stats.map(([title, total]) => '<div class="panel"><span>' + escape(title) + "</span><strong>" + total + "</strong></div>").join("") + "</div>" + panel("Today\u2019s next actions", due.length ? candidateTable(due) : empty("No actions are due today or overdue.")) + '<div class="split">' + panel("Ready for COO review", review.length ? candidateTable(review) : empty("No candidates are waiting for an interview, reference or offer review.")) + panel("Commission acknowledgement", terms.length ? candidateTable(terms, "commission", "Review terms") : empty("All active candidates have accepted commission terms and recorded boundaries.")) + "</div>" + panel("CV & cover letter checklist", documents.length ? table(["Candidate", "CV", "Cover letter", "Action"], documents.map((c) => [
       "<strong>" + escape(c.alias) + "</strong>",
       tag(c.documents?.cv || "Missing", c.documents?.cv === "Available" ? "good" : "warn"),
       tag(c.documents?.cover || "Missing", c.documents?.cover === "Available" ? "good" : "warn"),
       btn("Upload documents", "documents", c.id, true)
-    ])) : empty(active.length ? "All active candidates have both application documents." : "No candidates added yet. Upload status will appear here.")) + panel("Daily COO handover", summaries.length ? "<p>" + escape(summaries.at(-1).payload.progress) + "</p><p><strong>Blockers / decisions:</strong> " + escape(summaries.at(-1).payload.blockers || "None recorded") + "</p><p><strong>Next priorities:</strong> " + escape(summaries.at(-1).payload.priorities) + "</p>" : empty("Add today\u2019s progress, blockers and next priorities."), btn("+ Daily summary", "summary", "", true)) + panel("Storage maintenance", '<p id="maintenance-state">Checking recovery and backup status\u2026</p>');
+    ])) : empty(active.length ? "All active candidates have both application documents." : "No active candidates need document review.")) + panel("Daily COO handover", summaries.length ? "<p>" + escape(summaries.at(-1).payload.progress) + "</p><p><strong>Blockers / decisions:</strong> " + escape(summaries.at(-1).payload.blockers || "None recorded") + "</p><p><strong>Next priorities:</strong> " + escape(summaries.at(-1).payload.priorities) + "</p>" : empty("Add today\u2019s progress, blockers and next priorities."), btn("+ Daily summary", "summary", "", true)) + panel("Storage maintenance", '<p id="maintenance-state">Checking recovery and backup status\u2026</p>');
   }
   function showDocuments(candidate) {
     if (!candidate) return;
@@ -2461,7 +2462,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     const target = document.querySelector("#maintenance-state");
     if (!target) return;
     try {
-      const response = await fetch(apiBase + "/maintenance", { cache: "no-store" });
+      const response = await fetch(apiBase + "/maintenance", { cache: "no-store", signal: AbortSignal.timeout(2e4) });
       const status = await response.json();
       if (!response.ok) throw Error();
       if (target.isConnected) target.textContent = "Last successful maintenance: " + (status.last_success ? new Date(status.last_success).toLocaleString("en-LK", { timeZone: "Asia/Colombo" }) + " SL" : "Not yet run") + " \xB7 Private event backup through record " + status.backup_cursor + " \xB7 Pending document confirmations: " + status.pending_receipts + ". File availability is verified separately.";
@@ -2489,13 +2490,14 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const inline=s=>escape(s).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
   function richText(text){
-    let html='',paragraph=[],list='',items=[];
+    let html='',paragraph=[],list='',items=[],listStart=1;
     const flushParagraph=()=>{if(paragraph.length){html+='<p>'+paragraph.map(inline).join('<br>')+'</p>';paragraph=[];}};
-    const flushList=()=>{if(list){html+='<'+list+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+list+'>';list='';items=[];}};
+    const flushList=()=>{if(list){html+='<'+list+(list==='ol'?' start="'+listStart+'"':'')+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+list+'>';list='';items=[];}};
     for(const line of text.split(/\r?\n/)){
-      const heading=line.match(/^#{1,6}\s+(.+)$/),bullet=line.match(/^\s*[-*]\s+(.+)$/),ordered=line.match(/^\s*\d+[.)]\s+(.+)$/);
+      const heading=line.match(/^#{1,6}\s+(.+)$/),bullet=line.match(/^\s*[-*•]\s+(.+)$/),ordered=line.match(/^\s*(\d+)[.)]\s+(.+)$/);
       if(heading){flushParagraph();flushList();const level=line.startsWith('###')?'h4':'h3';html+='<'+level+'>'+inline(heading[1])+'</'+level+'>';}
-      else if(bullet||ordered){flushParagraph();const type=bullet?'ul':'ol';if(list&&list!==type)flushList();list=type;items.push((bullet||ordered)[1]);}
+      else if(bullet||ordered){flushParagraph();const type=bullet?'ul':'ol';if(list&&list!==type)flushList();if(!list)listStart=ordered?Math.min(Number(ordered[1]),9999):1;list=type;items.push(bullet?bullet[1]:ordered[2]);}
+      else if(/^\s*---+\s*$/.test(line)){flushParagraph();flushList();html+='<hr>';}
       else if(!line.trim()){flushParagraph();flushList();}
       else{flushList();paragraph.push(line);}
     }
@@ -2518,7 +2520,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     }
     for(const item of root.querySelectorAll('.role-text:not([data-copy-ready])')){
       item.dataset.copyReady='true';const text=item.textContent;
-      if(/^#{1,6}\s|\*\*[^*]+\*\*|^\s*[-*]\s|^\s*\d+[.)]\s/m.test(text)){item.innerHTML=richText(text);item.classList.add('rich-copy');item.style.whiteSpace='normal';}
+      if(/^#{1,6}\s|\*\*[^*]+\*\*|^\s*[-*•]\s|^\s*\d+[.)]\s/m.test(text)){item.innerHTML=richText(text);item.classList.add('rich-copy');item.style.whiteSpace='normal';}
     }
     for(const detail of root.querySelectorAll('.role-position details:not([data-role-ready])')){
       detail.dataset.roleReady='true';

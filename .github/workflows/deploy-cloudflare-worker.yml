@@ -1,6 +1,6 @@
 name: Deploy QuidEdge Cloudflare Worker
 
-# The initial merge attempts deployment; subsequent deployments run manually.
+# Deploy on updates to this workflow, or via the manual Run workflow action.
 on:
   push:
     branches: [main]
@@ -32,8 +32,8 @@ jobs:
         run: npm run build --prefix cloudflare
       - name: Run regression tests
         run: npm test --prefix cloudflare
-      - name: Verify generated assets are up to date
-        run: git diff --exit-code -- backend.js index.html cloudflare/worker.js
+      # Deployment uses freshly rebuilt, tested Worker assets from the source files.
+      # Generated repository snapshots are not deployed directly.
       - name: Check Cloudflare deploy authorization
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

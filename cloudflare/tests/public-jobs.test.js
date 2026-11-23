@@ -28,8 +28,8 @@ test('isolated careers origin has no staff routes, scripts, API proxy, forms, st
  assert.match(html,/&lt;img/);assert.match(html,/<strong>Bold<\/strong>/);assert.doesNotMatch(html,/<script|<img|PRIVATE CANDIDATE|PRIVATE NOTE|recruitment.*workers|href=|<form/);
  for(const path of ['/api/events','/api/bootstrap','/app.js','/pipeline','/api/public-job'])assert.equal((await careers.fetch(new Request('https://careers.test'+path))).status,404);
  assert.equal((await careers.fetch(new Request('https://careers.test/jobs/'+id,{method:'POST'}))).status,405);
- const oldFetch=globalThis.fetch;try{globalThis.fetch=async()=>Response.json({job:{id,title:'Published',description:'PUBLIC JD',private:'PRIVATE VALUE'}});
- const response=await careers.fetch(new Request('https://careers.test/jobs/'+id));assert.equal(response.status,200);assert.match(response.headers.get('Content-Security-Policy'),/script-src 'none'; connect-src 'none'/);assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');assert.doesNotMatch(await response.text(),/PRIVATE VALUE/);
- globalThis.fetch=async()=>Response.json({error:'gone'},{status:404});assert.equal((await careers.fetch(new Request('https://careers.test/jobs/'+id))).status,404);
- }finally{globalThis.fetch=oldFetch;}
+ const service={fetch:async()=>Response.json({job:{id,title:'Published',description:'PUBLIC JD',private:'PRIVATE VALUE'}})};
+ const response=await careers.fetch(new Request('https://careers.test/jobs/'+id),{RECRUITMENT:service});assert.equal(response.status,200);assert.match(response.headers.get('Content-Security-Policy'),/script-src 'none'; connect-src 'none'/);assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');assert.doesNotMatch(await response.text(),/PRIVATE VALUE/);
+ service.fetch=async()=>Response.json({error:'gone'},{status:404});assert.equal((await careers.fetch(new Request('https://careers.test/jobs/'+id),{RECRUITMENT:service})).status,404);
+
 });

@@ -21,7 +21,7 @@ export function candidatePage(job){
 }
 const headers={'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",'Permissions-Policy':'camera=(), microphone=(), geolocation=()'};
 export default {
- async fetch(request){
+ async fetch(request,env={}){
   if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
   const path=new URL(request.url).pathname;
   const match=path.match(/^\/jobs\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/?$/i);
@@ -29,7 +29,8 @@ export default {
   if(path==='/')return response(page('Careers','<div class="eyebrow">QuidEdge careers</div><h1>Great work starts with meaningful connections.</h1><p>Open the job link shared with you to explore a specific opportunity.</p>'));
   if(!match)return response(page('Page unavailable','<h1>Page unavailable</h1><p>Check the job link you received and try again.</p>'),404);
   try{
-   const upstream=await fetch(UPSTREAM+'?id='+encodeURIComponent(match[1]),{headers:{Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)});
+   if(!env.RECRUITMENT)throw Error("Unavailable");
+   const upstream=await env.RECRUITMENT.fetch(UPSTREAM+'?id='+encodeURIComponent(match[1]),{headers:{Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)});
    if(upstream.status===404)return response(page('Opportunity unavailable','<h1>This opportunity is no longer available.</h1><p>Contact the person who shared this link for the latest opportunities.</p>'),404);
    if(!upstream.ok)throw Error('Unavailable');
    const data=await upstream.json();if(data.job?.id!==match[1]||typeof data.job?.title!=='string')throw Error('Invalid job');

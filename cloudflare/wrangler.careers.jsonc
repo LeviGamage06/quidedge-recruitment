@@ -1,0 +1,7 @@
+{
+  "name": "quidedge-careers",
+  "main": "careers-worker.js",
+  "compatibility_date": "2026-11-23",
+  "services": [{"binding": "RECRUITMENT", "service": "quidedge-recruitment"}],
+  "workers_dev": true
+}

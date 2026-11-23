@@ -6,7 +6,7 @@ Date: 23 November 2026. Scope: instructions in Pasted text(10).txt.
 
 This follow-up extends the earlier UI release into a source, API, event-history, integration, security, accessibility, performance and deployment review. It preserves the current no-login usage model, existing infrastructure, URLs, database binding, minute scheduler and historical records. No database migration or production candidate mutation is included.
 
-Fifteen scoped defects/engineering findings have fixes prepared, including inconsistent sync histories, role-profile progression, newly created public job descriptions, offline startup, unsupported document controls, input contrast, build reproducibility and deployment of the existing careers Worker. All 73 local automated tests pass. The detailed inventory contains 284 control entries across rendered and conditional contexts; conditional source-only entries are explicitly marked.
+Sixteen scoped defects/engineering findings have fixes prepared, including inconsistent sync histories, role-profile progression, retained role behaviour for active candidates linked to trashed positions, newly created public job descriptions, offline startup, unsupported document controls, input contrast, build reproducibility and deployment of the existing careers Worker. All 73 local automated tests pass. The detailed inventory contains 284 control entries across rendered and conditional contexts; conditional source-only entries are explicitly marked.
 
 **Full production-grade acceptance remains blocked** by the unauthenticated trust model and the separately managed Google/document configuration. Successful tests and deployment of compatible fixes do not close these blockers.
 
@@ -28,10 +28,10 @@ The production browser baseline checked all eight routes at 320, 360, 375, 390, 
 | Severity | Fixed / implemented | Open / blocked |
 |---|---:|---:|
 | P0 architectural risk | 0 | 1 |
-| P1 | 6 | 2 |
+| P1 | 7 | 2 |
 | P2 | 9 | 0 |
 
-Seven newly introduced failing test cases reproduced sync/validation/progression/offline and public-JD defects before the relevant fixes. Additional source/runtime findings include the redundant projection, inaccurate error message, 1.58:1 control border, documentation drift and missing careers deployment. The register groups related failure modes rather than counting each assertion as another defect.
+Eight failing regression cases reproduced sync/validation/progression/offline and public-JD defects before the relevant fixes. Additional source/runtime findings include the redundant projection, inaccurate error message, 1.58:1 control border, documentation drift and missing careers deployment. The register groups related failure modes rather than counting each assertion as another defect.
 
 ## D. UI/UX and accessibility
 

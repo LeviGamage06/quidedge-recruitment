@@ -1,6 +1,6 @@
 {
   "baseline": "95d3608530719f0a881e84faa8733257c4710429",
-  "failing_cases_before_fixes": 7,
+  "failing_cases_before_fixes": 8,
   "groups": [
     "paginated history consistency",
     "snapshot validation and fallback epoch",
@@ -8,7 +8,8 @@
     "role-profile commission gate",
     "offline startup",
     "new position default public status",
-    "public description list semantics"
+    "public description list semantics",
+    "active-candidate role behaviour after parent position is trashed"
   ],
   "passing_tests_after_fixes": 73,
   "live_production_mutations": 0

@@ -22,6 +22,7 @@ const pageSize = 25;
 let events = [];
 let state = {jobs:[],candidates:[]};
 let jobNames = new Map();
+let jobIndex = new Map();
 let candidateIndex = new Map();
 let ready = false;
 let failure = '';
@@ -87,6 +88,7 @@ function positionOptions(jobs) {
     [job.title,job.location,job.department].filter(Boolean).join(' · ') : job.title]);
 }
 const candidateById = id => candidateIndex.get(id);
+const jobById = id => jobIndex.get(id);
 function storageDrafts() {
   try {
     const saved=JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null');
@@ -115,6 +117,7 @@ function ingest(incoming) {
   state = {jobs:projected.jobs,candidates:projected.candidates};
   state.jobs=state.jobs.filter(j=>!j.deleted);state.candidates=state.candidates.filter(c=>!c.deleted);
   jobNames = new Map(projected.jobs.map(job => [job.id,job.title]));
+  jobIndex = new Map(projected.jobs.map(job => [job.id,job]));
   candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
   return true;
 }
@@ -470,7 +473,7 @@ function setRoundFields(round) {
   const cache=JSON.parse(form.dataset.roundScores||'{}');
   if(form.dataset.scoreRound)cache[form.dataset.scoreRound]=Object.fromEntries([...form.querySelectorAll('#round-fields select')].map(i=>[i.name,i.value]));
   form.dataset.roundScores=JSON.stringify(cache);form.dataset.scoreRound=round;
-  const job=state.jobs.find(j=>j.id===(candidateById(form.dataset.id)||candidateById(events.find(e=>e.id===form.dataset.id)?.subject_id))?.job_id);
+  const job=jobById((candidateById(form.dataset.id)||candidateById(events.find(e=>e.id===form.dataset.id)?.subject_id))?.job_id);
   dialog.querySelector('#round-fields').innerHTML = scorecardFor(job)[round].map((label,i) =>
     field('score' + (i + 1),label,{kind:'select',value:cache[round]?.['score'+(i+1)]||'',choices:[['','Untested'],'1','2','3','4','5']})).join('');
 }
@@ -730,7 +733,7 @@ dialog.addEventListener('submit',async event => {
     if (kind === 'stage') {
       if (closed.includes(values.stage)) Object.assign(values,{action:'',due:'',owner:'',blocker:''});
       const currentCandidate=candidateById(id)||candidateById(events.find(e=>e.id===id)?.subject_id);
-      const problem = stageProblem(values,currentCandidate,eventDate,state.jobs.find(job=>job.id===currentCandidate?.job_id));
+      const problem = stageProblem(values,currentCandidate,eventDate,jobById(currentCandidate?.job_id));
       if (problem) { errorBox.textContent = problem;return }
     }
     record = {
@@ -855,7 +858,7 @@ function historyTitle(event,candidate){
 }
 function nextCandidateAction(candidate){
  if(closed.includes(candidate.stage))return {label:'Review candidate details',action:'correction',description:candidate.stage==='Hired'?'Hiring completed. Review the record if any details need updating.':'This hiring process is closed. Review details or reopen it through the stage controls.'};
- if(state.jobs.find(job=>job.id===candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
+ if(jobById(candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
  if(candidate.commission_ack!=='Accepted'||!candidate.terms_detail)return {label:'Review commission terms',action:'commission',description:'Record the candidate’s acknowledgement and agreed boundaries before progressing.'};
  if(['R1 Review','R2 Review'].includes(candidate.stage))return {label:'Complete interview scorecard',action:'score',description:'Record observed evidence before deciding the next stage.'};
  if(candidate.stage==='Offer / Agreement')return {label:'Review hiring checklist',action:'checklist',description:'Confirm all hiring requirements before marking the candidate hired.'};

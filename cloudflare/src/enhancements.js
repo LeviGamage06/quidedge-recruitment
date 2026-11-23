@@ -57,7 +57,7 @@
     }
     // Give every saved position a direct route to its own requirements.
     if(location.hash==='#overview')for(const row of root.querySelectorAll('tr')){
-      const manage=row.querySelector('[data-action=job][data-id]');if(!manage||row.querySelector('[data-action=role-view]'))continue;
+      const manage=row.querySelector('[data-action=job][data-id]');if(!manage||row.querySelector('[data-action=open-role-details]'))continue;
       const actions=row.querySelector('.row-actions');if(!actions)continue;
       const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='View job description';button.dataset.action='open-role-details';button.dataset.id=manage.dataset.id;actions.append(button);
     }

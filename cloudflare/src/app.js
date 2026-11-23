@@ -111,9 +111,10 @@ function ingest(incoming) {
   const fresh = incoming.filter(event => !known.has(event.id));
   if (!fresh.length&&!reset) return false;
   events = events.concat(fresh).sort((a,b) => a.seq - b.seq);
-  state = project(events);
+  const projected=project(events);
+  state = {jobs:projected.jobs,candidates:projected.candidates};
   state.jobs=state.jobs.filter(j=>!j.deleted);state.candidates=state.candidates.filter(c=>!c.deleted);
-  jobNames = new Map(project(events).jobs.map(job => [job.id,job.title]));
+  jobNames = new Map(projected.jobs.map(job => [job.id,job.title]));
   candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
   return true;
 }
@@ -302,7 +303,7 @@ function render() {
   const drafts = storageDrafts();
   const draftBanner = drafts.map(draft => '<div class="draft-banner"><span><strong>'+e(draftTitle(draft))+'</strong><small>'+e(draft.saved_at?'Draft saved '+new Date(draft.saved_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+' SL':'Unsaved draft · saved time unavailable')+'</small></span>'+ '<div class="row-actions">'+btn('Resume draft','resume',draft.kind+':'+draft.id)+btn('Discard draft','discard',draft.kind+':'+draft.id)+'</div></div>').join('');
   const alert = failure ? '<p class="banner" role="alert">' + e(failure) +
-    ' Existing records remain visible. Use Refresh to retry.</p>' : '';
+    (ready?' Existing records remain visible.':' Shared records have not loaded yet.')+' Use Refresh to retry.</p>' : '';
   app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
     panel('Recruitment workspace',empty(failure ? 'The shared records could not be loaded.' : 'Loading shared records…')) : screens[view]());
   if(view==='trash'&&ready)loadTrashCleanup();
@@ -535,7 +536,8 @@ function calendar(candidate) {
   download(candidate.alias + '-' + round + '.ics',content,'text/calendar;charset=utf-8');
 }
 async function refresh() {
-  if (refreshing || saving || !navigator.onLine) return;
+  if (refreshing || saving) return;
+  if (!navigator.onLine) {showOfflineState();return;}
   refreshing = true;
   sync.disabled = true;
   try {
@@ -727,7 +729,8 @@ dialog.addEventListener('submit',async event => {
     if (kind === 'checklist') values.event = 'Hiring checklist updated';
     if (kind === 'stage') {
       if (closed.includes(values.stage)) Object.assign(values,{action:'',due:'',owner:'',blocker:''});
-      const problem = stageProblem(values,candidateById(id)||candidateById(events.find(e=>e.id===id)?.subject_id),eventDate);
+      const currentCandidate=candidateById(id)||candidateById(events.find(e=>e.id===id)?.subject_id);
+      const problem = stageProblem(values,currentCandidate,eventDate,state.jobs.find(job=>job.id===currentCandidate?.job_id));
       if (problem) { errorBox.textContent = problem;return }
     }
     record = {
@@ -796,7 +799,8 @@ function focusRoute() {
 }
 window.addEventListener('hashchange',() => { render();focusRoute(); });
 window.addEventListener('online',refresh);
-window.addEventListener('offline',() => { mode.textContent = 'Offline · draft kept';sync.className = 'pill error' });
+function showOfflineState(){failure='You are offline. Reconnect to load or save shared records. Your form drafts stay in this tab.';mode.textContent='Offline · draft kept';sync.className='pill error';render();}
+window.addEventListener('offline',showOfflineState);
 document.addEventListener('visibilitychange',() => { if (!document.hidden && !dialog.open) refresh() });
 window.addEventListener('pagehide',() => { saveDraft();clearInterval(timer);timer=null; });
 window.addEventListener('pageshow',()=>{if(!timer){startSyncTimer();refresh();}});

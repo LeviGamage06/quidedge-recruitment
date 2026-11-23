@@ -1,0 +1,10 @@
+{
+  "root_build": "Built standalone Worker and GitHub frontend \u00b7 a53dd665509d",
+  "cloudflare_build": "Built standalone Worker and GitHub frontend \u00b7 a53dd665509d",
+  "equal": true,
+  "sha256": {
+    "index.html": "30ee5c6e141135afc91448fa168a27f49799b05f2725387c68147a2c6879fdf8",
+    "backend.js": "7f315bf41a9cf5b34308cf2823176a70ab1eb393a2311c4f27602f1ecdaf2de5",
+    "cloudflare/worker.js": "7f315bf41a9cf5b34308cf2823176a70ab1eb393a2311c4f27602f1ecdaf2de5"
+  }
+}

@@ -27,12 +27,16 @@ async function request(path = '', options = {}) {
 export async function loadEvents(after = 0,filters = {}) {
   const events = [];
   let cursor = after;
+  let epoch;
+  const ids = new Set();
   for (;;) {
     const batch = await request('?'+new URLSearchParams({...filters,after:String(cursor)}));
     if (!Array.isArray(batch)) throw new Error('The server returned an invalid event list.');
-    events.purgeEpoch=batch.purgeEpoch||'';
+    const batchEpoch=batch.purgeEpoch||'';
+    if(epoch!==undefined&&batchEpoch!==epoch)throw new Error('The workspace changed during cleanup. Retry to load one consistent history.');
+    epoch=batchEpoch;events.purgeEpoch=epoch;
     if (!batch.length) return events;
-    let previous=cursor;const ids=new Set();
+    let previous=cursor;
     if (batch.some(event => {
       if(!validEvent(event)||event.seq<=previous||ids.has(event.id))return true;
       previous=event.seq;ids.add(event.id);return false;
@@ -61,9 +65,13 @@ export function createEventReader() {
  return async function read(){
   if(!started){
    const response=await fetch(apiBase+'/bootstrap',{cache:'no-store',signal:AbortSignal.timeout(20000)});
-   if(!response.ok){const events=await loadEvents(0);cursor=events.at(-1)?.seq||0;started=true;return events;}
+   if(!response.ok){const events=await loadEvents(0);cursor=events.at(-1)?.seq||0;epoch=events.purgeEpoch||'';started=true;return events;}
    const snapshot=await response.json();
-   if(!Number.isSafeInteger(snapshot.cursor)||snapshot.cursor<0||!Array.isArray(snapshot.events)||snapshot.events.some(e=>!validEvent(e)||e.seq>snapshot.cursor))throw Error('Invalid recruitment snapshot. Retry sync.');
+   let previous=0;const ids=new Set();
+   if(!Number.isSafeInteger(snapshot.cursor)||snapshot.cursor<0||!Array.isArray(snapshot.events)||snapshot.events.some(e=>{
+    if(!validEvent(e)||e.seq<=previous||e.seq>snapshot.cursor||ids.has(e.id))return true;
+    previous=e.seq;ids.add(e.id);return false;
+   })||previous!==snapshot.cursor)throw Error('Invalid recruitment snapshot. Retry sync.');
    epoch=response.headers.get('X-Purge-Epoch')||'';cursor=snapshot.cursor;started=true;return snapshot.events;
   }
   const incoming=await loadEvents(cursor);if((incoming.purgeEpoch||'')!==epoch){started=false;const all=await read();all.reset=true;return all;}if(incoming.length)cursor=incoming.at(-1).seq;return incoming;

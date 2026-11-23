@@ -27,8 +27,9 @@ export function validDate(value) {
   const parsed = new Date(value + 'T00:00:00Z');
   return Number.isFinite(+parsed) && parsed.toISOString().slice(0,10) === value;
 }
-export function stageProblem(payload, candidate, eventDate) {
-  if (candidate.job_id==='e2173dde-bc77-409a-96a1-86dcb23841f0' && ['R1 Scheduled','R1 Review','R2 Prep','R2 Scheduled','R2 Review','Reference Check','Offer / Agreement','Hired'].includes(payload.stage) && (candidate.commission_ack!=='Accepted'||!candidate.terms_detail?.trim())) return 'Confirm accepted commission-only terms before advancing this candidate.';
+export function stageProblem(payload, candidate, eventDate, job) {
+  if (!candidate) return 'Refresh and select an existing candidate.';
+  if ((job?.profile==='client-acquisition-v1'||candidate.job_id==='e2173dde-bc77-409a-96a1-86dcb23841f0') && ['R1 Scheduled','R1 Review','R2 Prep','R2 Scheduled','R2 Review','Reference Check','Offer / Agreement','Hired'].includes(payload.stage) && (candidate.commission_ack!=='Accepted'||!candidate.terms_detail?.trim())) return 'Confirm accepted commission-only terms before advancing this candidate.';
   if (!stages.includes(payload.stage)) return 'Choose a valid stage.';
   if (!String(payload.note || '').trim()) return 'Add the reason for this update.';
   if (!closed.includes(payload.stage)) {

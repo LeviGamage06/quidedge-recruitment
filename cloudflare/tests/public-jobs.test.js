@@ -34,3 +34,12 @@ test('isolated careers origin has no staff routes, scripts, API proxy, forms, st
  service.fetch=async()=>new Response(null,{status:302,headers:{Location:'https://staff.test'}});assert.equal((await careers.fetch(new Request('https://careers.test/jobs/'+id),{RECRUITMENT:service})).status,503);
 
 });
+
+test('a newly created position shares its default Open status before any edit',()=>{
+ const job=candidateJob([record(1,{title:'New position',department:'Growth',location:'Remote',description:'Complete public description'})],id);
+ assert.ok(job,'new-position form omits status, so the public projection must use the same Open default');assert.equal(job.headcount,'1');
+});
+test('public descriptions preserve numbered sections and semantic bullet lists',()=>{
+ const html=candidatePage({id,title:'Partnerships',description:'2. Business development\n\n• Research prospects\n• Follow up\n\n---'});
+ assert.match(html,/<ol start="2">/);assert.match(html,/<ul><li>Research prospects<\/li><li>Follow up<\/li><\/ul>/);assert.match(html,/<hr>/);
+});

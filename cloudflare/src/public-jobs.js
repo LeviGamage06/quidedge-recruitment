@@ -7,7 +7,7 @@ export function candidateJob(events,id){
   for(const event of events){
     if(event.kind!=='job'||event.payload?.operation)continue;
     const p=event.payload;
-    if(!p.job_id&&event.id===id)job={...p,id};
+    if(!p.job_id&&event.id===id)job={status:'Open',headcount:'1',...p,id};
     else if(job&&p.job_id===id&&!states.get(event.id)&&!replaced.has(event.id))Object.assign(job,p);
   }
   if(!job||states.get(id)||job.status!=='Open')return null;

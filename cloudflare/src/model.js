@@ -22,6 +22,7 @@ export const groupStages = [
 export const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));
+export const candidateLabel = candidate => candidate?.name?.trim() || candidate?.alias || 'Candidate';
 export function validDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(value + 'T00:00:00Z');
@@ -80,7 +81,7 @@ export function project(events) {
     }
     if (event.kind === 'candidate') {
       candidates.set(event.id, {
-        ...p,id:event.id,date:event.event_date,revision:event.seq,
+        ...p,name:p.name?.trim()?p.name:p.display_name||'',id:event.id,date:event.event_date,revision:event.seq,
         history:[event],r1:'',r2:'',checklist:{},documents:{cv:'Missing',cover:'Missing'},start_date:''
       });
     }
@@ -94,7 +95,7 @@ export function project(events) {
       }
     }
     if (event.kind === 'activity') {
-      if(p.event==='Candidate details corrected')for(const key of ['alias','source','availability','notice','market'])if(key in p)candidate[key]=p[key];
+      if(p.event==='Candidate details corrected')for(const key of ['name','alias','source','availability','notice','market'])if(key in p)candidate[key]=p[key];
       if(p.event==='Document availability checked'){candidate.documents_checked_at=event.created_at;for(const type of ['cv','cover'])if(p[type+'_state'])candidate.documents[type]=p[type+'_state'];}
       if (p.event === 'Document stored' && ['cv','cover'].includes(p.document_type)) candidate.documents[p.document_type] = 'Receipt saved';
       if (p.event === 'Commission terms reviewed') { candidate.commission_ack=p.commission_ack; candidate.commission_plan=p.commission_plan;candidate.terms_detail=p.terms_detail||''; }

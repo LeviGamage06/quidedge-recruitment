@@ -3,7 +3,7 @@ import {validDraft,mergeDrafts,foldCalendarLine} from './record-utils.js';
 import guide from './guide.js?v=1d9777a50d5b';
 import {
   stages,closed,milestones,checklistItems,dateSL,groupStages,project,attention,
-  escape as e,csvCell,stageProblem,newId,scorecardFor,recordStates,visibleEvents,interviewRevision
+  escape as e,csvCell,stageProblem,newId,scorecardFor,recordStates,visibleEvents,interviewRevision,candidateLabel
 } from './model.js?v=1d9777a50d5b';
 import {hiringRole,defaultRoleRecord} from './role.js';
 import {checkDocument,uploadDocument} from './documents.js';
@@ -89,6 +89,8 @@ function positionOptions(jobs) {
 }
 const candidateById = id => candidateIndex.get(id);
 const jobById = id => jobIndex.get(id);
+const candidateCaption = candidate => candidate.name?.trim() ? candidateLabel(candidate)+' · '+candidate.alias : candidate.alias;
+const candidateIdentity = candidate => '<strong>'+e(candidateLabel(candidate))+'</strong><small>'+e(candidate.name?.trim()?candidate.alias:'Name not added')+'</small>';
 function storageDrafts() {
   try {
     const saved=JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null');
@@ -127,7 +129,7 @@ function candidateTable(candidates,action='stage',label='Update stage') {
   return table(['Candidate','Position','Stage','Next action','Attention','Actions'],candidates.map(candidate => {
     const flag = attention(candidate);
     return [
-      '<strong>' + e(candidate.alias) + '</strong><small>' + e(candidate.source) + '</small><small>CV (last receipt/check): '+e(candidate.documents?.cv||'Missing')+' · Cover letter: '+e(candidate.documents?.cover||'Missing')+'</small>',
+      candidateIdentity(candidate)+'<small>' + e(candidate.source) + '</small><small>CV (last receipt/check): '+e(candidate.documents?.cv||'Missing')+' · Cover letter: '+e(candidate.documents?.cover||'Missing')+'</small>',
       e(jobTitle(candidate.job_id)),
       tag(candidate.stage,candidate.stage === 'Hired' ? 'good' : 'blue'),
       closed.includes(candidate.stage) ? e(candidate.stage==='Hired'?'Hiring completed':'Process closed')+(candidate.start_date?'<small>Start date · '+e(candidate.start_date)+'</small>':'') : e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +' · ' + e(candidate.owner || 'No owner') + '</small>',
@@ -181,11 +183,12 @@ function filteredCandidates() {
       (!ownerFilter || candidate.owner === ownerFilter) &&
       (!attentionFilter || (attentionFilter === 'needs-action' ?
         !['On track','Closed'].includes(flag) : flag === attentionFilter)) &&
-      (!query || [candidate.alias,candidate.source,candidate.owner,jobTitle(candidate.job_id)]
+      (!query || [candidate.name,candidate.alias,candidate.source,candidate.owner,jobTitle(candidate.job_id)]
         .some(value => String(value || '').toLowerCase().includes(query)));
   });
   if (sort === 'due') list.sort((a,b) => (a.due || '9999').localeCompare(b.due || '9999') || b.revision - a.revision);
   if (sort === 'code') list.sort((a,b) => a.alias.localeCompare(b.alias,undefined,{numeric:true}));
+  if (sort === 'name') list.sort((a,b) => candidateLabel(a).localeCompare(candidateLabel(b),undefined,{sensitivity:'base',numeric:true}));
   return list;
 }
 function candidateResults() {
@@ -205,12 +208,12 @@ function pipeline() {
   return heading('Candidate pipeline','Filter by role, stage, owner or outstanding action.',
     '<div class="toolbar">' + btn('Export CSV','csv') + btn('+ Add candidate','candidate','',true) + '</div>') +
     panel('Candidates','<div class="filters">' +
-      '<label class="field">Search<input id="search" type="search" maxlength="100" placeholder="Candidate code, role or source" value="' + e(search) + '"></label>' +
+      '<label class="field">Search<input id="search" type="search" maxlength="120" placeholder="Candidate name, code, role or source" value="' + e(search) + '"></label>' +
       '<label class="field">Position<select id="job-filter">' + options([['','All positions'],...positionOptions(state.jobs)],jobFilter) + '</select></label>' +
       '<label class="field">Stage<select id="stage-filter">' + options([['','All stages'],...groupStages.map(([name]) => ['group:' + name,name + ' group']),...stages],stageFilter) + '</select></label>' +
       '<label class="field">Action owner<select id="owner-filter">' + options([['','All owners'],...owners],ownerFilter) + '</select></label>' +
       '<label class="field">Attention<select id="attention-filter">' + options([['','All candidates'],['needs-action','Needs action'],'Overdue','Due today','Needs decision','Missing next step','Closed'],attentionFilter) + '</select></label>' +
-      '<label class="field">Sort<select id="sort-filter">' + options([['recent','Newest first'],['due','Due date'],['code','Candidate code']],sort) + '</select></label></div>' +
+      '<label class="field">Sort<select id="sort-filter">' + options([['recent','Newest first'],['due','Due date'],['name','Candidate name'],['code','Candidate code']],sort) + '</select></label></div>' +
       '<div id="candidate-results">' + candidateResults() + '</div>',btn('Reset filters','reset'));
 }
 const loadedReportDates=new Set();
@@ -220,7 +223,7 @@ function activity() {
   const daily = visibleEvents(events).filter(event => event.event_date === reportDate).slice().reverse();
   const summaries = daily.filter(event => event.kind === 'summary');
   const entries = daily.filter(event => event.kind !== 'summary');
-  const aliases = new Map(state.candidates.map(candidate => [candidate.id,candidate.alias]));
+  const aliases = new Map(state.candidates.map(candidate => [candidate.id,candidateCaption(candidate)]));
   const metrics = ['Candidate sourced','First outreach','R1 completed','R2 completed','Offer sent','Hired'];
   return heading('Daily activity','Progress, decisions and next workday priorities in Sri Lanka time.',btn('+ Daily summary','summary','',true)) +
     panel('Daily report','<div class="statline">' + metrics.map(label => tag(label + ' · ' +
@@ -250,12 +253,12 @@ function interviews() {
   return heading('Interview calendar','Bookings in Sri Lanka time (UTC+05:30). Add, reschedule or cancel interviews here.') +
     panel('Scheduled interviews',bookings.length ? table(['Candidate','Position','Round','Sri Lanka time','Actions'],
       bookings.map(({candidate,round,slot}) => [
-        '<strong>' + e(candidate.alias) + '</strong>',e(jobTitle(candidate.job_id)),tag(round,'blue'),
+        candidateIdentity(candidate),e(jobTitle(candidate.job_id)),tag(round,'blue'),
         e(slot.replace('T',' ')) + (slot.slice(0,10) < dateSL() ? '<small>Past date · review the candidate stage</small>' : ''),
         '<div class="row-actions">' + btn('Zoom & reminder','interview-details',candidate.id,true)+btn('Calendar file','calendar',candidate.id) +
           btn('Reschedule','stage',candidate.id,true)+btn('Cancel interview','cancel-interview',candidate.id) + '</div>'
       ])) : empty('No interviews are booked. Use Schedule R1 or Schedule R2 for an active candidate below.')) +
-    panel('Schedule an interview',state.candidates.some(c=>!closed.includes(c.stage)) ? table(['Candidate','Current stage','Actions'],state.candidates.filter(c=>!closed.includes(c.stage)).map(c=>[e(c.alias),tag(c.stage),'<div class="row-actions">'+btn('Schedule R1','schedule-r1',c.id)+btn('Schedule R2','schedule-r2',c.id)+btn('View record','view',c.id)+'</div>'])) : empty(state.candidates.length?'All current candidates are hired, rejected or withdrawn. Closed candidates are not shown for scheduling.':'No candidates added yet. Add a candidate to schedule the first interview.'),btn('+ Add candidate','candidate','',true));
+    panel('Schedule an interview',state.candidates.some(c=>!closed.includes(c.stage)) ? table(['Candidate','Current stage','Actions'],state.candidates.filter(c=>!closed.includes(c.stage)).map(c=>[candidateIdentity(c),tag(c.stage),'<div class="row-actions">'+btn('Schedule R1','schedule-r1',c.id)+btn('Schedule R2','schedule-r2',c.id)+btn('View record','view',c.id)+'</div>'])) : empty(state.candidates.length?'All current candidates are hired, rejected or withdrawn. Closed candidates are not shown for scheduling.':'No candidates added yet. Add a candidate to schedule the first interview.'),btn('+ Add candidate','candidate','',true));
 }
 const relationsPrompts = [
   ['Opening',3,'Confirm the role, commission or payment structure, client markets and the interview plan.'],
@@ -359,14 +362,14 @@ async function showRecord(candidate) {
       candidate.checklist[key] === 'Complete' ? 'good' : '') + '</li>').join('');
   const history=candidate.history.slice().reverse().map(event=>{
     const title=historyTitle(event,candidate);
-    const labels={stage:'Hiring stage',terms:'Role and payment terms',writing:'Practical task',references:'References',offer:'Offer acceptance',agreement:'Agreement',nda:'NDA',r1:'Round 1 interview (SL)',r2:'Round 2 interview (SL)',commission_ack:'Commission acknowledgement',commission_plan:'Commission structure',terms_detail:'Agreed terms',start_date:'Start date',action:'Next action',due:'Due date',owner:'Responsible person',alias:'Candidate code',source:'Source',availability:'Availability',notice:'Notice period',market:'Client markets',round:'Interview round',reviewer:'Reviewer',recommendation:'Recommendation',score1:'Criterion 1 score',score2:'Criterion 2 score',score3:'Criterion 3 score',score4:'Criterion 4 score',cv_state:'CV availability',cover_state:'Cover letter availability'};
+    const labels={stage:'Hiring stage',terms:'Role and payment terms',writing:'Practical task',references:'References',offer:'Offer acceptance',agreement:'Agreement',nda:'NDA',r1:'Round 1 interview (SL)',r2:'Round 2 interview (SL)',commission_ack:'Commission acknowledgement',commission_plan:'Commission structure',terms_detail:'Agreed terms',start_date:'Start date',action:'Next action',due:'Due date',owner:'Responsible person',name:'Candidate name',alias:'Candidate code',source:'Source',availability:'Availability',notice:'Notice period',market:'Client markets',round:'Interview round',reviewer:'Reviewer',recommendation:'Recommendation',score1:'Criterion 1 score',score2:'Criterion 2 score',score3:'Criterion 3 score',score4:'Criterion 4 score',cv_state:'CV availability',cover_state:'Cover letter availability'};
     const recorded=Object.entries(event.payload).filter(([key,value])=>value&&!['job_id','upload_fingerprint','supersedes','event','note'].includes(key)).map(([key,value])=>'<dt>'+e(labels[key]||key.replaceAll('_',' '))+'</dt><dd>'+e(value.replace(/^(\d{4}-\d{2}-\d{2})T/,'$1 '))+'</dd>').join('');
     return '<li><strong>'+e(title)+'</strong><time class="history-date">'+e(event.event_date)+' · SL</time>'+(event.payload.note?'<p>'+e(event.payload.note)+'</p>':'')+(recorded?'<details><summary>View recorded details</summary><dl class="record-details">'+recorded+'</dl></details>':'')+eventControls(event)+'</li>';
   }).join('');
   const missing=['cv','cover'].filter(type=>candidate.documents?.[type]!=='Available');
   const complete=checklistItems.filter(([key])=>['Complete','Waived'].includes(candidate.checklist[key])).length;
   const suggested=nextCandidateAction(candidate);
-  show('<div class="section-top"><h2 id="dialog-title">'+e(candidate.alias)+'</h2>'+btn('Close','close')+'</div><p class="muted">'+e(jobTitle(candidate.job_id))+' · '+e(candidate.stage)+'</p>'+ '<div class="next-action-card"><span class="eyebrow">Recommended next action</span><p>'+e(suggested.description)+'</p>'+btn(suggested.label,suggested.action,candidate.id,true)+'</div>'+ '<section class="readiness-summary" aria-label="Candidate readiness"><strong>Hiring checklist: '+complete+'/'+checklistItems.length+' complete or waived</strong><p>'+ (missing.length?e(missing.length+' application document'+(missing.length>1?'s':'')+' need upload or verification.'):'Both application documents verified at the last recorded check.')+'</p><div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'),candidate.documents?.cv==='Available'?'good':'warn')+tag('Cover letter: '+(candidate.documents?.cover||'Missing'),candidate.documents?.cover==='Available'?'good':'warn')+tag('Commission: '+(candidate.commission_ack||'Pending'),candidate.commission_ack==='Accepted'?'good':'warn')+'</div></section>'+ '<details class="candidate-tools"><summary>All candidate actions</summary><div class="tool-group"><h3>Progress and details</h3><div class="toolbar">'+btn('Update stage / schedule','stage',candidate.id)+btn('Log milestone','activity',candidate.id)+btn('Correct candidate details','correction',candidate.id)+'</div></div><div class="tool-group"><h3>Documents and assessment</h3><div class="toolbar">'+btn('CV & cover letter','documents',candidate.id)+btn('Scorecard','score',candidate.id)+btn('Hiring checklist','checklist',candidate.id)+btn('Commission review','commission',candidate.id)+'</div></div><div class="tool-group danger-zone"><h3>Record management</h3>'+dangerBtn('Move candidate to Trash','delete-record',candidate.id)+'</div></details>'+ '<details class="readiness-details"><summary>Hiring checklist details</summary><ul class="checklist">'+checklist+'</ul></details><details class="history-section"><summary>Record history ('+candidate.history.length+' entries)</summary><ul class="timeline">'+history+'</ul></details>');
+  show('<div class="section-top"><h2 id="dialog-title">'+e(candidateLabel(candidate))+'</h2>'+btn('Close','close')+'</div><p class="muted">'+e(candidateCaption(candidate))+' · '+e(jobTitle(candidate.job_id))+' · '+e(candidate.stage)+'</p><div class="toolbar">'+btn(candidate.name?'Edit candidate details':'Add candidate name','correction',candidate.id)+'</div>'+ '<div class="next-action-card"><span class="eyebrow">Recommended next action</span><p>'+e(suggested.description)+'</p>'+btn(suggested.label,suggested.action,candidate.id,true)+'</div>'+ '<section class="readiness-summary" aria-label="Candidate readiness"><strong>Hiring checklist: '+complete+'/'+checklistItems.length+' complete or waived</strong><p>'+ (missing.length?e(missing.length+' application document'+(missing.length>1?'s':'')+' need upload or verification.'):'Both application documents verified at the last recorded check.')+'</p><div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'),candidate.documents?.cv==='Available'?'good':'warn')+tag('Cover letter: '+(candidate.documents?.cover||'Missing'),candidate.documents?.cover==='Available'?'good':'warn')+tag('Commission: '+(candidate.commission_ack||'Pending'),candidate.commission_ack==='Accepted'?'good':'warn')+'</div></section>'+ '<details class="candidate-tools"><summary>All candidate actions</summary><div class="tool-group"><h3>Progress and details</h3><div class="toolbar">'+btn('Update stage / schedule','stage',candidate.id)+btn('Log milestone','activity',candidate.id)+btn('Correct candidate details','correction',candidate.id)+'</div></div><div class="tool-group"><h3>Documents and assessment</h3><div class="toolbar">'+btn('CV & cover letter','documents',candidate.id)+btn('Scorecard','score',candidate.id)+btn('Hiring checklist','checklist',candidate.id)+btn('Commission review','commission',candidate.id)+'</div></div><div class="tool-group danger-zone"><h3>Record management</h3>'+dangerBtn('Move candidate to Trash','delete-record',candidate.id)+'</div></details>'+ '<details class="readiness-details"><summary>Hiring checklist details</summary><ul class="checklist">'+checklist+'</ul></details><details class="history-section"><summary>Record history ('+candidate.history.length+' entries)</summary><ul class="timeline">'+history+'</ul></details>');
 }
 function openForm(kind,id = '',restored = null) {
   saveDraft();
@@ -404,9 +407,9 @@ function openForm(kind,id = '',restored = null) {
       (job ? select('status','Position status',['Open','Paused','Closed'],job.status) + notes('note','Reason for update',true) : '');
   } else if (kind === 'candidate') {
     title = 'Add a candidate';
-    fields=field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('source','Source',sources,sources[0])+'<div class="wide">'+select('job_id','Position',positionOptions(openJobs),openJobs[0].id)+'</div>'+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
+    fields=field('name','Candidate full name',{required:true,max:120,wide:true})+field('alias','Candidate code',{required:true,max:40,value:'QE-'+dateSL().replaceAll('-','')+'-'+newId().slice(0,6).toUpperCase()})+select('source','Source',sources,sources[0])+'<div class="wide">'+select('job_id','Position',positionOptions(openJobs),openJobs[0].id)+'</div>'+'<p class="hint wide">A unique code is generated for you. Add documents and confirm terms after creating the candidate.</p>'+ '<details class="wide form-section"><summary>Availability and client markets (optional)</summary><div class="form-grid">'+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],'To confirm')+field('notice','Notice period',{value:'To confirm'})+field('market','Target client markets',{value:'To confirm'})+'</div></details>'+ '<details class="wide form-section"><summary>Commission terms (optional for now)</summary><div class="form-grid">'+select('commission_plan','Commission structure',['10 / 20 / 30 recurring','Other agreed terms'],'10 / 20 / 30 recurring')+select('commission_ack','Candidate accepts commission-only terms',['Pending','Accepted','Declined'],'Pending')+notes('terms_detail','Agreed commission boundaries / exceptions (required when accepted)',false,'')+'</div></details>'+ '<details class="wide form-section"><summary>Next action (defaults to COO review tomorrow)</summary>'+next({action:'Review application',due:tomorrowSL(),owner:'COO'})+'</details>';
   } else if (kind === 'stage' && candidate) {
-    title = 'Update · ' + candidate.alias;
+    title = 'Update · ' + candidateCaption(candidate);
     fields = select('stage','Stage',stages,candidate.stage) + next(candidate) +
       field('r1','R1 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r1}) +
       field('r2','R2 interview (Sri Lanka time)',{kind:'datetime-local',value:candidate.r2}) +
@@ -416,24 +419,24 @@ function openForm(kind,id = '',restored = null) {
       (candidate.commission_ack!=='Accepted'||!candidate.terms_detail ? '<div class="wide"><p class="hint">Confirm commission terms before scheduling an interview.</p>'+btn('Review commission terms','commission',candidate.id)+'</div>':'') +
       '<p class="hint wide">To cancel a booking, clear its time and select the next stage. Previous bookings stay in history. Complete the hiring checklist before marking Hired.</p>';
   } else if (kind === 'checklist' && candidate) {
-    title = 'Hiring checklist · ' + candidate.alias;
+    title = 'Hiring checklist · ' + candidateCaption(candidate);
     fields = checklistItems.map(([key,label]) => select(key,label,['Pending','Complete','Waived'],
       candidate.checklist[key] || 'Pending')).join('') +
       notes('note','Evidence summary / reasons for any waiver',true);
   } else if (kind === 'activity' && candidate) {
-    title = 'Log milestone · ' + candidate.alias;
+    title = 'Log milestone · ' + candidateCaption(candidate);
     fields = select('event','Milestone',milestones.filter(x=>!['Commission terms reviewed','Candidate details corrected','Document availability checked'].includes(x)),milestones[0]) + notes('note','Public progress summary',true);
   } else if (kind === 'score' && candidate) {
-    title = 'Scorecard · ' + candidate.alias;
+    title = 'Scorecard · ' + candidateCaption(candidate);
     fields = select('round','Round',['R1','R2'],'R1') +
       select('reviewer','Reviewer role',['COO','Leadership'],'COO') +
       select('recommendation','Recommendation',['Advance','Hold','Reject'],'Advance') +
       '<div class="form-grid wide" id="round-fields"></div>' + notes('note','Observable evidence',true);
   } else if(kind==='correction' && candidate){
-    title='Correct candidate details · '+candidate.alias;
-    fields=field('alias','Candidate code',{required:true,max:40,value:candidate.alias})+select('source','Source',sources,candidate.source)+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],candidate.availability||'To confirm')+field('notice','Notice period',{required:true,value:candidate.notice||'To confirm'})+field('market','Target client markets',{value:candidate.market||''})+notes('note','Correction reason (original history is preserved)',true);
+    title='Correct candidate details · '+candidateCaption(candidate);
+    fields=field('name','Candidate full name',{required:true,max:120,wide:true,value:candidate.name||''})+field('alias','Candidate code',{required:true,max:40,value:candidate.alias})+select('source','Source',sources,candidate.source)+select('availability','Availability',['To confirm','Available now','Within 2 weeks','Within 1 month','Later'],candidate.availability||'To confirm')+field('notice','Notice period',{required:true,value:candidate.notice||'To confirm'})+field('market','Target client markets',{value:candidate.market||''})+notes('note','Correction reason (original history is preserved)',true,candidate.name?'':'Candidate name added');
   } else if (kind === 'commission' && candidate) {
-    title='Commission review · '+candidate.alias;
+    title='Commission review · '+candidateCaption(candidate);
     fields=select('commission_plan','Agreed structure',['10 / 20 / 30 recurring','Other agreed terms'],candidate.commission_plan||'10 / 20 / 30 recurring')+select('commission_ack','Candidate acknowledgement',['Pending','Accepted','Declined'],candidate.commission_ack||'Pending')+notes('terms_detail','Agreed boundaries and exceptional terms (including AUD 1,000)',true,candidate.terms_detail||'')+notes('note','Terms explained / next action (public-safe)',true);
   } else if (kind === 'summary') {
     title = 'Daily COO summary';
@@ -445,7 +448,7 @@ function openForm(kind,id = '',restored = null) {
   show('<form id="entry" data-kind="' + e(kind) + '" data-id="' + e(id) +
     '" data-request="' + e(restored?.request || newId()) + '" data-revision="' + revision +
     '"><div class="section-top"><h2 id="dialog-title">' + e(title) + '</h2>' + btn('Close','close') +
-    '</div><p class="public-note">Public workspace. Use candidate codes and public-safe notes. Fields marked * are required.</p>' +
+    '</div><p class="public-note">Candidate names are visible in this workspace. Keep contact details and document contents out of notes. Fields marked * are required.</p>' +
     '<div class="form-grid">' + (['candidate','recordaction'].includes(kind)?'<input type="hidden" name="event_date" value="'+e(dateSL())+'">':field('event_date','Event date (SL)',{kind:'date',required:true,value:kind === 'summary' ? reportDate : dateSL()})) + fields + '</div>' +
     '<p class="form-error" role="alert"></p><div class="form-actions">' + btn('Discard draft','discard') +
     '<button class="btn primary'+(kind==='recordaction'&&!recordStates(events).get(id)?.deleted?' danger':'')+'" type="submit">'+e(submitLabel)+'</button></div></form>');
@@ -466,7 +469,7 @@ function openForm(kind,id = '',restored = null) {
   openedForm.dataset.restored=restored?'1':'';
   openedForm.dataset.submitLabel=submitLabel;
   openedForm.addEventListener('invalid',event=>{const input=event.target;for(let d=input.closest('details');d;d=d.parentElement?.closest('details'))d.open=true;},true);
-  dialog.querySelector(kind==='candidate'?'[name="alias"]':'input:not([type="hidden"]),select,textarea')?.focus();
+  dialog.querySelector(kind==='candidate'?'[name="name"]':'input:not([type="hidden"]),select,textarea')?.focus();
 }
 function setRoundFields(round) {
   const form=dialog.querySelector('#entry');
@@ -666,9 +669,9 @@ document.addEventListener('click',async event => {
     return;
   }
   if (action === 'csv') {
-    const rows = [['Code','Position','Stage','Owner','Next action','Due','Attention']];
+    const rows = [['Name','Code','Position','Stage','Owner','Next action','Due','Attention']];
     for (const candidate of filteredCandidates()) rows.push([
-      candidate.alias,jobTitle(candidate.job_id),candidate.stage,candidate.owner,candidate.action,candidate.due,attention(candidate)
+      candidate.name||'',candidate.alias,jobTitle(candidate.job_id),candidate.stage,candidate.owner,candidate.action,candidate.due,attention(candidate)
     ]);
     download('QuidEdge-candidates-' + dateSL() + '.csv',rows.map(row => row.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
     return;
@@ -814,7 +817,7 @@ startSyncTimer();
 
 function recordTitle(event){
  const projected=project(events), candidate=projected.candidates.find(c=>c.id===(event.subject_id||event.id));
- return event.kind==='candidate'?candidate?.alias||event.payload.alias:event.kind==='job'?event.payload.title:(candidate?.alias?candidate.alias+' · ':'')+eventLabel(event);
+ return event.kind==='candidate'?(candidate?candidateCaption(candidate):event.payload.name||event.payload.alias):event.kind==='job'?event.payload.title:(candidate?candidateCaption(candidate)+' · ':'')+eventLabel(event);
 }
 function eventControls(event){
  if(event.payload.operation||['Document stored','Document availability checked'].includes(event.payload.event))return '';
@@ -845,7 +848,7 @@ function formActionLabel(kind,id,editing=false){
 }
 function draftTitle(draft){
  const all=project(events),target=events.find(e=>e.id===draft.id),candidate=all.candidates.find(c=>c.id===(target?.subject_id||draft.id));
- const owner=candidate?.alias||all.jobs.find(j=>j.id===draft.id)?.title||draft.values.alias||draft.values.title||'New entry';
+ const owner=(candidate?candidateCaption(candidate):'')||all.jobs.find(j=>j.id===draft.id)?.title||draft.values.alias||draft.values.title||'New entry';
  const labels={stage:'Stage and schedule',candidate:'New candidate',commission:'Commission review',score:'Scorecard',checklist:'Hiring checklist',activity:'Milestone',correction:'Candidate details',recordaction:'Record management',summary:'Daily summary',job:'Position'};
  return owner+' — '+(labels[draft.kind]||draft.kind);
 }
@@ -865,7 +868,7 @@ function nextCandidateAction(candidate){
  if(['R1 Scheduled','R2 Scheduled'].includes(candidate.stage))return {label:'Review interview booking',action:'stage',description:'Confirm the interview time and next action.'};
  return {label:'Review next stage',action:'stage',description:candidate.action||'Choose the next step and its owner.'};
 }
-function bookingPreview(){const bookings=scheduledInterviews().filter(({slot})=>+new Date(slot+':00+05:30')>=Date.now()).slice(0,3);return bookings.length?table(['Candidate','Round','Sri Lanka time','Action'],bookings.map(({candidate,round,slot})=>[e(candidate.alias),e(round),e(slot.replace('T',' ')),btn('Review booking','stage',candidate.id)])):empty('No upcoming interviews are booked.');}
+function bookingPreview(){const bookings=scheduledInterviews().filter(({slot})=>+new Date(slot+':00+05:30')>=Date.now()).slice(0,3);return bookings.length?table(['Candidate','Round','Sri Lanka time','Action'],bookings.map(({candidate,round,slot})=>[candidateIdentity(candidate),e(round),e(slot.replace('T',' ')),btn('Review booking','stage',candidate.id)])):empty('No upcoming interviews are booked.');}
 
 async function showInterviewDetails(id){
  const c=candidateById(id);
@@ -879,7 +882,7 @@ async function showInterviewDetails(id){
   if (!dialog.open || !loading.isConnected) return;
   const prior=data.meetings.find(m=>m.candidate_id===id),currentBooking=interviewRevision(events,c),m=prior?.round===round&&prior?.slot===slot&&prior?.booking_seq===currentBooking?prior:{};
   const status=m.enabled&&data.email_ready===false?'Email activation or quota needs attention. The reminder will wait for the email service.':m.status==='sending'?'Sending / awaiting confirmation':m.status==='sent'?'Email service accepted the reminder':m.status==='needs-review'?'Delivery could not be confirmed. Check with the recipient before scheduling another reminder.':m.status==='pending'?'Scheduled — checked every minute. Email delivery can take longer.':'Reminder off';
-  show('<h2>Zoom & email reminder</h2><p>'+e(c.alias+' · '+round+' · '+slot.replace('T',' ')+' Sri Lanka time')+'</p><p role="status">'+e(status)+'</p>'+(data.email_ready===false?'<p class="hint">Zoom links can be saved now. Automatic email is waiting for Google email authorization or available daily quota.</p>':'')+ (m.zoom?'<p><a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+e(m.zoom)+'">Open Zoom meeting</a></p>':'')+'<form id="interview-entry" class="form-grid" data-id="'+e(id)+'" data-round="'+round+'" data-slot="'+e(slot)+'" data-version="'+e(prior?.version||'')+'">'+field('zoom','Zoom meeting link',{kind:'url',value:m.zoom||'',wide:true})+select('enabled','Automatic email reminder',[['false','Off'],['true','On']],String(m.enabled||false))+field('remind_at','Send reminder at (Sri Lanka time)',{kind:'datetime-local',value:m.remind_at||'',wide:true})+'<p class="hint wide">Recipient: prasad.quidedge@gmail.com. Choose a time before the interview. Rescheduling requires a new reminder; cancelling or moving the candidate to Trash stops pending reminders.</p><p class="form-error wide" role="alert"></p><div class="form-actions wide">'+btn('Close','close')+'<button class="btn primary" type="submit">Save meeting details</button></div></form>');
+  show('<h2>Zoom & email reminder</h2><p>'+e(candidateCaption(c)+' · '+round+' · '+slot.replace('T',' ')+' Sri Lanka time')+'</p><p role="status">'+e(status)+'</p>'+(data.email_ready===false?'<p class="hint">Zoom links can be saved now. Automatic email is waiting for Google email authorization or available daily quota.</p>':'')+ (m.zoom?'<p><a class="btn primary" target="_blank" rel="noopener noreferrer" href="'+e(m.zoom)+'">Open Zoom meeting</a></p>':'')+'<form id="interview-entry" class="form-grid" data-id="'+e(id)+'" data-round="'+round+'" data-slot="'+e(slot)+'" data-version="'+e(prior?.version||'')+'">'+field('zoom','Zoom meeting link',{kind:'url',value:m.zoom||'',wide:true})+select('enabled','Automatic email reminder',[['false','Off'],['true','On']],String(m.enabled||false))+field('remind_at','Send reminder at (Sri Lanka time)',{kind:'datetime-local',value:m.remind_at||'',wide:true})+'<p class="hint wide">Recipient: prasad.quidedge@gmail.com. Choose a time before the interview. Rescheduling requires a new reminder; cancelling or moving the candidate to Trash stops pending reminders.</p><p class="form-error wide" role="alert"></p><div class="form-actions wide">'+btn('Close','close')+'<button class="btn primary" type="submit">Save meeting details</button></div></form>');
  }catch(err){if(dialog.open&&loading.isConnected)show('<h2>Meeting details unavailable</h2><p role="alert">'+e(err.message)+'</p>'+btn('Close','close'));}
 }
 dialog.addEventListener('submit',async event=>{

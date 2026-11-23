@@ -52,7 +52,9 @@ async function documentApi(request,env) {
       json({event:saved,uploaded:true}):error('This upload request ID is already in use.',409);
   }
   const position=await jobHistory(db,candidate.job_id);
-  if(!position || position.profile!=='client-acquisition-v1')return error('This upload is for the Client Acquisition & Client Relations position.');
+  if(!position)return error('Restore the candidate’s position before uploading documents.',409);
+  // All positions use the same owner-configured private bridge. Candidate UUIDs isolate folders.
+  // Keep the existing destination so prior uploads, receipts and cleanup remain discoverable.
   const payload={event:'Document stored',upload_fingerprint:fingerprint,document_type:input.document_type,note:(input.document_type==='cv'?'CV':'Cover letter')+' stored in private Drive. Verify current availability before relying on this receipt.'};
   await db.prepare('INSERT INTO document_outbox (id,candidate_id,fingerprint,document_type,event_date,payload) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING')
    .bind(input.id,input.candidate_id,fingerprint,input.document_type,dateSL(),JSON.stringify(payload)).run();

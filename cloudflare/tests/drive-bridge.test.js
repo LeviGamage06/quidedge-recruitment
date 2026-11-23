@@ -64,3 +64,10 @@ test('permanent cleanup erases candidate files and scrubs every managed backup w
  const backup=b.root.children.find(f=>f.name==='_System backups');assert.equal(backup.files.length,1);assert.doesNotMatch(backup.files[0].blob.getDataAsString(),/ERASE-ME/);assert.match(backup.files[0].blob.getDataAsString(),/KEEP-ME/);
  assert.equal(b.send(p).cleaned,true);assert.equal(b.send({action:'backup',first:1,last:1,records:[{seq:1,id:cid}]}).code,'STALE_BACKUP');assert.equal(b.send().code,'PURGED');
 });
+
+test('shared recruitment destination isolates candidates from different positions by UUID',()=>{
+ const b=bridge(),other='11111111-1111-4111-8111-111111111119';
+ assert.equal(b.send().ok,true);assert.equal(b.send({id:'11111111-1111-4111-8111-111111111118',candidate_id:other,alias:'QE-OTHER',name:'Synthetic Partnerships Applicant',document_type:'cover',fingerprint:'other-cover'}).ok,true);
+ const role=b.root.children[0];assert.equal(role.children.length,2);assert.notEqual(role.children[0].description,role.children[1].description);
+ assert.equal(b.send({action:'status'}).cv,'Available');assert.equal(b.send({action:'status'}).cover,'Missing');assert.equal(b.send({action:'status',candidate_id:other}).cv,'Missing');assert.equal(b.send({action:'status',candidate_id:other}).cover,'Available');
+});

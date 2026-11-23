@@ -129,15 +129,15 @@ function candidateTable(candidates,action='stage',label='Update stage') {
   return table(['Candidate','Position','Stage','Next action','Attention','Actions'],candidates.map(candidate => {
     const flag = attention(candidate);
     return [
-      candidateIdentity(candidate)+'<small>' + e(candidate.source) + '</small><small>CV (last receipt/check): '+e(candidate.documents?.cv||'Missing')+' · Cover letter: '+e(candidate.documents?.cover||'Missing')+'</small>',
-      e(jobTitle(candidate.job_id)),
+      candidateIdentity(candidate)+'<small>' + e(candidate.source) + '</small><div class="candidate-documents" aria-label="Documents, last recorded status"><span>CV: '+e(candidate.documents?.cv||'Missing')+'</span><span>Cover letter: '+e(candidate.documents?.cover||'Missing')+'</span></div>',
+      '<span class="candidate-position">'+e(jobTitle(candidate.job_id))+'</span><small>'+e(jobById(candidate.job_id)?.location||'Market not specified')+'</small>',
       tag(candidate.stage,candidate.stage === 'Hired' ? 'good' : 'blue'),
       closed.includes(candidate.stage) ? e(candidate.stage==='Hired'?'Hiring completed':'Process closed')+(candidate.start_date?'<small>Start date · '+e(candidate.start_date)+'</small>':'') : e(candidate.action || 'Set the next step') + '<small>' + e(candidate.due || 'No due date') +' · ' + e(candidate.owner || 'No owner') + '</small>',
       tag(flag,['Overdue','Needs decision','Missing next step'].includes(flag) ? 'warn' : ''),
       '<div class="row-actions">' + btn('View record','view',candidate.id) +
         (closed.includes(candidate.stage)?'':btn(label,action,candidate.id,true)) + dangerBtn('Move to Trash','delete-record',candidate.id) + '</div>'
     ];
-  }));
+  }),{className:'candidate-table',label:'Candidates'});
 }
 function overview() {
   const candidates = state.candidates;
@@ -861,7 +861,7 @@ function historyTitle(event,candidate){
 }
 function nextCandidateAction(candidate){
  if(closed.includes(candidate.stage))return {label:'Review candidate details',action:'correction',description:candidate.stage==='Hired'?'Hiring completed. Review the record if any details need updating.':'This hiring process is closed. Review details or reopen it through the stage controls.'};
- if(jobById(candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
+ if(jobById(candidate.job_id)&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
  if(candidate.commission_ack!=='Accepted'||!candidate.terms_detail)return {label:'Review commission terms',action:'commission',description:'Record the candidate’s acknowledgement and agreed boundaries before progressing.'};
  if(['R1 Review','R2 Review'].includes(candidate.stage))return {label:'Complete interview scorecard',action:'score',description:'Record observed evidence before deciding the next stage.'};
  if(candidate.stage==='Offer / Agreement')return {label:'Review hiring checklist',action:'checklist',description:'Confirm all hiring requirements before marking the candidate hired.'};

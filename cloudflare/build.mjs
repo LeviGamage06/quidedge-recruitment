@@ -6,9 +6,10 @@ const root=fileURLToPath(new URL('./',import.meta.url));
 const names=['index.html','styles.css','app.js','model.js','store.js','config.js','guide.js','role.js','documents.js','record-utils.js'];
 const assets={};
 for(const name of names)assets['/'+name]={body:await readFile(root+'src/'+name,'utf8'),type:name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.html')?'text/html; charset=utf-8':'application/javascript; charset=utf-8'};
+assets['/styles.css'].body+='\n'+await readFile(root+'src/responsive.css','utf8');
 const appSource=assets['/app.js'].body+'\n'+await readFile(root+'src/workspace.js','utf8');
 const bundledApp=await build({stdin:{contents:appSource,resolveDir:root+'src',sourcefile:'app.js'},bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
-assets['/app.js'].body=bundledApp.outputFiles[0].text;
+assets['/app.js'].body=bundledApp.outputFiles[0].text+'\n'+await readFile(root+'src/enhancements.js','utf8');
 const version=createHash('sha256').update(JSON.stringify(assets)).digest('hex').slice(0,12);
 for(const asset of Object.values(assets))asset.body=asset.body.replace(/\?v=[a-f0-9]+/g,'?v='+version);
 let server=await readFile(root+'src/api.js','utf8');
@@ -22,6 +23,7 @@ const result=await build({stdin:{contents:appSource,resolveDir:root+'src',source
   bundle:true,write:false,format:'iife',platform:'browser',target:'es2022',
   plugins:[{name:'github-api',setup(b){b.onLoad({filter:/config\.js$/},()=>({contents:"export const config={eventsUrl:'https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/api/events'};",loader:'js'}));}}]});
 const standalone=assets['/index.html'].body.replace(/<link rel="stylesheet"[^>]+>/,'<style>'+assets['/styles.css'].body+'</style>')
- .replace(/<script type="module" src="[^\"]+"><\/script>/,'<script>'+result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script')+'</script>');
+ .replace(/<script type="module" src="[^\"]+"><\/script>/,'<script>'+(result.outputFiles[0].text+'\n'+await readFile(root+'src/enhancements.js','utf8')).replace(/<\/script/gi,'<\\/script')+'</script>');
 await writeFile(root+'../index.html',standalone);
 console.log('Built standalone Worker and GitHub frontend · '+version);
+

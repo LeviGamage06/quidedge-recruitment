@@ -33,7 +33,7 @@ async function activateRole() {
 }
 function cooView() {
   queueMicrotask(()=>loadMaintenanceStatus());
-  const relatedJobs=state.jobs.filter(j=>j.profile==='client-acquisition-v1'||j.id===hiringRole.id);
+  const relatedJobs=state.jobs;
   const ids=new Set(relatedJobs.map(j=>j.id));
   const candidates=state.candidates.filter(c=>ids.has(c.job_id));
   const active=candidates.filter(c=>!closed.includes(c.stage));
@@ -43,7 +43,7 @@ function cooView() {
   const review=active.filter(c=>['R1 Review','R2 Review','Reference Check','Offer / Agreement'].includes(c.stage));
   const stats=[['Active candidates',active.length],['Due / overdue',due.length],['Documents incomplete',documents.length],['Terms to confirm',terms.length]];
   const summaries=events.filter(x=>x.kind==='summary'&&x.event_date===dateSL());
-  return heading('COO recruitment workspace','Client Acquisition & Client Relations · Daily priorities and review queue',
+  return heading('COO recruitment workspace','All hiring positions · Daily priorities and review queue',
     '<div class="toolbar">'+btn('Role & commission terms','role-view')+btn('+ Add candidate','candidate','',true)+'</div>')+
     '<div class="coo-stats">'+stats.map(([title,total])=>'<div class="panel"><span>'+e(title)+'</span><strong>'+total+'</strong></div>').join('')+'</div>'+
     panel('Today’s next actions',candidateTable(due))+
@@ -110,3 +110,4 @@ async function loadMaintenanceStatus(){
  const target=document.querySelector('#maintenance-state');if(!target)return;
  try{const response=await fetch(apiBase+'/maintenance',{cache:'no-store'});const status=await response.json();if(!response.ok)throw Error();if(target.isConnected)target.textContent='Last successful maintenance: '+(status.last_success?new Date(status.last_success).toLocaleString('en-LK',{timeZone:'Asia/Colombo'})+' SL':'Not yet run')+' · Private event backup through record '+status.backup_cursor+' · Pending document confirmations: '+status.pending_receipts+'. File availability is verified separately.';}catch{if(target.isConnected)target.textContent='Maintenance status unavailable. Ask the owner to check the scheduled Worker.';}
 }
+

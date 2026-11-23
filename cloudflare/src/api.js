@@ -28,6 +28,7 @@ CREATE INDEX recruitment_events_kind_seq ON recruitment_events(kind, seq);
 
 */
 import {planPurge} from './purge-plan.js';
+import {publicJobResponse} from './public-jobs.js';
 import {stages,closed,milestones,checklistItems,dateSL,project,stageProblem,validDate,privacyProblem,recordStates,visibleEvents,interviewRevision} from './model.js';
 import {validateDocumentBytes} from './binary.js';
 const eventFields = {
@@ -277,6 +278,7 @@ export default {
   async scheduled(controller,env,ctx){ctx.waitUntil((async()=>{if(!env.DB)return;if(await purgeActive(env.DB))return runPurge(env);return dispatchInterviewReminders(env);})());if(!controller.scheduledTime||new Date(controller.scheduledTime).getUTCMinutes()%10===0)ctx.waitUntil(maintenance(env));},
   async fetch(request,env) {
     const url = new URL(request.url);
+    if(url.pathname==='/api/public-job')return publicJobResponse(request,env);
     if (['/api/trash','/api/interviews','/api/events','/api/documents','/api/integrations','/api/bootstrap','/api/document-status','/api/maintenance'].includes(url.pathname)) {
       const origin = request.headers.get('Origin');
       const allowed = origin === 'https://levigamage06.github.io' || origin === 'https://quidedge-hire.pages.dev' || origin === url.origin;
@@ -312,4 +314,5 @@ export default {
     });
   }
 };
+
 

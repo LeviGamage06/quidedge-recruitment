@@ -80,6 +80,113 @@ dialog h2{max-width:calc(100% - 85px)}
 .role-position-content>.panel{margin:0;box-shadow:none;border:1px solid var(--line);background:rgba(255,255,255,.55)}
 .role-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
 @media(max-width:500px){.role-position-summary{flex-wrap:wrap}.role-position-summary>.tag{margin-left:0}}
+
+
+/* Responsive and accessible recruitment workspace refinements. */
+:root{--muted:#555c50;--line:#d7dace;--focus:#81400b;--surface:#fafaf3}
+html{scroll-padding-top:100px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{line-height:1.5;min-width:280px}
+main,.top,.intro,.toolbar,.panel,.section-top,.field{min-width:0}
+main{padding-bottom:max(48px,env(safe-area-inset-bottom));}
+.top{border-bottom:1px solid #d7dace;padding-block:14px;background:rgba(239,239,226,.97)}
+.top nav{gap:6px;min-width:0}
+.top nav a,.btn,.pill{min-height:44px;line-height:1.35}
+.top nav a{font-size:.84rem;padding:10px 13px}
+.btn{white-space:normal;text-align:center;max-width:100%;touch-action:manipulation}
+.btn:disabled{cursor:not-allowed}
+.btn:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.intro{align-items:flex-start;gap:18px;margin-block:8px 24px}
+.intro>div:first-child{flex:1 1 360px;min-width:0}
+.intro h1{font-size:clamp(28px,3.2vw,44px);line-height:1.12;letter-spacing:-.045em;overflow-wrap:anywhere}
+.sub{line-height:1.55;max-width:70ch}
+.section-top{align-items:center;gap:12px}
+.section-top h2{font-size:clamp(20px,2vw,25px);line-height:1.25;letter-spacing:-.03em;overflow-wrap:anywhere}
+.panel{border:1px solid #e1e2d6;box-shadow:0 2px 4px #24261703}
+.panel p{line-height:1.6}
+.toolbar{gap:8px}.toolbar>.field{flex:1 1 180px}
+.tag{white-space:normal;line-height:1.4;overflow-wrap:anywhere;font-size:.78rem}
+.metric{min-height:110px}.metric-label{font-size:.85rem;line-height:1.35}.metric strong{margin-top:12px;font-variant-numeric:tabular-nums}
+.metric:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.split{grid-template-columns:repeat(2,minmax(0,1fr))}
+.scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+table{table-layout:auto;line-height:1.5}th,td{padding:14px 12px;overflow-wrap:anywhere}
+th:first-child,td:first-child{padding-left:0}th:last-child,td:last-child{padding-right:0}
+thead th{font-size:.72rem}td{font-size:.9rem}td small{font-size:.79rem;line-height:1.5}
+.row-actions{flex-wrap:wrap;gap:8px}.row-actions .btn{min-height:44px;padding:9px 12px;font-size:.8rem}
+.cell-content{display:block;min-width:0}.cell-content>small{display:block}
+.field{display:block;font-size:.86rem;line-height:1.5;font-weight:650}
+.field>input,.field>select,.field>textarea{display:block;margin-top:6px}
+.required{display:inline;color:#843d16;margin-left:2px}
+input,textarea,select{font-size:16px;line-height:1.4;min-height:46px;max-width:100%;background:#fffef9;padding:11px 12px}
+textarea{min-height:110px;line-height:1.6}textarea[name=description]{min-height:240px}
+input[type=file]{font-size:.87rem;padding:9px;overflow:hidden}
+input[type=file]::file-selector-button{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:9px;margin-right:10px;font:inherit}
+input[type=checkbox],input[type=radio]{min-height:24px;width:24px;max-width:24px;accent-color:#87511a}
+input[type=date],input[type=datetime-local]{min-width:0;max-width:100%;min-height:46px}
+.filters{grid-template-columns:minmax(200px,2fr) repeat(5,minmax(120px,1fr));gap:12px}
+.filters .field{font-size:.82rem}.filters #search{font-weight:400}
+.form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.form-grid>.wide{grid-column:1/-1}.form-grid fieldset{min-width:0}
+.form-actions{gap:10px;bottom:-22px;padding:12px 0 max(8px,env(safe-area-inset-bottom));isolation:isolate}
+.form-error:not(:empty){padding:12px 14px;background:#fff0e9;border:1px solid #d49b8b;border-radius:10px;color:#7b2922;font-weight:600;line-height:1.5;grid-column:1/-1}
+.field-error{display:block;color:#7b2922;font-size:.8rem;font-weight:500;margin-top:5px}
+[aria-invalid=true]{border-color:#a33b2c;box-shadow:0 0 0 1px #a33b2c}
+.hint,.public-note{font-size:.84rem}.public-note{line-height:1.55}.empty{line-height:1.65}
+dialog{width:min(760px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:22px;scroll-padding:84px 0 100px;overflow-y:auto;overflow-x:hidden}
+dialog:modal{overscroll-behavior:contain}body:has(dialog[open]){overflow:hidden}
+dialog h2{font-size:clamp(21px,2.4vw,28px);line-height:1.25;overflow-wrap:anywhere;max-width:none;letter-spacing:-.035em}
+dialog .dialog-heading{position:sticky;top:-22px;z-index:3;background:var(--surface);padding:14px 0 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:space-between;gap:14px;margin:0 0 16px}
+.dialog-heading h2{flex:1;min-width:0;margin:0}.dialog-heading .btn{flex:0 0 auto;min-width:68px}
+.form-section{padding-inline:12px}.form-section summary,dialog summary{line-height:1.5;min-height:46px;padding-block:12px}
+.record-details{grid-template-columns:minmax(100px,1fr) minmax(0,2fr)}
+#notice{z-index:20;bottom:max(16px,env(safe-area-inset-bottom));line-height:1.5;max-width:min(520px,calc(100% - 32px));box-shadow:0 4px 20px #191b1730}
+.role-position{margin-top:16px}.role-position-summary{display:flex;align-items:flex-start;gap:16px;justify-content:space-between;list-style:none;padding:4px 0;min-height:50px}
+.role-position-summary::-webkit-details-marker{display:none}
+.role-position-summary>span:first-child{flex:1;min-width:0}.role-position-summary strong{display:block;font-size:1.1rem;line-height:1.45}
+.role-position-summary small{display:block;font-size:.83rem;line-height:1.5;margin-top:7px}
+.role-position-summary::after{content:'Show details';font-size:.78rem;flex:none;color:#685125;border:1px solid #ded4be;padding:7px 10px;border-radius:20px}
+details[open]>.role-position-summary::after{content:'Hide details'}
+.role-position-content{display:grid;gap:16px;padding-top:16px}.role-position-content>.panel{margin:0;border:1px solid var(--line);background:#fffef780;padding:18px}
+.role-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
+.role-text.rich-copy{white-space:normal;max-width:80ch}.rich-copy h3{font-size:1.12rem;margin:24px 0 12px;line-height:1.4;letter-spacing:-.02em}.rich-copy h4{font-size:1rem;margin:20px 0 10px}.rich-copy p{margin:10px 0}.rich-copy ul,.rich-copy ol{padding-left:24px;margin:10px 0 18px}.rich-copy li{padding:4px 0}.rich-copy>*:first-child{margin-top:0}
+.mobile-nav-toggle{display:none}.nav-context{display:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.scope-note{border-left:3px solid #b98738;padding:10px 14px;background:#f3ead7;margin-block:12px 18px;font-size:.85rem;line-height:1.6}
+.share-jd-box{padding:16px;background:#f3ead7;border:1px solid #dfc99b;border-radius:12px;display:grid;gap:12px}.share-jd-box input{font-size:.9rem;font-weight:400}.share-jd-box p{margin:0}
+#trash-cleanup-status{color:var(--muted);font-size:.82rem}
+@media(min-width:1101px){.top{display:grid;grid-template-columns:auto 1fr auto;gap:20px}.top nav{justify-content:center}.top .brand{font-size:30px}}
+@media(max-width:1200px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.split{grid-template-columns:1fr}}
+@media(max-width:1000px){
+ .top{display:grid;grid-template-columns:1fr auto;gap:10px 12px;padding:12px 20px;position:relative;z-index:5}
+ .brand{font-size:29px}.top .pill{grid-column:2;grid-row:1;font-size:.75rem;padding:8px 10px;min-height:40px}
+ .mobile-nav-toggle{display:flex;justify-content:space-between;grid-column:1/-1;width:100%;border-radius:12px;background:var(--surface);font-weight:650}
+ .top nav{display:none;grid-column:1/-1;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:8px;order:initial}
+ .top.mobile-nav-open nav{display:grid}.top nav a{border-radius:10px;padding:12px 10px;font-size:.86rem;white-space:normal;min-height:46px;text-align:center}
+ .mobile-nav-toggle::after{content:'Menu';font-size:.8rem;font-weight:500;color:var(--muted)}.mobile-nav-open .mobile-nav-toggle::after{content:'Close menu'}
+ main{padding-top:20px}.intro h1{font-size:32px}
+}
+@media(max-width:700px){
+ main{padding-inline:16px}.top{padding-inline:16px}.intro{margin-top:0;margin-bottom:20px}.intro>div:first-child{flex-basis:100%}.intro .toolbar{width:100%}.intro .toolbar>.btn{flex:1 1 135px}
+ .metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-block:16px}.metric{padding:14px 12px;min-height:100px;border-radius:14px}.metric-label{font-size:.8rem}.metric strong{font-size:30px}.metric-caption{display:none}
+ .coo-stats{gap:10px}.coo-stats .panel{margin:0;padding:14px;min-height:110px}.coo-stats{margin-bottom:16px}
+ .panel{padding:16px;border-radius:16px;margin-bottom:14px}.section-top{align-items:flex-start}.section-top h2{font-size:22px}.section-top>.btn{flex:none}
+ .filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.filters>.field:first-child{grid-column:1/-1}
+ .scroll{overflow:visible}table,thead,tbody,tr,td{min-width:0;width:100%}table{display:block}
+ tbody tr{padding:12px 0 16px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+ tbody tr:last-child{margin-bottom:0}td{display:grid;grid-template-columns:minmax(84px,30%) minmax(0,1fr);gap:10px;align-items:start;padding:9px 0;text-align:left}
+ td::before{font-size:.76rem;line-height:1.5;flex:initial}td .cell-content{min-width:0}td small,td .cell-content small{text-align:left;font-size:.79rem;line-height:1.5;margin-top:4px}
+ td .row-actions{justify-content:flex-start}td[data-label=Actions],td[data-label=Action]{display:block;padding-top:12px}td[data-label=Actions]::before,td[data-label=Action]::before{display:none}
+ td[data-label=Actions] .cell-content,td[data-label=Action] .cell-content{width:100%}.row-actions .btn{flex:1 1 100px;font-size:.82rem}
+ .form-grid{grid-template-columns:1fr;gap:16px}.form-grid>.wide{grid-column:1}.form-grid .field{min-width:0}
+ dialog{width:calc(100% - 20px);max-height:calc(100dvh - 20px);margin:auto;padding:18px;border-radius:18px;scroll-padding-top:90px}
+ dialog .dialog-heading{top:-18px;padding-top:12px;gap:10px}.dialog-heading h2{font-size:23px}.form-actions{bottom:-18px;gap:8px}.form-actions>.btn,.form-actions>button{flex:1 1 120px;min-height:48px}
+ .record-details{grid-template-columns:1fr}.record-details dd{margin-bottom:10px}
+ .role-position-summary{flex-wrap:wrap;gap:10px}.role-position-summary>span:first-child{flex-basis:100%}.role-position-summary::after{margin-left:auto}.role-position-content>.panel{padding:14px}.role-position-summary strong{font-size:1.06rem}
+ .guide-item{font-size:.94rem;line-height:1.65;padding-block:14px}.timeline{font-size:.94rem}.pagination{flex-wrap:wrap}
+}
+@media(max-width:360px){.top{grid-template-columns:1fr}.top .pill{grid-column:1;grid-row:2;justify-self:start}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr}.filters>.field:first-child{grid-column:auto}.top nav{grid-template-columns:1fr}.intro h1{font-size:28px}.section-top>.btn{width:100%}td{grid-template-columns:1fr;gap:4px}.role-position-content>.panel{padding:12px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+@media(forced-colors:active){.btn,.tag,.panel,.metric{border:1px solid CanvasText}.top nav a.active{outline:2px solid Highlight}}
+@media print{.top,.toolbar,.row-actions,.form-actions,#notice,.mobile-nav-toggle{display:none!important}body{background:white}main{max-width:none;padding:0}.panel{break-inside:avoid;border:1px solid #aaa;box-shadow:none}.role-position details:not([open]){display:none}}
 </style>
 </head>
 <body>
@@ -428,7 +535,7 @@ dialog h2{max-width:calc(100% - 85px)}
     } };
   }
 
-  // node_modules/fflate/esm/browser.js
+  // ../../work/test-deps/node_modules/fflate/esm/browser.js
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -622,6 +729,7 @@ dialog h2{max-width:calc(100% - 85px)}
     "stream finished",
     "no stream handler",
     ,
+    // determined by compression function
     "no callback",
     "invalid UTF-8 data",
     "extra field too long",
@@ -836,14 +944,28 @@ dialog h2{max-width:calc(100% - 85px)}
     return b + 30 + b2(d, b + 26) + b2(d, b + 28);
   };
   var zh = function(d, b, z) {
-    var fnl = b2(d, b + 28), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl, bs = b4(d, b + 20);
-    var _a2 = z && bs == 4294967295 ? z64e(d, es) : [bs, b4(d, b + 24), b4(d, b + 42)], sc = _a2[0], su = _a2[1], off = _a2[2];
-    return [b2(d, b + 10), sc, su, fn, es + b2(d, b + 30) + b2(d, b + 32), off];
+    var fnl = b2(d, b + 28), efl = b2(d, b + 30), fn = strFromU8(d.subarray(b + 46, b + 46 + fnl), !(b2(d, b + 8) & 2048)), es = b + 46 + fnl;
+    var _a2 = z64hs(d, es, efl, z, b4(d, b + 20), b4(d, b + 24), b4(d, b + 42)), sc = _a2[0], su = _a2[1], off = _a2[2];
+    return [b2(d, b + 10), sc, su, fn, es + efl + b2(d, b + 32), off];
   };
-  var z64e = function(d, b) {
-    for (; b2(d, b) != 1; b += 4 + b2(d, b + 2))
-      ;
-    return [b8(d, b + 12), b8(d, b + 4), b8(d, b + 20)];
+  var z64hs = function(d, b, l, z, sc, su, off) {
+    var nsc = sc == 4294967295, nsu = su == 4294967295, noff = off == 4294967295, e = b + l;
+    var nf = nsc + nsu + noff;
+    if (z && nf) {
+      for (; b + 4 < e; b += 4 + b2(d, b + 2)) {
+        if (b2(d, b) == 1) {
+          return [
+            nsc ? b8(d, b + 4 + 8 * nsu) : sc,
+            nsu ? b8(d, b + 4) : su,
+            noff ? b8(d, b + 4 + 8 * (nsu + nsc)) : off,
+            1
+          ];
+        }
+      }
+      if (z < 2)
+        err(13);
+    }
+    return [sc, su, off, 0];
   };
   function unzipSync(data, opts) {
     var files = {};
@@ -857,7 +979,7 @@ dialog h2{max-width:calc(100% - 85px)}
     if (!c)
       return {};
     var o = b4(data, e + 16);
-    var z = o == 4294967295 || c == 65535;
+    var z = b4(data, e - 20) == 117853008;
     if (z) {
       var ze = b4(data, e - 12);
       z = b4(data, ze) == 101075792;
@@ -2160,7 +2282,7 @@ dialog h2{max-width:calc(100% - 85px)}
   }
   function cooView() {
     queueMicrotask(() => loadMaintenanceStatus());
-    const relatedJobs = state.jobs.filter((j) => j.profile === "client-acquisition-v1" || j.id === hiringRole.id);
+    const relatedJobs = state.jobs;
     const ids = new Set(relatedJobs.map((j) => j.id));
     const candidates = state.candidates.filter((c) => ids.has(c.job_id));
     const active = candidates.filter((c) => !closed.includes(c.stage));
@@ -2172,7 +2294,7 @@ dialog h2{max-width:calc(100% - 85px)}
     const summaries = events.filter((x2) => x2.kind === "summary" && x2.event_date === dateSL());
     return heading(
       "COO recruitment workspace",
-      "Client Acquisition & Client Relations \xB7 Daily priorities and review queue",
+      "All hiring positions \xB7 Daily priorities and review queue",
       '<div class="toolbar">' + btn("Role & commission terms", "role-view") + btn("+ Add candidate", "candidate", "", true) + "</div>"
     ) + '<div class="coo-stats">' + stats.map(([title, total]) => '<div class="panel"><span>' + escape(title) + "</span><strong>" + total + "</strong></div>").join("") + "</div>" + panel("Today\u2019s next actions", candidateTable(due)) + '<div class="split">' + panel("Ready for COO review", candidateTable(review)) + panel("Commission acknowledgement", candidateTable(terms, "commission", "Review terms")) + "</div>" + panel("CV & cover letter checklist", documents.length ? table(["Candidate", "CV", "Cover letter", "Action"], documents.map((c) => [
       "<strong>" + escape(c.alias) + "</strong>",
@@ -2277,6 +2399,126 @@ dialog h2{max-width:calc(100% - 85px)}
     }
   }
 })();
+
+/* Presentation-only enhancements. Records and network requests stay in the app. */
+(() => {
+  const root=document.querySelector('#app'),dialog=document.querySelector('#dialog'),nav=document.querySelector('#nav');
+  if(!root||!dialog||!nav||document.querySelector('#workspace-menu'))return;
+  const header=nav.closest('.top');
+  const menu=document.createElement('button');
+  menu.id='workspace-menu';menu.type='button';menu.className='btn mobile-nav-toggle';
+  menu.setAttribute('aria-controls','nav');menu.setAttribute('aria-expanded','false');
+  header.insertBefore(menu,nav);
+  const media=window.matchMedia?.('(max-width:1000px)');
+  function closeMenu(){header.classList.remove('mobile-nav-open');menu.setAttribute('aria-expanded','false');}
+  menu.addEventListener('click',()=>{const open=header.classList.toggle('mobile-nav-open');menu.setAttribute('aria-expanded',String(open));});
+  nav.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
+  header.addEventListener('keydown',event=>{if(event.key==='Escape'&&header.classList.contains('mobile-nav-open')){closeMenu();menu.focus();}});
+  media?.addEventListener('change',closeMenu);
+  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const inline=s=>escape(s).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+  function richText(text){
+    let html='',paragraph=[],list='',items=[];
+    const flushParagraph=()=>{if(paragraph.length){html+='<p>'+paragraph.map(inline).join('<br>')+'</p>';paragraph=[];}};
+    const flushList=()=>{if(list){html+='<'+list+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+list+'>';list='';items=[];}};
+    for(const line of text.split(/\r?\n/)){
+      const heading=line.match(/^#{1,6}\s+(.+)$/),bullet=line.match(/^\s*[-*]\s+(.+)$/),ordered=line.match(/^\s*\d+[.)]\s+(.+)$/);
+      if(heading){flushParagraph();flushList();const level=line.startsWith('###')?'h4':'h3';html+='<'+level+'>'+inline(heading[1])+'</'+level+'>';}
+      else if(bullet||ordered){flushParagraph();const type=bullet?'ul':'ol';if(list&&list!==type)flushList();list=type;items.push((bullet||ordered)[1]);}
+      else if(!line.trim()){flushParagraph();flushList();}
+      else{flushList();paragraph.push(line);}
+    }
+    flushParagraph();flushList();return html;
+  }
+  let ticket=0,wasDialogOpen=false,view='';
+  const frame=window.requestAnimationFrame?.bind(window)||(callback=>setTimeout(callback,0));
+  const queue=()=>{if(!ticket)ticket=frame(()=>{ticket=0;enhance();});};
+  function enhance(){
+    const active=nav.querySelector('a.active,[aria-current=page]');
+    const menuLabel='Navigate · '+(active?.textContent.trim()||'Overview');
+    if(menu.textContent!==menuLabel)menu.textContent=menuLabel;
+    if(document.title!=='QuidEdge · '+(active?.textContent.trim()||'Recruitment'))document.title='QuidEdge · '+(active?.textContent.trim()||'Recruitment');
+    for(const cell of root.querySelectorAll('td[data-label]:not([data-cell-ready])')){
+      cell.dataset.cellReady='true';const content=document.createElement('div');content.className='cell-content';while(cell.firstChild)content.append(cell.firstChild);cell.append(content);
+    }
+    for(const table of root.querySelectorAll('table:not([data-table-ready])')){
+      table.dataset.tableReady='true';const title=table.closest('.panel')?.querySelector('h2')?.textContent.trim();if(title)table.setAttribute('aria-label',title);
+      for(const th of table.querySelectorAll('th'))th.scope='col';
+    }
+    for(const item of root.querySelectorAll('.role-text:not([data-copy-ready])')){
+      item.dataset.copyReady='true';const text=item.textContent;
+      if(/^#{1,6}\s|\*\*[^*]+\*\*|^\s*[-*]\s|^\s*\d+[.)]\s/m.test(text)){item.innerHTML=richText(text);item.classList.add('rich-copy');item.style.whiteSpace='normal';}
+    }
+    for(const detail of root.querySelectorAll('.role-position details:not([data-role-ready])')){
+      detail.dataset.roleReady='true';const button=detail.querySelector('[data-action=job]');if(button?.dataset.id)detail.dataset.jobId=button.dataset.id;
+      if(button?.dataset.id){
+        const toolbar=detail.querySelector('.toolbar');
+        const share=document.createElement('button');share.type='button';share.className='btn primary';share.textContent='Share JD with candidate';share.dataset.action='share-candidate-jd';share.dataset.id=button.dataset.id;toolbar?.append(share);
+        const hint=document.createElement('p');hint.className='hint';hint.textContent='Candidate links show this job only, on a separate careers page.';toolbar?.after(hint);
+      }
+    }
+    // Give every saved position a direct route to its own requirements.
+    if(location.hash==='#overview')for(const row of root.querySelectorAll('tr')){
+      const manage=row.querySelector('[data-action=job][data-id]');if(!manage||row.querySelector('[data-action=role-view]'))continue;
+      const actions=row.querySelector('.row-actions');if(!actions)continue;
+      const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='View job description';button.dataset.action='open-role-details';button.dataset.id=manage.dataset.id;actions.append(button);
+    }
+    const status=root.querySelector('.result-count');if(status&&!status.dataset.grammarReady){status.dataset.grammarReady='true';if(/^1 candidates/.test(status.textContent))status.textContent=status.textContent.replace('1 candidates','1 candidate');status.setAttribute('aria-live','polite');}
+    const search=root.querySelector('#search');if(search){search.placeholder='Search candidates or positions';search.setAttribute('aria-label','Search candidates or positions');}
+    const sameView=view===location.hash;view=location.hash;
+    if(!sameView)closeMenu();
+    if(dialog.open){
+      const title=dialog.querySelector('h2');
+      if(title){if(!title.id)title.id='dialog-title';dialog.setAttribute('aria-labelledby',title.id);
+        const close=dialog.querySelector('[data-action=close]');
+        if(close&&!title.closest('.dialog-heading')){
+          if(title.parentElement.classList.contains('section-top'))title.parentElement.classList.add('dialog-heading');
+          else{const bar=document.createElement('div');bar.className='dialog-heading';title.before(bar);bar.append(title,close);}
+        }
+      }
+      for(const error of dialog.querySelectorAll('.form-error')){error.setAttribute('role','alert');error.setAttribute('aria-live','assertive');}
+      for(const form of dialog.querySelectorAll('form'))for(const field of form.querySelectorAll('input,select,textarea')){
+        if(!field.id)field.id='qe-field-'+(field.name||'input')+'-'+Array.from(form.elements).indexOf(field);
+      }
+      if(!wasDialogOpen){const name=dialog.querySelector('[name=candidate_name],[name=name]');if(name&&name.type!=='hidden')name.focus({preventScroll:true});}
+    }
+    wasDialogOpen=dialog.open;
+  }
+  document.addEventListener('click',event=>{
+    const share=event.target.closest('[data-action=share-candidate-jd]');
+    if(share){
+      event.preventDefault();const url='https://quidedge-careers.inquiries-quidedge-au.workers.dev/jobs/'+encodeURIComponent(share.dataset.id);
+      const toolbar=share.closest('.toolbar');let box=toolbar.parentElement.querySelector('.share-jd-box');
+      if(!box){box=document.createElement('div');box.className='share-jd-box';const label=document.createElement('label');label.className='field';label.textContent='Candidate-only job link';const input=document.createElement('input');input.type='url';input.readOnly=true;input.value=url;input.setAttribute('aria-label','Candidate-only job link');label.append(input);const actions=document.createElement('div');actions.className='toolbar';const copy=document.createElement('button');copy.type='button';copy.className='btn primary';copy.textContent='Copy link';const open=document.createElement('a');open.className='btn';open.textContent='Preview candidate page';open.href=url;open.target='_blank';open.rel='noopener noreferrer';const status=document.createElement('p');status.className='hint';status.setAttribute('role','status');copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);status.textContent='Link copied. Ready to send to your candidate.';}catch{input.focus();input.select();status.textContent='Select and copy the link above.';}});actions.append(copy,open);box.append(label,actions,status);toolbar.after(box);}
+      box.querySelector('input').focus();box.querySelector('input').select();return;
+    }
+    const link=event.target.closest('[data-action=open-role-details]');if(!link)return;
+    event.preventDefault();const id=link.dataset.id;location.hash='role';
+    frame(()=>frame(()=>{
+      enhance();const details=Array.from(root.querySelectorAll('.role-position details')).find(x=>x.dataset.jobId===id);
+      if(details){details.open=true;details.scrollIntoView({block:'start',behavior:'instant'});const summary=details.querySelector('summary');summary?.focus({preventScroll:true});}
+    }));
+  });
+  dialog.addEventListener('invalid',event=>{
+    const input=event.target;if(!input.matches('input,textarea,select'))return;
+    // Reveal optional groups before the browser focuses an invalid required field.
+    for(let group=input.closest('details');group;group=group.parentElement?.closest('details'))group.open=true;
+    input.setAttribute('aria-invalid','true');
+    const id=(input.id||'qe-invalid-'+input.name)+'-error';let note=document.getElementById(id);
+    if(!note){note=document.createElement('small');note.className='field-error';note.id=id;input.after(note);}
+    note.textContent=input.validationMessage||'Check this field.';
+    const described=new Set((input.getAttribute('aria-describedby')||'').split(' ').filter(Boolean));described.add(id);input.setAttribute('aria-describedby',Array.from(described).join(' '));
+  },true);
+  dialog.addEventListener('input',event=>{
+    const input=event.target;if(!input.matches('[aria-invalid=true]')||!input.validity.valid)return;
+    input.removeAttribute('aria-invalid');const id=(input.id||'qe-invalid-'+input.name)+'-error';document.getElementById(id)?.remove();
+    const described=(input.getAttribute('aria-describedby')||'').split(' ').filter(x=>x&&x!==id);if(described.length)input.setAttribute('aria-describedby',described.join(' '));else input.removeAttribute('aria-describedby');
+  });
+  const observer=new MutationObserver(queue);
+  observer.observe(root,{childList:true,subtree:true});observer.observe(dialog,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});observer.observe(nav,{attributes:true,subtree:true,attributeFilter:['class','aria-current']});
+  window.addEventListener('hashchange',queue);queue();
+})();
 </script>
 </body>
 </html>
+

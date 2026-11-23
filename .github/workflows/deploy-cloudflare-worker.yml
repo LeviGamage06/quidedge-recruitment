@@ -32,8 +32,8 @@ jobs:
         run: npm run build --prefix cloudflare
       - name: Run regression tests
         run: npm test --prefix cloudflare
-      # Deployment uses freshly rebuilt, tested Worker assets from the source files.
-      # Generated repository snapshots are not deployed directly.
+      - name: Verify generated snapshots match the tested build
+        run: git diff --exit-code -- backend.js index.html cloudflare/worker.js
       - name: Check Cloudflare deploy authorization
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

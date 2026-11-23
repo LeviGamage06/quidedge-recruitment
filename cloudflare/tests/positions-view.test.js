@@ -5,16 +5,18 @@ import test from 'node:test';
 
 const enhancements=fs.readFileSync(new URL('../src/enhancements.js',import.meta.url),'utf8');
 const positionsRows=()=>`
-  <table><thead><tr><th>Role</th><th>Action</th></tr></thead><tbody>
+  <table class="positions-table"><thead><tr><th>Role</th><th>Action</th></tr></thead><tbody>
     <tr><td>Partnership Manager</td><td><div class="row-actions">
+      <a href="#role/job-1">View job description</a>
       <button type="button" data-action="job" data-id="job-1">Manage</button>
     </div></td></tr>
     <tr><td>Video Editor</td><td><div class="row-actions">
+      <a href="#role/job-2">View job description</a>
       <button type="button" data-action="job" data-id="job-2">Manage</button>
     </div></td></tr>
   </tbody></table>`;
 
-test('Positions view adds one job-description action per position, even after DOM updates',async()=>{
+test('Positions retain one job-description link each after enhancement and DOM updates',async()=>{
   const dom=new JSDOM(`<!doctype html><html><head><title>QuidEdge</title></head><body>
     <header class="top"><nav id="nav"><a class="active" href="#overview">Overview</a></nav></header>
     <main><div id="app">${positionsRows()}</div></main><dialog id="dialog"></dialog>
@@ -23,11 +25,12 @@ test('Positions view adds one job-description action per position, even after DO
   const {document}=window;
   const tick=()=>new Promise(resolve=>setTimeout(resolve,100));
   const check=()=>{
-    const buttons=[...document.querySelectorAll('#app [data-action="open-role-details"]')];
-    assert.equal(buttons.length,2,'one action for each of the two positions');
-    assert.deepEqual(buttons.map(button=>button.dataset.id),['job-1','job-2']);
+    const links=[...document.querySelectorAll('.positions-table a[href^="#role/"]')];
+    assert.equal(links.length,2,'one link for each position');
+    assert.deepEqual(links.map(link=>link.getAttribute('href')),['#role/job-1','#role/job-2']);
+    assert.equal(document.querySelectorAll('[data-action="open-role-details"]').length,0);
     for(const row of document.querySelectorAll('#app tbody tr')){
-      assert.equal(row.querySelectorAll('[data-action="open-role-details"]').length,1);
+      assert.equal(row.querySelectorAll('a[href^="#role/"]').length,1);
     }
   };
   try{

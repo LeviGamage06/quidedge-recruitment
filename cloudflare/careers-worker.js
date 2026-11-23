@@ -3,13 +3,14 @@ const UPSTREAM='https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/a
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const inline=value=>escape(value).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
 function markdown(value){
- let out='',paragraph=[],type='',items=[];
+ let out='',paragraph=[],type='',items=[],listStart=1;
  const para=()=>{if(paragraph.length){out+='<p>'+paragraph.map(inline).join('<br>')+'</p>';paragraph=[];}};
- const list=()=>{if(type){out+='<'+type+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+type+'>';items=[];type='';}};
+ const list=()=>{if(type){out+='<'+type+(type==='ol'?' start="'+listStart+'"':'')+'>'+items.map(x=>'<li>'+inline(x)+'</li>').join('')+'</'+type+'>';items=[];type='';}};
  for(const line of String(value||'').split(/\r?\n/)){
-  const h=line.match(/^#{1,6}\s+(.+)$/),b=line.match(/^\s*[-*]\s+(.+)$/),n=line.match(/^\s*\d+[.)]\s+(.+)$/);
+  const h=line.match(/^#{1,6}\s+(.+)$/),b=line.match(/^\s*[-*•]\s+(.+)$/),n=line.match(/^\s*(\d+)[.)]\s+(.+)$/);
   if(h){para();list();out+='<h3>'+inline(h[1])+'</h3>';}
-  else if(b||n){para();const next=b?'ul':'ol';if(type&&type!==next)list();type=next;items.push((b||n)[1]);}
+  else if(b||n){para();const next=b?'ul':'ol';if(type&&type!==next)list();if(!type)listStart=n?Math.min(Number(n[1]),9999):1;type=next;items.push(b?b[1]:n[2]);}
+  else if(/^\s*---+\s*$/.test(line)){para();list();out+='<hr>';}
   else if(!line.trim()){para();list();}else{list();paragraph.push(line);}
  }para();list();return out;
 }

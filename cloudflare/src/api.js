@@ -82,9 +82,9 @@ function validate(record) {
     return 'Complete all required fields.';
   }
   for (const [key,value] of Object.entries(payload)) {
-    if ((!required.includes(key) && !optional.includes(key)) || typeof value !== 'string' || value.length > (key==='description'?12000:600)) {
-      return 'Invalid field or text longer than 600 characters.';
-    }
+    if ((!required.includes(key) && !optional.includes(key)) || typeof value !== 'string') return 'This record contains an unsupported field or value.';
+    const limit=key==='description'?12000:600;
+    if(value.length>limit)return (key==='description'?'The full job description':'The '+key.replaceAll('_',' ')+' field')+' must be '+limit.toLocaleString('en-US')+' characters or fewer.';
     if (privacyProblem(value)) return 'Public records must omit names, phone numbers, email addresses and links. Use candidate codes.';
     if (['due','start_date','target_date'].includes(key) && value && !validDate(value)) return 'Choose a valid date.';
     if (['r1','r2'].includes(key) && value) {
@@ -226,7 +226,7 @@ async function api(request,env,url) {
       parameters.push(payload.alias,subject_id);
     }
     if (kind === 'stage') {
-      const stageError = stageProblem(payload,candidate,event_date);
+      const stageError = stageProblem(payload,candidate,event_date,currentState.jobs.find(job=>job.id===candidate.job_id));
       if (stageError) return error(stageError);
       if(['R1 Scheduled','R2 Scheduled'].includes(payload.stage)){
         const slot=payload.stage==='R1 Scheduled'?payload.r1:payload.r2;
@@ -239,13 +239,13 @@ async function api(request,env,url) {
 
   }
   if (kind === 'job' && payload.job_id) {
-    const job = await jobHistory(db,payload.job_id);
+    const job = currentState.jobs.find(job=>job.id===payload.job_id);
     if (!job) return error('Select an existing position.');
     if(job.deleted)return error('Restore the position from Trash before editing.');
     if(record.expected_seq!==job.revision)return error('Position changed. Reopen it before saving.',409);
   }
   if (kind === 'candidate') {
-    const job = await jobHistory(db,payload.job_id);
+    const job = currentState.jobs.find(job=>job.id===payload.job_id);
     if (!job || job.deleted || job.status !== 'Open') return error('Choose an open position.');
     if(job.profile==='client-acquisition-v1' && (!['Pending','Accepted','Declined'].includes(payload.commission_ack) || !payload.commission_plan || payload.commission_ack==='Accepted' && !payload.terms_detail?.trim())) return error('Record the commission structure and candidate acknowledgement.');
     conditions.push("NOT EXISTS (SELECT 1 FROM recruitment_events WHERE (kind='candidate' OR kind='activity' AND json_extract(payload,'$.event')='Candidate details corrected') AND lower(trim(json_extract(payload,'$.alias')))=lower(?))");

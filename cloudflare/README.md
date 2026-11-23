@@ -24,11 +24,11 @@ GitHub Actions runs these checks and verifies generated outputs. `index.html` is
 
 Keep the existing DB binding and encrypted `DRIVE_WEB_APP_SECRET`, and the `DRIVE_WEB_APP_URL` runtime variable. Never put credentials in source. `npm run deploy --prefix cloudflare` builds and deploys code; apply new tracked database migrations separately. Production's original schema and operations migration have been recorded in `d1_migrations`; do not rerun schema SQL manually.
 
-A GitHub Pages commit deploys the alternate frontend only. Worker and Google Apps Script deployments are separate. Update the existing Apps Script deployment to protocol 3, executing as the owner, with the existing secret. Preserve restricted sharing. When the schedule from `wrangler.jsonc` is applied, the cron `*/10 * * * *` reconciles pending Drive receipts and saves incremental private event backups. Maintenance state is visible in the COO workspace.
+A GitHub Pages commit deploys the alternate frontend only. Worker and Google Apps Script deployments are separate. Update the existing Apps Script deployment to protocol 3, executing as the owner, with the existing secret. Preserve restricted sharing. The configured cron `* * * * *` dispatches interview reminders and pending cleanup every minute. The Worker runs receipt reconciliation and private event backups on ten-minute boundaries. Maintenance state is visible in the COO workspace.
 
 ## Data and privacy
 
-Recruitment events remain append-only and SQL triggers reject UPDATE/DELETE. Candidate corrections add events. Candidate names and application bytes never enter public event records. Keep names and contact details out of all public notes; automated pattern checks do not recognize every kind of personal information.
+Recruitment events remain append-only for ordinary operations. SQL triggers reject UPDATE and reject DELETE except for the exact event IDs in a server-validated permanent Trash cleanup job. Candidate corrections add events. Candidate names and application bytes never enter public event records. Keep names and contact details out of all public notes; automated pattern checks do not recognize every kind of personal information.
 
 Uploads accept PDF, DOC and DOCX up to 5 MB, with structural checks and bounded DOCX expansion. These checks are not antivirus scanning. The private named folder can be renamed when the full name is corrected during an upload; original application files remain preserved. Receipts record prior storage; use Verify current file availability for an up-to-date check. The latest displayed availability remains a statement about the recorded check time.
 
@@ -48,7 +48,7 @@ The supplied 10% / 20% / 30% ranges overlap at exactly AUD 1,000. Amounts below 
 
 ## Reversible record management
 
-Candidates, positions, milestones, scorecards, checklists, commission reviews, candidate corrections and daily summaries support reversible deletion through Trash. No SQL row or private application file is permanently deleted. Restore the candidate before restoring its child history. System-generated document receipts remain read-only.
+Candidates, positions, milestones, scorecards, checklists, commission reviews, candidate corrections and daily summaries support reversible deletion through Trash. Moving to Trash does not remove SQL rows or private application files. The separate permanent-cleanup workflow can remove them after its explicit confirmation and dependency checks. Restore the candidate before restoring its child history. System-generated document receipts remain read-only.
 
 Editable history entries append a replacement linked with `supersedes`; the original audit evidence remains in exports. Deletion and restoration append control records using the existing event schema, so this update needs no new database migration. Candidate codes remain reserved by historical records. Booking conflicts and stale edits are checked before saving; restored bookings cannot overlap another active interview.
 

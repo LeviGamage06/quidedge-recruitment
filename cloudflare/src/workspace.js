@@ -49,15 +49,17 @@ function cooView() {
     '<div class="split">'+panel('Ready for COO review',review.length?candidateTable(review):empty('No candidates are waiting for an interview, reference or offer review.'))+panel('Commission acknowledgement',terms.length?candidateTable(terms,'commission','Review terms'):empty('All active candidates have accepted commission terms and recorded boundaries.'))+'</div>'+
     panel('CV & cover letter checklist',documents.length?table(['Candidate','CV','Cover letter','Action'],documents.map(c=>[
       '<strong>'+e(c.alias)+'</strong>',tag(c.documents?.cv||'Missing',c.documents?.cv==='Available'?'good':'warn'),
-      tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn('Upload documents','documents',c.id,true)
+      tag(c.documents?.cover||'Missing',c.documents?.cover==='Available'?'good':'warn'),btn(jobById(c.job_id)?.profile==='client-acquisition-v1'?'Upload documents':'View document setup','documents',c.id,true)
     ])):empty(active.length?'All active candidates have both application documents.':'No active candidates need document review.'))+
     panel('Daily COO handover',summaries.length?'<p>'+e(summaries.at(-1).payload.progress)+'</p><p><strong>Blockers / decisions:</strong> '+e(summaries.at(-1).payload.blockers||'None recorded')+'</p><p><strong>Next priorities:</strong> '+e(summaries.at(-1).payload.priorities)+'</p>':empty('Add today’s progress, blockers and next priorities.'),btn('+ Daily summary','summary','',true))+
     panel('Storage maintenance','<p id="maintenance-state">Checking recovery and backup status…</p>');
 }
 function showDocuments(candidate) {
   if(!candidate)return;
-  const job=state.jobs.find(j=>j.id===candidate.job_id);
-  if(job?.profile!=='client-acquisition-v1'){flash('Use the Client Acquisition & Client Relations position for this upload workflow.');return;}
+  const job=jobById(candidate.job_id);
+  if(job?.profile!=='client-acquisition-v1'){
+    show('<h2 id="dialog-title">Document upload is not configured for this position</h2><p>This private upload workflow is currently available for the Client Acquisition &amp; Client Relations position. The owner needs to configure a private destination for this position before documents can be uploaded here.</p><p class="hint">The candidate record remains available. No files or personal information have been sent.</p>'+btn('Close','close'));return;
+  }
   const stateMarkup='<div class="statline">'+tag('CV: '+(candidate.documents?.cv||'Missing'))+tag('Cover letter: '+(candidate.documents?.cover||'Missing'))+'</div>';
   show('<div class="section-top"><h2 id="dialog-title">Application documents · '+e(candidate.alias)+'</h2>'+btn('Close','close')+'</div>'+stateMarkup+
     '<p class="public-note">The full name and document contents go to Google Drive. They are not saved to the public candidate record or browser draft.</p>'+

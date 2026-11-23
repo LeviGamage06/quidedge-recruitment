@@ -1,5 +1,5 @@
 /* Responsive and accessible recruitment workspace refinements. */
-:root{--muted:#555c50;--line:#d7dace;--focus:#81400b;--surface:#fafaf3}
+:root{--muted:#555c50;--line:#d7dace;--focus:#81400b;--surface:#fafaf3;--control-border:#89907f}
 html{scroll-padding-top:100px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{line-height:1.5;min-width:280px}
 main,.top,.intro,.toolbar,.panel,.section-top,.field{min-width:0}
@@ -34,7 +34,7 @@ thead th{font-size:.72rem;overflow-wrap:normal}td{font-size:.9rem}td small{font-
 .field{display:block;font-size:.86rem;line-height:1.5;font-weight:650}
 .field>input,.field>select,.field>textarea{display:block;margin-top:6px}
 .required{display:inline;color:#843d16;margin-left:2px}
-input,textarea,select{font-size:16px;line-height:1.4;min-height:46px;max-width:100%;background:#fffef9;padding:11px 12px}
+input,textarea,select{font-size:16px;line-height:1.4;min-height:46px;max-width:100%;background:#fffef9;padding:11px 12px;border-color:var(--control-border)}
 textarea{min-height:110px;line-height:1.6}textarea[name=description]{min-height:240px}
 input[type=file]{font-size:.87rem;padding:9px;overflow:hidden}
 input[type=file]::file-selector-button{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:9px;margin-right:10px;font:inherit}

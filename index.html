@@ -82,7 +82,7 @@ dialog h2{max-width:calc(100% - 85px)}
 @media(max-width:500px){.role-position-summary{flex-wrap:wrap}.role-position-summary>.tag{margin-left:0}}
 
 /* Responsive and accessible recruitment workspace refinements. */
-:root{--muted:#555c50;--line:#d7dace;--focus:#81400b;--surface:#fafaf3}
+:root{--muted:#555c50;--line:#d7dace;--focus:#81400b;--surface:#fafaf3;--control-border:#89907f}
 html{scroll-padding-top:100px;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{line-height:1.5;min-width:280px}
 main,.top,.intro,.toolbar,.panel,.section-top,.field{min-width:0}
@@ -117,7 +117,7 @@ thead th{font-size:.72rem;overflow-wrap:normal}td{font-size:.9rem}td small{font-
 .field{display:block;font-size:.86rem;line-height:1.5;font-weight:650}
 .field>input,.field>select,.field>textarea{display:block;margin-top:6px}
 .required{display:inline;color:#843d16;margin-left:2px}
-input,textarea,select{font-size:16px;line-height:1.4;min-height:46px;max-width:100%;background:#fffef9;padding:11px 12px}
+input,textarea,select{font-size:16px;line-height:1.4;min-height:46px;max-width:100%;background:#fffef9;padding:11px 12px;border-color:var(--control-border)}
 textarea{min-height:110px;line-height:1.6}textarea[name=description]{min-height:240px}
 input[type=file]{font-size:.87rem;padding:9px;overflow:hidden}
 input[type=file]::file-selector-button{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:9px;margin-right:10px;font:inherit}
@@ -222,6 +222,11 @@ details[open]>.role-position-summary::after{content:'Hide details'}
 <div id="notice" role="status" aria-live="polite"></div>
 <script>(() => {
   // src/model.js
+  function validDate(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = /* @__PURE__ */ new Date(value + "T00:00:00Z");
+    return Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === value;
+  }
   function recordStates(events2) {
     const states = /* @__PURE__ */ new Map();
     for (const event of [...events2].sort((a, b) => a.seq - b.seq)) {
@@ -272,7 +277,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   var kinds = /* @__PURE__ */ new Set(["job", "candidate", "stage", "activity", "summary", "score"]);
   var idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
   function validEvent(event) {
-    return Boolean(event && typeof event === "object" && Number.isSafeInteger(event.seq) && event.seq > 0 && typeof event.id === "string" && idPattern.test(event.id) && kinds.has(event.kind) && (event.subject_id === null || typeof event.subject_id === "string" && idPattern.test(event.subject_id)) && typeof event.event_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(event.event_date) && event.payload && typeof event.payload === "object" && !Array.isArray(event.payload));
+    return Boolean(event && typeof event === "object" && Number.isSafeInteger(event.seq) && event.seq > 0 && typeof event.id === "string" && idPattern.test(event.id) && kinds.has(event.kind) && (["stage", "activity", "score"].includes(event.kind) ? typeof event.subject_id === "string" && idPattern.test(event.subject_id) : event.subject_id === null) && validDate(event.event_date) && event.payload && typeof event.payload === "object" && !Array.isArray(event.payload));
   }
   function validDraft(value) {
     return Boolean(value && typeof value === "object" && !Array.isArray(value) && ["job", "candidate", "stage", "activity", "score", "checklist", "commission", "summary", "correction", "recordaction"].includes(value.kind) && typeof value.id === "string" && (!value.id || idPattern.test(value.id)) && typeof value.request === "string" && idPattern.test(value.request) && Number.isSafeInteger(value.revision) && value.revision >= 0 && value.values && typeof value.values === "object" && !Array.isArray(value.values) && Object.values(value.values).every((v) => typeof v === "string") && (value.kind !== "score" || ["R1", "R2"].includes(value.values.round)) && (!value.pending || typeof value.pending === "object" && value.pending.id === value.request && kinds.has(value.pending.kind)));
@@ -334,13 +339,14 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     '"': "&quot;",
     "'": "&#39;"
   })[c]);
-  function validDate(value) {
+  function validDate2(value) {
     if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const parsed = /* @__PURE__ */ new Date(value + "T00:00:00Z");
     return Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === value;
   }
-  function stageProblem(payload, candidate, eventDate) {
-    if (candidate.job_id === "e2173dde-bc77-409a-96a1-86dcb23841f0" && ["R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "Hired"].includes(payload.stage) && (candidate.commission_ack !== "Accepted" || !candidate.terms_detail?.trim())) return "Confirm accepted commission-only terms before advancing this candidate.";
+  function stageProblem(payload, candidate, eventDate, job) {
+    if (!candidate) return "Refresh and select an existing candidate.";
+    if ((job?.profile === "client-acquisition-v1" || candidate.job_id === "e2173dde-bc77-409a-96a1-86dcb23841f0") && ["R1 Scheduled", "R1 Review", "R2 Prep", "R2 Scheduled", "R2 Review", "Reference Check", "Offer / Agreement", "Hired"].includes(payload.stage) && (candidate.commission_ack !== "Accepted" || !candidate.terms_detail?.trim())) return "Confirm accepted commission-only terms before advancing this candidate.";
     if (!stages.includes(payload.stage)) return "Choose a valid stage.";
     if (!String(payload.note || "").trim()) return "Add the reason for this update.";
     if (!closed.includes(payload.stage)) {
@@ -354,7 +360,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     if (payload.stage === "Hired") {
       const missing = checklistItems.filter(([key]) => !["Complete", "Waived"].includes(candidate.checklist[key]));
       if (missing.length) return "Complete or waive each hiring checklist item before marking Hired.";
-      if (!validDate(payload.start_date)) return "Confirm the start date before marking Hired.";
+      if (!validDate2(payload.start_date)) return "Confirm the start date before marking Hired.";
     }
     return "";
   }
@@ -1130,13 +1136,17 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   async function loadEvents(after = 0, filters = {}) {
     const events2 = [];
     let cursor = after;
+    let epoch;
+    const ids = /* @__PURE__ */ new Set();
     for (; ; ) {
       const batch = await request("?" + new URLSearchParams({ ...filters, after: String(cursor) }));
       if (!Array.isArray(batch)) throw new Error("The server returned an invalid event list.");
-      events2.purgeEpoch = batch.purgeEpoch || "";
+      const batchEpoch = batch.purgeEpoch || "";
+      if (epoch !== void 0 && batchEpoch !== epoch) throw new Error("The workspace changed during cleanup. Retry to load one consistent history.");
+      epoch = batchEpoch;
+      events2.purgeEpoch = epoch;
       if (!batch.length) return events2;
       let previous = cursor;
-      const ids = /* @__PURE__ */ new Set();
       if (batch.some((event) => {
         if (!validEvent(event) || event.seq <= previous || ids.has(event.id)) return true;
         previous = event.seq;
@@ -1170,11 +1180,19 @@ details[open]>.role-position-summary::after{content:'Hide details'}
         if (!response.ok) {
           const events2 = await loadEvents(0);
           cursor = events2.at(-1)?.seq || 0;
+          epoch = events2.purgeEpoch || "";
           started = true;
           return events2;
         }
         const snapshot = await response.json();
-        if (!Number.isSafeInteger(snapshot.cursor) || snapshot.cursor < 0 || !Array.isArray(snapshot.events) || snapshot.events.some((e) => !validEvent(e) || e.seq > snapshot.cursor)) throw Error("Invalid recruitment snapshot. Retry sync.");
+        let previous = 0;
+        const ids = /* @__PURE__ */ new Set();
+        if (!Number.isSafeInteger(snapshot.cursor) || snapshot.cursor < 0 || !Array.isArray(snapshot.events) || snapshot.events.some((e) => {
+          if (!validEvent(e) || e.seq <= previous || e.seq > snapshot.cursor || ids.has(e.id)) return true;
+          previous = e.seq;
+          ids.add(e.id);
+          return false;
+        }) || previous !== snapshot.cursor) throw Error("Invalid recruitment snapshot. Retry sync.");
         epoch = response.headers.get("X-Purge-Epoch") || "";
         cursor = snapshot.cursor;
         started = true;
@@ -1206,6 +1224,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   var events = [];
   var state = { jobs: [], candidates: [] };
   var jobNames = /* @__PURE__ */ new Map();
+  var jobIndex = /* @__PURE__ */ new Map();
   var candidateIndex = /* @__PURE__ */ new Map();
   var ready = false;
   var failure = "";
@@ -1260,6 +1279,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     return jobs.map((job) => [job.id, titleCounts.get(job.title) > 1 ? [job.title, job.location, job.department].filter(Boolean).join(" \xB7 ") : job.title]);
   }
   var candidateById = (id) => candidateIndex.get(id);
+  var jobById = (id) => jobIndex.get(id);
   function storageDrafts() {
     try {
       const saved = JSON.parse(sessionStorage.getItem("qe-recruitment-draft") || "null");
@@ -1296,10 +1316,12 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     const fresh = incoming.filter((event) => !known.has(event.id));
     if (!fresh.length && !reset) return false;
     events = events.concat(fresh).sort((a, b) => a.seq - b.seq);
-    state = project(events);
+    const projected = project(events);
+    state = { jobs: projected.jobs, candidates: projected.candidates };
     state.jobs = state.jobs.filter((j) => !j.deleted);
     state.candidates = state.candidates.filter((c) => !c.deleted);
-    jobNames = new Map(project(events).jobs.map((job) => [job.id, job.title]));
+    jobNames = new Map(projected.jobs.map((job) => [job.id, job.title]));
+    jobIndex = new Map(projected.jobs.map((job) => [job.id, job]));
     candidateIndex = new Map(state.candidates.map((candidate) => [candidate.id, candidate]));
     return true;
   }
@@ -1465,7 +1487,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     const screens = { overview, coo: cooView, role: roleView, pipeline, activity, interviews, guide: guideView, trash: trashView };
     const drafts = storageDrafts();
     const draftBanner = drafts.map((draft) => '<div class="draft-banner"><span><strong>' + escape(draftTitle(draft)) + "</strong><small>" + escape(draft.saved_at ? "Draft saved " + new Date(draft.saved_at).toLocaleString("en-LK", { timeZone: "Asia/Colombo", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " SL" : "Unsaved draft \xB7 saved time unavailable") + '</small></span><div class="row-actions">' + btn("Resume draft", "resume", draft.kind + ":" + draft.id) + btn("Discard draft", "discard", draft.kind + ":" + draft.id) + "</div></div>").join("");
-    const alert = failure ? '<p class="banner" role="alert">' + escape(failure) + " Existing records remain visible. Use Refresh to retry.</p>" : "";
+    const alert = failure ? '<p class="banner" role="alert">' + escape(failure) + (ready ? " Existing records remain visible." : " Shared records have not loaded yet.") + " Use Refresh to retry.</p>" : "";
     app.innerHTML = alert + draftBanner + (!ready && view !== "guide" ? panel("Recruitment workspace", empty(failure ? "The shared records could not be loaded." : "Loading shared records\u2026")) : screens[view]());
     if (view === "trash" && ready) loadTrashCleanup();
     const active = activeId && document.getElementById(activeId);
@@ -1624,7 +1646,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     if (form.dataset.scoreRound) cache[form.dataset.scoreRound] = Object.fromEntries([...form.querySelectorAll("#round-fields select")].map((i2) => [i2.name, i2.value]));
     form.dataset.roundScores = JSON.stringify(cache);
     form.dataset.scoreRound = round;
-    const job = state.jobs.find((j) => j.id === (candidateById(form.dataset.id) || candidateById(events.find((e) => e.id === form.dataset.id)?.subject_id))?.job_id);
+    const job = jobById((candidateById(form.dataset.id) || candidateById(events.find((e) => e.id === form.dataset.id)?.subject_id))?.job_id);
     dialog.querySelector("#round-fields").innerHTML = scorecardFor(job)[round].map((label, i2) => field("score" + (i2 + 1), label, { kind: "select", value: cache[round]?.["score" + (i2 + 1)] || "", choices: [["", "Untested"], "1", "2", "3", "4", "5"] })).join("");
   }
   function updateStageFields() {
@@ -1708,7 +1730,11 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     download(candidate.alias + "-" + round + ".ics", content, "text/calendar;charset=utf-8");
   }
   async function refresh() {
-    if (refreshing || saving || !navigator.onLine) return;
+    if (refreshing || saving) return;
+    if (!navigator.onLine) {
+      showOfflineState();
+      return;
+    }
     refreshing = true;
     sync.disabled = true;
     try {
@@ -2011,7 +2037,8 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       if (kind === "checklist") values.event = "Hiring checklist updated";
       if (kind === "stage") {
         if (closed.includes(values.stage)) Object.assign(values, { action: "", due: "", owner: "", blocker: "" });
-        const problem = stageProblem(values, candidateById(id) || candidateById(events.find((e) => e.id === id)?.subject_id), eventDate);
+        const currentCandidate = candidateById(id) || candidateById(events.find((e) => e.id === id)?.subject_id);
+        const problem = stageProblem(values, currentCandidate, eventDate, jobById(currentCandidate?.job_id));
         if (problem) {
           errorBox.textContent = problem;
           return;
@@ -2092,10 +2119,13 @@ details[open]>.role-position-summary::after{content:'Hide details'}
     focusRoute();
   });
   window.addEventListener("online", refresh);
-  window.addEventListener("offline", () => {
+  function showOfflineState() {
+    failure = "You are offline. Reconnect to load or save shared records. Your form drafts stay in this tab.";
     mode.textContent = "Offline \xB7 draft kept";
     sync.className = "pill error";
-  });
+    render();
+  }
+  window.addEventListener("offline", showOfflineState);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && !dialog.open) refresh();
   });
@@ -2173,7 +2203,7 @@ details[open]>.role-position-summary::after{content:'Hide details'}
   }
   function nextCandidateAction(candidate) {
     if (closed.includes(candidate.stage)) return { label: "Review candidate details", action: "correction", description: candidate.stage === "Hired" ? "Hiring completed. Review the record if any details need updating." : "This hiring process is closed. Review details or reopen it through the stage controls." };
-    if (state.jobs.find((job) => job.id === candidate.job_id)?.profile === "client-acquisition-v1" && ["cv", "cover"].some((type) => candidate.documents?.[type] !== "Available")) return { label: "Upload or verify documents", action: "documents", description: "Complete the application file record. The hiring checklist and document availability are tracked separately." };
+    if (jobById(candidate.job_id)?.profile === "client-acquisition-v1" && ["cv", "cover"].some((type) => candidate.documents?.[type] !== "Available")) return { label: "Upload or verify documents", action: "documents", description: "Complete the application file record. The hiring checklist and document availability are tracked separately." };
     if (candidate.commission_ack !== "Accepted" || !candidate.terms_detail) return { label: "Review commission terms", action: "commission", description: "Record the candidate\u2019s acknowledgement and agreed boundaries before progressing." };
     if (["R1 Review", "R2 Review"].includes(candidate.stage)) return { label: "Complete interview scorecard", action: "score", description: "Record observed evidence before deciding the next stage." };
     if (candidate.stage === "Offer / Agreement") return { label: "Review hiring checklist", action: "checklist", description: "Confirm all hiring requirements before marking the candidate hired." };
@@ -2373,14 +2403,14 @@ details[open]>.role-position-summary::after{content:'Hide details'}
       "<strong>" + escape(c.alias) + "</strong>",
       tag(c.documents?.cv || "Missing", c.documents?.cv === "Available" ? "good" : "warn"),
       tag(c.documents?.cover || "Missing", c.documents?.cover === "Available" ? "good" : "warn"),
-      btn("Upload documents", "documents", c.id, true)
+      btn(jobById(c.job_id)?.profile === "client-acquisition-v1" ? "Upload documents" : "View document setup", "documents", c.id, true)
     ])) : empty(active.length ? "All active candidates have both application documents." : "No active candidates need document review.")) + panel("Daily COO handover", summaries.length ? "<p>" + escape(summaries.at(-1).payload.progress) + "</p><p><strong>Blockers / decisions:</strong> " + escape(summaries.at(-1).payload.blockers || "None recorded") + "</p><p><strong>Next priorities:</strong> " + escape(summaries.at(-1).payload.priorities) + "</p>" : empty("Add today\u2019s progress, blockers and next priorities."), btn("+ Daily summary", "summary", "", true)) + panel("Storage maintenance", '<p id="maintenance-state">Checking recovery and backup status\u2026</p>');
   }
   function showDocuments(candidate) {
     if (!candidate) return;
-    const job = state.jobs.find((j) => j.id === candidate.job_id);
+    const job = jobById(candidate.job_id);
     if (job?.profile !== "client-acquisition-v1") {
-      flash("Use the Client Acquisition & Client Relations position for this upload workflow.");
+      show('<h2 id="dialog-title">Document upload is not configured for this position</h2><p>This private upload workflow is currently available for the Client Acquisition &amp; Client Relations position. The owner needs to configure a private destination for this position before documents can be uploaded here.</p><p class="hint">The candidate record remains available. No files or personal information have been sent.</p>' + btn("Close", "close"));
       return;
     }
     const stateMarkup = '<div class="statline">' + tag("CV: " + (candidate.documents?.cv || "Missing")) + tag("Cover letter: " + (candidate.documents?.cover || "Missing")) + "</div>";

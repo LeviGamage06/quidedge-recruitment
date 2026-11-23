@@ -22,6 +22,7 @@ const pageSize = 25;
 let events = [];
 let state = {jobs:[],candidates:[]};
 let jobNames = new Map();
+let jobIndex = new Map();
 let candidateIndex = new Map();
 let ready = false;
 let failure = '';
@@ -87,6 +88,7 @@ function positionOptions(jobs) {
     [job.title,job.location,job.department].filter(Boolean).join(' · ') : job.title]);
 }
 const candidateById = id => candidateIndex.get(id);
+const jobById = id => jobIndex.get(id);
 function storageDrafts() {
   try {
     const saved=JSON.parse(sessionStorage.getItem('qe-recruitment-draft') || 'null');
@@ -111,9 +113,11 @@ function ingest(incoming) {
   const fresh = incoming.filter(event => !known.has(event.id));
   if (!fresh.length&&!reset) return false;
   events = events.concat(fresh).sort((a,b) => a.seq - b.seq);
-  state = project(events);
+  const projected=project(events);
+  state = {jobs:projected.jobs,candidates:projected.candidates};
   state.jobs=state.jobs.filter(j=>!j.deleted);state.candidates=state.candidates.filter(c=>!c.deleted);
-  jobNames = new Map(project(events).jobs.map(job => [job.id,job.title]));
+  jobNames = new Map(projected.jobs.map(job => [job.id,job.title]));
+  jobIndex = new Map(projected.jobs.map(job => [job.id,job]));
   candidateIndex = new Map(state.candidates.map(candidate => [candidate.id,candidate]));
   return true;
 }
@@ -302,7 +306,7 @@ function render() {
   const drafts = storageDrafts();
   const draftBanner = drafts.map(draft => '<div class="draft-banner"><span><strong>'+e(draftTitle(draft))+'</strong><small>'+e(draft.saved_at?'Draft saved '+new Date(draft.saved_at).toLocaleString('en-LK',{timeZone:'Asia/Colombo',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+' SL':'Unsaved draft · saved time unavailable')+'</small></span>'+ '<div class="row-actions">'+btn('Resume draft','resume',draft.kind+':'+draft.id)+btn('Discard draft','discard',draft.kind+':'+draft.id)+'</div></div>').join('');
   const alert = failure ? '<p class="banner" role="alert">' + e(failure) +
-    ' Existing records remain visible. Use Refresh to retry.</p>' : '';
+    (ready?' Existing records remain visible.':' Shared records have not loaded yet.')+' Use Refresh to retry.</p>' : '';
   app.innerHTML = alert + draftBanner + (!ready && view !== 'guide' ?
     panel('Recruitment workspace',empty(failure ? 'The shared records could not be loaded.' : 'Loading shared records…')) : screens[view]());
   if(view==='trash'&&ready)loadTrashCleanup();
@@ -469,7 +473,7 @@ function setRoundFields(round) {
   const cache=JSON.parse(form.dataset.roundScores||'{}');
   if(form.dataset.scoreRound)cache[form.dataset.scoreRound]=Object.fromEntries([...form.querySelectorAll('#round-fields select')].map(i=>[i.name,i.value]));
   form.dataset.roundScores=JSON.stringify(cache);form.dataset.scoreRound=round;
-  const job=state.jobs.find(j=>j.id===(candidateById(form.dataset.id)||candidateById(events.find(e=>e.id===form.dataset.id)?.subject_id))?.job_id);
+  const job=jobById((candidateById(form.dataset.id)||candidateById(events.find(e=>e.id===form.dataset.id)?.subject_id))?.job_id);
   dialog.querySelector('#round-fields').innerHTML = scorecardFor(job)[round].map((label,i) =>
     field('score' + (i + 1),label,{kind:'select',value:cache[round]?.['score'+(i+1)]||'',choices:[['','Untested'],'1','2','3','4','5']})).join('');
 }
@@ -535,7 +539,8 @@ function calendar(candidate) {
   download(candidate.alias + '-' + round + '.ics',content,'text/calendar;charset=utf-8');
 }
 async function refresh() {
-  if (refreshing || saving || !navigator.onLine) return;
+  if (refreshing || saving) return;
+  if (!navigator.onLine) {showOfflineState();return;}
   refreshing = true;
   sync.disabled = true;
   try {
@@ -727,7 +732,8 @@ dialog.addEventListener('submit',async event => {
     if (kind === 'checklist') values.event = 'Hiring checklist updated';
     if (kind === 'stage') {
       if (closed.includes(values.stage)) Object.assign(values,{action:'',due:'',owner:'',blocker:''});
-      const problem = stageProblem(values,candidateById(id)||candidateById(events.find(e=>e.id===id)?.subject_id),eventDate);
+      const currentCandidate=candidateById(id)||candidateById(events.find(e=>e.id===id)?.subject_id);
+      const problem = stageProblem(values,currentCandidate,eventDate,jobById(currentCandidate?.job_id));
       if (problem) { errorBox.textContent = problem;return }
     }
     record = {
@@ -796,7 +802,8 @@ function focusRoute() {
 }
 window.addEventListener('hashchange',() => { render();focusRoute(); });
 window.addEventListener('online',refresh);
-window.addEventListener('offline',() => { mode.textContent = 'Offline · draft kept';sync.className = 'pill error' });
+function showOfflineState(){failure='You are offline. Reconnect to load or save shared records. Your form drafts stay in this tab.';mode.textContent='Offline · draft kept';sync.className='pill error';render();}
+window.addEventListener('offline',showOfflineState);
 document.addEventListener('visibilitychange',() => { if (!document.hidden && !dialog.open) refresh() });
 window.addEventListener('pagehide',() => { saveDraft();clearInterval(timer);timer=null; });
 window.addEventListener('pageshow',()=>{if(!timer){startSyncTimer();refresh();}});
@@ -851,7 +858,7 @@ function historyTitle(event,candidate){
 }
 function nextCandidateAction(candidate){
  if(closed.includes(candidate.stage))return {label:'Review candidate details',action:'correction',description:candidate.stage==='Hired'?'Hiring completed. Review the record if any details need updating.':'This hiring process is closed. Review details or reopen it through the stage controls.'};
- if(state.jobs.find(job=>job.id===candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
+ if(jobById(candidate.job_id)?.profile==='client-acquisition-v1'&&['cv','cover'].some(type=>candidate.documents?.[type]!=='Available'))return {label:'Upload or verify documents',action:'documents',description:'Complete the application file record. The hiring checklist and document availability are tracked separately.'};
  if(candidate.commission_ack!=='Accepted'||!candidate.terms_detail)return {label:'Review commission terms',action:'commission',description:'Record the candidate’s acknowledgement and agreed boundaries before progressing.'};
  if(['R1 Review','R2 Review'].includes(candidate.stage))return {label:'Complete interview scorecard',action:'score',description:'Record observed evidence before deciding the next stage.'};
  if(candidate.stage==='Offer / Agreement')return {label:'Review hiring checklist',action:'checklist',description:'Confirm all hiring requirements before marking the candidate hired.'};

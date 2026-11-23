@@ -1,10 +1,11 @@
+import {validDate} from './model.js';
 const kinds = new Set(['job','candidate','stage','activity','summary','score']);
 const idPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 export function validEvent(event) {
   return Boolean(event && typeof event==='object' && Number.isSafeInteger(event.seq) && event.seq>0 &&
     typeof event.id==='string' && idPattern.test(event.id) && kinds.has(event.kind) &&
-    (event.subject_id===null || typeof event.subject_id==='string' && idPattern.test(event.subject_id)) &&
-    typeof event.event_date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(event.event_date) &&
+    (['stage','activity','score'].includes(event.kind)?typeof event.subject_id==='string'&&idPattern.test(event.subject_id):event.subject_id===null) &&
+    validDate(event.event_date) &&
     event.payload && typeof event.payload==='object' && !Array.isArray(event.payload));
 }
 export function validDraft(value) {

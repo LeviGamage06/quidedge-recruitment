@@ -398,3 +398,17 @@ test('permanent Trash cleanup removes database, reminders, receipts and managed 
   const bootstrap=await worker.fetch(request('/api/bootstrap'),env);assert.equal(bootstrap.headers.get('X-Purge-Epoch'),rid);assert.ok((await bootstrap.json()).events.every(e=>![cid,sid,tid,note,nt].includes(e.id)));assert.throws(()=>sql('DELETE FROM recruitment_events'));
  }finally{globalThis.fetch=originalFetch;}
 });
+
+test('profile-based commission gate cannot be bypassed by creating a different position ID',async()=>{
+ const jid=crypto.randomUUID(),cid=crypto.randomUUID();
+ assert.equal((await saveRecord({id:jid,kind:'job',subject_id:null,event_date:'2026-11-23',payload:{title:'Acquisition profile clone',department:'Growth',location:'Remote',profile:'client-acquisition-v1'}})).status,201);
+ assert.equal((await saveRecord({id:cid,kind:'candidate',subject_id:null,event_date:'2026-11-23',payload:{alias:'QA-PROFILE-GATE',job_id:jid,stage:'Sourced',source:'Referral',action:'Review',due:'2026-12-25',owner:'COO',commission_plan:'Other agreed terms',commission_ack:'Pending'}})).status,201);
+ const stage=()=>({id:crypto.randomUUID(),kind:'stage',subject_id:cid,event_date:'2026-11-23',payload:{stage:'R1 Scheduled',r1:'2026-12-25T14:00',action:'Interview',due:'2026-12-25',owner:'COO',note:'Synthetic interview'}});
+ const blocked=await saveRecord(stage());assert.equal(blocked.status,400);assert.match((await blocked.json()).error,/commission/i);
+ assert.equal((await saveRecord({id:crypto.randomUUID(),kind:'activity',subject_id:cid,event_date:'2026-11-23',payload:{event:'Commission terms reviewed',commission_plan:'Other agreed terms',commission_ack:'Accepted',terms_detail:'Approved written boundaries',note:'Terms confirmed'}})).status,201);
+ assert.equal((await saveRecord(stage())).status,201);
+});
+test('overlong descriptions report the actual description limit and create no record',async()=>{
+ const id=crypto.randomUUID();const response=await saveRecord({id,kind:'job',subject_id:null,event_date:'2026-11-23',payload:{title:'Validation fixture',department:'Growth',location:'Remote',description:'A'.repeat(12001)}});
+ assert.equal(response.status,400);assert.match((await response.json()).error,/12,000/);assert.equal(sql('SELECT id FROM recruitment_events WHERE id=?',[id]).length,0);
+});

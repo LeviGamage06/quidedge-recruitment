@@ -86,8 +86,9 @@ function interviewEmail_(p,props,lock){
   var key='interview-mail:'+p.id,previous=props.getProperty(key);
   if(previous)return reply_({ok:true,sent:previous==='sent',status:previous});
   if(MailApp.getRemainingDailyQuota()<1)return reply_({ok:false,code:'MAIL_QUOTA'});
+  var role=typeof p.role==='string'&&p.role.trim()&&p.role.length<=240&&!/[\r\n\x00-\x1f]/.test(p.role)?p.role.trim():ROLE_FOLDER_NAME;
   props.setProperty(key,'sending');
-  MailApp.sendEmail({to:'prasad.quidedge@gmail.com',subject:'QuidEdge interview reminder — '+p.alias+' — '+p.round,body:'Interview reminder\n\nCandidate: '+p.alias+'\nRole: Client Acquisition & Client Relations Specialist\nRound: '+p.round+'\nInterview: '+p.slot.replace('T',' ')+' (Sri Lanka time, UTC+05:30)\nZoom: '+p.zoom+'\n\nOpen recruitment calendar: https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/#interviews\nReference: '+p.id,name:'QuidEdge Recruitment'});
+  MailApp.sendEmail({to:'prasad.quidedge@gmail.com',subject:'QuidEdge interview reminder — '+p.alias+' — '+p.round,body:'Interview reminder\n\nCandidate: '+p.alias+'\nRole: '+role+'\nRound: '+p.round+'\nInterview: '+p.slot.replace('T',' ')+' (Sri Lanka time, UTC+05:30)\nZoom: '+p.zoom+'\n\nOpen recruitment calendar: https://quidedge-recruitment.inquiries-quidedge-au.workers.dev/#interviews\nReference: '+p.id,name:'QuidEdge Recruitment'});
   props.setProperty(key,'sent');return reply_({ok:true,sent:true});
  }finally{lock.releaseLock();}
 }

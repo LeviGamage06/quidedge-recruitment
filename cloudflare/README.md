@@ -67,3 +67,9 @@ A server job pauses writes while cleanup runs. Private-file failure leaves the j
 ### Documents for all positions
 
 Every saved hiring position uses the existing owner-configured private Drive bridge. The legacy bridge’s managed parent folder retains its original Client Acquisition label; this is a shared recruitment destination, not a per-position restriction. Candidate UUIDs and stable codes keep candidate folders and receipts separate. Existing uploads, availability checks, retries, reconciliation, and permanent-cleanup ancestry checks keep the same destination. No new Apps Script deployment or folder sharing change is required.
+
+### Open saved application documents
+
+Candidate records and the CV & cover letter panel show separate **Open CV** and **Open cover letter** links. The Worker resolves the latest stored receipt for each type using the candidate UUID, upload request ID and fingerprint. The Drive bridge checks the receipt, document marker and folder ancestry before returning an exact file ID. Links open the original private file in Google Drive using the viewer's existing Google permissions. Missing files and connection failures are shown separately; documents are never made public or copied into the event feed.
+
+Deploy the updated `integrations/GoogleDrive.gs` as a new version of the existing Apps Script web app, preserving its URL, secret and restricted Drive sharing, then deploy the Worker/frontend. This is an additive protocol-3 operation and needs no database migration. Until the bridge is updated, existing uploads continue to work and document links report unavailable. New uploads immediately refresh the links; previous uploads use their existing stored receipts.

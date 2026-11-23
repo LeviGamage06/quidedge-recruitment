@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-23",
+  "browser_surface": "Connected in-app Chromium browser; not physical devices",
+  "widths": [
+    320,
+    360,
+    375,
+    390,
+    414,
+    430,
+    700,
+    701,
+    768,
+    820,
+    1024,
+    1100,
+    1101,
+    1280,
+    1440,
+    1920
+  ],
+  "baseline": {
+    "routes": 8,
+    "checks": 128,
+    "failures": 0
+  },
+  "post_deployment": {
+    "staff_routes": 8,
+    "direct_role_routes": 3,
+    "public_job_pages": 3,
+    "checks": 224,
+    "actual_viewport_width_verified": true,
+    "failures": 0
+  },
+  "safe_interactions": {
+    "reset_restores_recent_sort": true,
+    "reset_focuses_search": true,
+    "mobile_menu_escape": true,
+    "candidate_modal_escape_and_focus_return": true,
+    "copy_link_success_feedback": true,
+    "careers_staff_api_unavailable": true,
+    "careers_invalid_job_unavailable": true,
+    "private_drive_readiness": true,
+    "maintenance_status_available": true,
+    "browser_errors_or_warnings": 0
+  },
+  "control_contrast": {
+    "before_border": "#cdcec1",
+    "after_border": "#89907f",
+    "fill": "#fffef9",
+    "before_ratio": 1.58,
+    "after_ratio": 3.27
+  },
+  "production_candidate_mutations": 0,
+  "uncertified": [
+    "physical devices",
+    "Safari/Firefox/Edge engines",
+    "screen reader",
+    "actual 200% browser zoom",
+    "native popup handoff",
+    "Tab boundary wrapping",
+    "real email delivery",
+    "real applicant upload",
+    "Cloudflare exception stream"
+  ],
+  "legacy_content_issue": "Worldwide JD stored at 12000 characters and ends mid-word; approved complete text required"
+}
